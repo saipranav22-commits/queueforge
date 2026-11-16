@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5435}/${DB_NAME:queueforge}
+    username: ${DB_USERNAME:queueforge_app}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+queueforge:
+  worker:
+    enabled: false # Disabled by default in tests; enabled explicitly where coordinator is tested
+    concurrency: 4
+    poll-interval-ms: 100
+    lease-duration-seconds: 30
+    heartbeat-interval-seconds: 10
+    recovery-poll-interval-ms: 1000
+    shutdown-timeout-seconds: 5

@@ -24,6 +24,12 @@ public class JobEntity {
     @Column(name = "idempotency_fingerprint", length = 64)
     private String idempotencyFingerprint;
 
+    @Column(name = "claim_token")
+    private UUID claimToken;
+
+    @Column(name = "claim_version", nullable = false)
+    private long claimVersion;
+
     @Column(name = "job_type", nullable = false, length = 64)
     private String jobType;
 
@@ -132,6 +138,22 @@ public class JobEntity {
 
     public void setIdempotencyFingerprint(String idempotencyFingerprint) {
         this.idempotencyFingerprint = idempotencyFingerprint;
+    }
+
+    public UUID getClaimToken() {
+        return claimToken;
+    }
+
+    public void setClaimToken(UUID claimToken) {
+        this.claimToken = claimToken;
+    }
+
+    public long getClaimVersion() {
+        return claimVersion;
+    }
+
+    public void setClaimVersion(long claimVersion) {
+        this.claimVersion = claimVersion;
     }
 
     public String getJobType() {
