@@ -5,6 +5,38 @@ spring:
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,queueForgeWorker
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: queueforge-backend-test
+    distribution:
+      percentiles-histogram:
+        queueforge.job.execution.duration: true
+        queueforge.job.queue_wait_duration: true
+
 queueforge:
   worker:
     enabled: false # Disabled by default in tests; enabled explicitly where coordinator is tested
@@ -14,3 +46,10 @@ queueforge:
     heartbeat-interval-seconds: 10
     recovery-poll-interval-ms: 1000
     shutdown-timeout-seconds: 5
+  retry:
+    initial-delay-seconds: 5
+    multiplier: 3.0
+    max-delay-seconds: 3600
+    jitter-factor: 0.20
+  admin:
+    api-key: ${ADMIN_API_KEY:qf_admin_dev_secret_2026}

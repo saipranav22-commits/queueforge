@@ -5,6 +5,7 @@ import com.queueforge.api.dto.CreateJobResponse;
 import com.queueforge.api.dto.JobStatusResponse;
 import com.queueforge.service.JobService;
 import jakarta.validation.Valid;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +31,16 @@ public class JobController {
             @Valid @RequestBody CreateJobRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 
-        CreateJobResponse response = jobService.submitJob(request, idempotencyKey);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        try {
+            if (request.jobType() != null) {
+                MDC.put("jobType", request.jobType().trim().toUpperCase());
+            }
+            CreateJobResponse response = jobService.submitJob(request, idempotencyKey);
+            MDC.put("jobId", response.jobId().toString());
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        } finally {
+            MDC.clear();
+        }
     }
 
     /**
@@ -40,7 +49,12 @@ public class JobController {
      */
     @GetMapping("/{jobId}")
     public ResponseEntity<JobStatusResponse> getJobStatus(@PathVariable UUID jobId) {
-        JobStatusResponse response = jobService.getJobStatus(jobId);
-        return ResponseEntity.ok(response);
+        try {
+            MDC.put("jobId", jobId.toString());
+            JobStatusResponse response = jobService.getJobStatus(jobId);
+            return ResponseEntity.ok(response);
+        } finally {
+            MDC.clear();
+        }
     }
 }

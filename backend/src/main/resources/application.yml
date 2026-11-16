@@ -41,10 +41,44 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,queueForgeWorker
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        queueforge.job.execution.duration: true
+        queueforge.job.queue_wait_duration: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [jobId=%X{jobId:-NONE} worker=%X{workerId:-NONE} attempt=%X{attempt:-0}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [jobId=%X{jobId:-NONE} worker=%X{workerId:-NONE} attempt=%X{attempt:-0}] - %msg%n"
+  file:
+    name: ${LOG_FILE:D:/Projects/QueueForge/logs/queueforge.log}
+  level:
+    com.queueforge: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN
 
 queueforge:
   worker:

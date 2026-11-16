@@ -11,6 +11,7 @@ import com.queueforge.core.handler.JobHandlerRegistry;
 import com.queueforge.service.JobClaimService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -134,98 +135,109 @@ public class WorkerCoordinator implements SmartLifecycle {
         String workerName = Thread.currentThread().getName();
         long startTime = System.currentTimeMillis();
 
-        log.debug("[{}] Processing jobId={} type='{}' attempt={} retry={}",
-                workerName, job.id(), job.jobType(), job.attemptCount(), job.retryCount());
-
-        Optional<JobHandler> handlerOpt = handlerRegistry.getHandler(job.jobType());
-        if (handlerOpt.isEmpty()) {
-            String errorMsg = String.format("No registered handler found for job type: '%s'", job.jobType());
-            log.error("[{}] Fatal: {}", workerName, errorMsg);
-            // Missing handler is unrecoverable; route immediately to DEAD_LETTER rather than retry loops
-            claimService.failJob(
-                    job.id(),
-                    job.claimToken(),
-                    job.attemptCount(),
-                    job.retryCount(),
-                    job.maxRetries(),
-                    FailureCategory.HANDLER_NOT_FOUND,
-                    errorMsg,
-                    null,
-                    System.currentTimeMillis() - startTime,
-                    workerName
-            );
-            return;
-        }
-
-        JobHandler handler = handlerOpt.get();
-        ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "qf-heartbeat-" + job.id().toString().substring(0, 8));
-            t.setDaemon(true);
-            return t;
-        });
-
-        // Periodic heartbeat extension for long-running executions
-        int heartbeatInterval = properties.getHeartbeatIntervalSeconds();
-        int leaseDuration = properties.getLeaseDurationSeconds();
-        ScheduledFuture<?> heartbeatTask = heartbeatExecutor.scheduleWithFixedDelay(
-                () -> {
-                    try {
-                        boolean extended = claimService.extendLease(job.id(), job.claimToken(), leaseDuration, workerName);
-                        if (!extended) {
-                            log.warn("[{}] Heartbeat extension rejected for jobId={}. Fencing out.", workerName, job.id());
-                        }
-                    } catch (Exception ex) {
-                        log.warn("[{}] Heartbeat extension exception for jobId={}: {}", workerName, job.id(), ex.getMessage());
-                    }
-                },
-                heartbeatInterval,
-                heartbeatInterval,
-                TimeUnit.SECONDS
-        );
-
-        JobExecutionContext context = new JobExecutionContext(
-                job.id(),
-                job.jobType(),
-                job.payload(),
-                job.claimToken(),
-                job.attemptCount(),
-                workerName
-        );
-
         try {
-            // Business logic execution completely OUTSIDE any database transaction
-            handler.handle(context);
+            MDC.put("jobId", job.id().toString());
+            MDC.put("jobType", job.jobType());
+            MDC.put("attempt", String.valueOf(job.attemptCount()));
+            MDC.put("workerId", workerName);
 
-            long duration = System.currentTimeMillis() - startTime;
-            cancelHeartbeat(heartbeatTask, heartbeatExecutor);
+            log.debug("[{}] Processing jobId={} type='{}' attempt={} retry={}",
+                    workerName, job.id(), job.jobType(), job.attemptCount(), job.retryCount());
 
-            // Guarded completion update
-            claimService.completeJob(job.id(), job.claimToken(), job.attemptCount(), duration, workerName);
-        } catch (Exception ex) {
-            long duration = System.currentTimeMillis() - startTime;
-            cancelHeartbeat(heartbeatTask, heartbeatExecutor);
+            Optional<JobHandler> handlerOpt = handlerRegistry.getHandler(job.jobType());
+            if (handlerOpt.isEmpty()) {
+                String errorMsg = String.format("No registered handler found for job type: '%s'", job.jobType());
+                log.error("[{}] Fatal: {}", workerName, errorMsg);
+                // Missing handler is unrecoverable; route immediately to DEAD_LETTER rather than retry loops
+                claimService.failJob(
+                        job.id(),
+                        job.claimToken(),
+                        job.jobType(),
+                        job.attemptCount(),
+                        job.retryCount(),
+                        job.maxRetries(),
+                        FailureCategory.HANDLER_NOT_FOUND,
+                        errorMsg,
+                        null,
+                        System.currentTimeMillis() - startTime,
+                        workerName
+                );
+                return;
+            }
 
-            StringWriter sw = new StringWriter();
-            ex.printStackTrace(new PrintWriter(sw));
-            String stackTrace = sw.toString();
+            JobHandler handler = handlerOpt.get();
+            ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "qf-heartbeat-" + job.id().toString().substring(0, 8));
+                t.setDaemon(true);
+                return t;
+            });
 
-            FailureCategory failureCategory = (ex instanceof PermanentJobException)
-                    ? FailureCategory.PERMANENT_FAILURE
-                    : FailureCategory.TRANSIENT_FAILURE;
+            // Periodic heartbeat extension for long-running executions
+            int heartbeatInterval = properties.getHeartbeatIntervalSeconds();
+            int leaseDuration = properties.getLeaseDurationSeconds();
+            ScheduledFuture<?> heartbeatTask = heartbeatExecutor.scheduleWithFixedDelay(
+                    () -> {
+                        try {
+                            boolean extended = claimService.extendLease(job.id(), job.claimToken(), leaseDuration, workerName);
+                            if (!extended) {
+                                log.warn("[{}] Heartbeat extension rejected for jobId={}. Fencing out.", workerName, job.id());
+                            }
+                        } catch (Exception ex) {
+                            log.warn("[{}] Heartbeat extension exception for jobId={}: {}", workerName, job.id(), ex.getMessage());
+                        }
+                    },
+                    heartbeatInterval,
+                    heartbeatInterval,
+                    TimeUnit.SECONDS
+            );
 
-            log.error("[{}] Job {} failed with exception (category={}): {}", workerName, job.id(), failureCategory, ex.getMessage());
-            claimService.failJob(
+            JobExecutionContext context = new JobExecutionContext(
                     job.id(),
+                    job.jobType(),
+                    job.payload(),
                     job.claimToken(),
                     job.attemptCount(),
-                    job.retryCount(),
-                    job.maxRetries(),
-                    failureCategory,
-                    ex.getMessage(),
-                    stackTrace,
-                    duration,
                     workerName
             );
+
+            try {
+                // Business logic execution completely OUTSIDE any database transaction
+                handler.handle(context);
+
+                long duration = System.currentTimeMillis() - startTime;
+                cancelHeartbeat(heartbeatTask, heartbeatExecutor);
+
+                // Guarded completion update
+                claimService.completeJob(job.id(), job.claimToken(), job.jobType(), job.attemptCount(), duration, workerName);
+            } catch (Exception ex) {
+                long duration = System.currentTimeMillis() - startTime;
+                cancelHeartbeat(heartbeatTask, heartbeatExecutor);
+
+                StringWriter sw = new StringWriter();
+                ex.printStackTrace(new PrintWriter(sw));
+                String stackTrace = sw.toString();
+
+                FailureCategory failureCategory = (ex instanceof PermanentJobException)
+                        ? FailureCategory.PERMANENT_FAILURE
+                        : FailureCategory.TRANSIENT_FAILURE;
+
+                log.error("[{}] Job {} failed with exception (category={}): {}", workerName, job.id(), failureCategory, ex.getMessage());
+                claimService.failJob(
+                        job.id(),
+                        job.claimToken(),
+                        job.jobType(),
+                        job.attemptCount(),
+                        job.retryCount(),
+                        job.maxRetries(),
+                        failureCategory,
+                        ex.getMessage(),
+                        stackTrace,
+                        duration,
+                        workerName
+                );
+            }
+        } finally {
+            MDC.clear();
         }
     }
 

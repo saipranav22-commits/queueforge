@@ -244,6 +244,82 @@ To eliminate race conditions when a worker experiences long GC pauses or network
 
 ---
 
+## Observability, Metrics & Telemetry (Phase 3)
+
+QueueForge is instrumented for production-grade operational visibility with Spring Boot Actuator, Micrometer, Prometheus, and Grafana.
+
+### 1. Actuator Health Probes
+
+QueueForge strictly distinguishes between container **Liveness** and **Readiness**:
+
+| Endpoint | Purpose | Included Components | Production Recovery Action |
+|---|---|---|---|
+| `GET /actuator/health/liveness` | Determines if the JVM process is alive or deadlocked | `livenessState` | If `DOWN`, orchestrator (Kubernetes/Docker) **restarts** the container. |
+| `GET /actuator/health/readiness` | Determines if the instance is healthy enough to accept traffic | `readinessState`, `db`, `queueForgeWorker` | If `DOWN`, ingress/load balancer **stops routing traffic** to this instance without restarting the process. |
+| `GET /actuator/health` | Comprehensive health report | All system indicators and components | General monitoring and diagnostics. |
+
+### 2. Custom Metrics Dictionary
+
+All metrics are exposed under standard Prometheus naming conventions at `GET /actuator/prometheus`:
+
+#### A. Durable Queue Gauges
+*Performance Safeguard: Queue gauges do NOT query PostgreSQL on every Prometheus scrape. A single aggregated `GROUP BY status` query refreshes counts at most once per second in the background.*
+
+- `queueforge_jobs_pending`: Current count of pending jobs in PostgreSQL awaiting worker claim.
+- `queueforge_jobs_running`: Current count of jobs under active worker leases.
+- `queueforge_jobs_completed`: Total count of successfully completed jobs in persistent store.
+- `queueforge_jobs_dead_letter`: Current count of jobs in Dead-Letter Queue requiring administrative review.
+- `queueforge_workers_active`: Number of worker threads currently executing jobs in the worker pool.
+
+#### B. Throughput & Error Counters
+*Tag Cardinality Safeguard: All tags have strictly bounded cardinality (`job_type`, `failure_category`, `recovery_type`, `status`). High-cardinality identifiers like job UUIDs or payloads are never tagged.*
+
+- `queueforge_jobs_submitted_total{job_type}`: Monotonically increasing count of submitted jobs.
+- `queueforge_jobs_completed_total{job_type}`: Count of successfully processed jobs.
+- `queueforge_jobs_failed_total{job_type, failure_category}`: Count of failed executions categorized by failure type.
+- `queueforge_jobs_retried_total{job_type}`: Count of retries scheduled with exponential backoff.
+- `queueforge_jobs_recovered_total{recovery_type}`: Count of recovered jobs (`admin_replay` or `lease_sweeper`).
+
+#### C. Latency & Wait Timers
+- `queueforge_job_execution_duration_seconds{job_type, status}`: Timer measuring execution duration of job handlers with percentiles (p50, p95, p99).
+- `queueforge_job_queue_wait_duration_seconds{job_type}`: Timer measuring duration a job spent waiting in `PENDING` before being claimed by a worker.
+
+### 3. Structured Logging with MDC Correlation
+
+Every log statement emitted during job processing includes SLF4J Mapped Diagnostic Context (MDC) fields:
+- `jobId`: The UUID of the job being processed (or `NONE`).
+- `workerId`: The name of the worker thread executing the job (e.g. `qf-worker-1`).
+- `attempt`: Current attempt number (1, 2, ...).
+
+Log Format Pattern:
+```
+%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [jobId=%X{jobId:-NONE} worker=%X{workerId:-NONE} attempt=%X{attempt:-0}] - %msg%n
+```
+
+Log File Destination:
+`D:\Projects\QueueForge\logs\queueforge.log` (persisted strictly to D: drive).
+
+### 4. Local Monitoring Stack (Prometheus & Grafana)
+
+The monitoring stack runs in isolated Docker containers with persistent data on `D:`:
+- **Prometheus:** `http://127.0.0.1:9090` (persistent data on `D:\Projects\QueueForge\data\prometheus`)
+- **Grafana:** `http://127.0.0.1:3000` (persistent data on `D:\Projects\QueueForge\data\grafana`)
+  - Default credentials: `admin` / `admin` (Anonymous Viewer enabled)
+  - Auto-provisioned Datasource: Prometheus (`http://prometheus:9090`)
+  - Auto-provisioned Dashboard: **QueueForge Engine Overview** (`queueforge-overview`) with 10 panels:
+    1. *Pending Jobs* (Stat / Gauge)
+    2. *Running Jobs (Active Leases)* (Stat / Gauge)
+    3. *Active Worker Threads* (Stat / Gauge)
+    4. *Dead-Letter Jobs (DLQ)* (Stat / Gauge)
+    5. *Total Completed Jobs* (Stat / Gauge)
+    6. *Job Throughput (Submissions vs Completions)* (Time series)
+    7. *Job Failure Rate by Category* (Time series)
+    8. *Retried vs Recovered Rate* (Time series)
+    9. *Execution Latency Percentiles (p50, p95, p99)* (Time series)
+    10. *Queue Wait Duration (p50, p95)* (Time series)
+
+---
+
 ## Roadmap
 
 - [x] **Phase 1A:** Safe Workspace Initialization & Environment Isolation
@@ -251,5 +327,5 @@ To eliminate race conditions when a worker experiences long GC pauses or network
 - [x] **Phase 1C:** Job Submission, Idempotency & Status Retrieval API
 - [x] **Phase 2A:** Concurrent Worker Engine, `SKIP LOCKED` Claiming & Fenced Leases
 - [x] **Phase 2B:** Retry Engine, Exponential Backoff with Jitter, Dead-Letter Queue & Admin Recovery
-- [ ] **Phase 3:** Observability, Metrics (Micrometer / Actuator / Prometheus) & Queue Health Telemetry
+- [x] **Phase 3:** Observability, Metrics (Micrometer / Actuator / Prometheus), Grafana Dashboards & Queue Health Telemetry
 - [ ] **Phase 4:** Production React Admin Dashboard & Live Job Monitoring

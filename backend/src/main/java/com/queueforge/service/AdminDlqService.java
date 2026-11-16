@@ -28,10 +28,14 @@ public class AdminDlqService {
 
     private final JobRepository jobRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final com.queueforge.metrics.QueueForgeMetrics metrics;
 
-    public AdminDlqService(JobRepository jobRepository, JdbcTemplate jdbcTemplate) {
+    public AdminDlqService(JobRepository jobRepository,
+                           JdbcTemplate jdbcTemplate,
+                           com.queueforge.metrics.QueueForgeMetrics metrics) {
         this.jobRepository = jobRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.metrics = metrics;
     }
 
     /**
@@ -143,6 +147,7 @@ public class AdminDlqService {
 
         if (rows == 1) {
             recordAuditLog(jobId, "admin-console", 0, "REPLAYED", 0, "Manually replayed from DLQ via Admin API");
+            metrics.incrementJobsRecovered("admin_replay");
             log.info("Job {} successfully replayed from DEAD_LETTER to PENDING", jobId);
             return new ReplayJobResponse(jobId, "PENDING", "Job successfully returned to PENDING queue for replay");
         }

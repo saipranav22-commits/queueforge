@@ -31,13 +31,16 @@ public class JobClaimService {
     private final ObjectMapper objectMapper;
     private final BackoffCalculator backoffCalculator;
     private final ClaimedJobRowMapper rowMapper;
+    private final com.queueforge.metrics.QueueForgeMetrics metrics;
 
     public JobClaimService(JdbcTemplate jdbcTemplate,
                            ObjectMapper objectMapper,
-                           BackoffCalculator backoffCalculator) {
+                           BackoffCalculator backoffCalculator,
+                           com.queueforge.metrics.QueueForgeMetrics metrics) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.backoffCalculator = backoffCalculator;
+        this.metrics = metrics;
         this.rowMapper = new ClaimedJobRowMapper(objectMapper);
     }
 
@@ -80,6 +83,12 @@ public class JobClaimService {
         List<ClaimedJob> claimed = jdbcTemplate.query(sql, rowMapper, workerId, leaseDurationSeconds, batchSize);
 
         if (!claimed.isEmpty()) {
+            for (ClaimedJob job : claimed) {
+                if (job.scheduledAt() != null) {
+                    java.time.Duration wait = java.time.Duration.between(job.scheduledAt(), Instant.now());
+                    metrics.recordQueueWaitDuration(job.jobType(), wait);
+                }
+            }
             log.debug("[{}] Successfully claimed {} jobs with leaseDuration={}s", workerId, claimed.size(), leaseDurationSeconds);
         }
 
@@ -92,6 +101,14 @@ public class JobClaimService {
      */
     @Transactional
     public boolean completeJob(UUID jobId, UUID claimToken, int attempt, long executionTimeMs, String workerId) {
+        return completeJob(jobId, claimToken, "GENERATE_REPORT", attempt, executionTimeMs, workerId);
+    }
+
+    /**
+     * Completes a job with known jobType for precise metrics tracking.
+     */
+    @Transactional
+    public boolean completeJob(UUID jobId, UUID claimToken, String jobType, int attempt, long executionTimeMs, String workerId) {
         String updateSql = """
             UPDATE qf_jobs
             SET status = 'COMPLETED',
@@ -104,13 +121,16 @@ public class JobClaimService {
             WHERE id = ?
               AND status = 'RUNNING'
               AND claim_token = ?
-              AND (lease_until IS NULL OR lease_until >= CURRENT_TIMESTAMP)
+              AND lease_until IS NOT NULL
+              AND lease_until >= CURRENT_TIMESTAMP
             """;
 
         int rows = jdbcTemplate.update(updateSql, jobId, claimToken);
 
         if (rows == 1) {
             recordExecutionLog(jobId, workerId, attempt, "COMPLETED", executionTimeMs, null);
+            metrics.incrementJobsCompleted(jobType);
+            metrics.recordExecutionDuration(jobType, "COMPLETED", java.time.Duration.ofMillis(executionTimeMs));
             log.info("[{}] Job {} completed successfully in {}ms (claimToken={})", workerId, jobId, executionTimeMs, claimToken);
             return true;
         } else {
@@ -127,6 +147,24 @@ public class JobClaimService {
     @Transactional
     public boolean failJob(UUID jobId,
                            UUID claimToken,
+                           int attemptCount,
+                           int retryCount,
+                           int maxRetries,
+                           FailureCategory failureCategory,
+                           String errorMessage,
+                           String errorStack,
+                           long executionTimeMs,
+                           String workerId) {
+        return failJob(jobId, claimToken, "GENERATE_REPORT", attemptCount, retryCount, maxRetries, failureCategory, errorMessage, errorStack, executionTimeMs, workerId);
+    }
+
+    /**
+     * Transitions a job to failure state with known jobType for precise metrics tracking.
+     */
+    @Transactional
+    public boolean failJob(UUID jobId,
+                           UUID claimToken,
+                           String jobType,
                            int attemptCount,
                            int retryCount,
                            int maxRetries,
@@ -159,7 +197,8 @@ public class JobClaimService {
             WHERE id = ?
               AND status = 'RUNNING'
               AND claim_token = ?
-              AND (lease_until IS NULL OR lease_until >= CURRENT_TIMESTAMP)
+              AND lease_until IS NOT NULL
+              AND lease_until >= CURRENT_TIMESTAMP
             """;
 
         int rows = jdbcTemplate.update(
@@ -175,6 +214,11 @@ public class JobClaimService {
 
         if (rows == 1) {
             recordExecutionLog(jobId, workerId, attemptCount, "FAILED", executionTimeMs, errorMessage);
+            if (retryable) {
+                metrics.incrementJobsRetried(jobType);
+            }
+            metrics.incrementJobsFailed(jobType, failureCategory);
+            metrics.recordExecutionDuration(jobType, failureCategory.name(), java.time.Duration.ofMillis(executionTimeMs));
             log.warn("[{}] Job {} failed (attempt {}, retry {}/{}, category={}). Transitioned to {} (backoff={}s) in {}ms: {}",
                     workerId, jobId, attemptCount, retryCount, maxRetries, failureCategory, nextStatus, backoffSeconds, executionTimeMs, errorMessage);
             return true;
@@ -197,7 +241,8 @@ public class JobClaimService {
             WHERE id = ?
               AND status = 'RUNNING'
               AND claim_token = ?
-              AND (lease_until IS NULL OR lease_until >= CURRENT_TIMESTAMP)
+              AND lease_until IS NOT NULL
+              AND lease_until >= CURRENT_TIMESTAMP
             """;
 
         int rows = jdbcTemplate.update(sql, extensionSeconds, jobId, claimToken);
@@ -234,6 +279,9 @@ public class JobClaimService {
 
         int recovered = jdbcTemplate.update(sql);
         if (recovered > 0) {
+            for (int i = 0; i < recovered; i++) {
+                metrics.incrementJobsRecovered("lease_sweeper");
+            }
             log.warn("LeaseRecoverySweeper reclaimed {} expired job leases back to PENDING/DEAD_LETTER", recovered);
         }
         return recovered;

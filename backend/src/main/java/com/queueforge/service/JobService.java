@@ -25,16 +25,19 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final IdempotencyFingerprintService fingerprintService;
+    private final com.queueforge.metrics.QueueForgeMetrics metrics;
 
-    public JobService(JobRepository jobRepository, IdempotencyFingerprintService fingerprintService) {
+    public JobService(JobRepository jobRepository,
+                      IdempotencyFingerprintService fingerprintService,
+                      com.queueforge.metrics.QueueForgeMetrics metrics) {
         this.jobRepository = jobRepository;
         this.fingerprintService = fingerprintService;
+        this.metrics = metrics;
     }
 
     /**
      * Submits and persists a job with at-least-once persistence and idempotency protection.
      */
-    @Transactional
     public CreateJobResponse submitJob(CreateJobRequest request, String rawIdempotencyKey) {
         String idempotencyKey = normalizeIdempotencyKey(rawIdempotencyKey);
         String fingerprint = null;
@@ -71,6 +74,8 @@ public class JobService {
             JobEntity saved = jobRepository.save(jobEntity);
             log.info("Persisted job id={} type={} priority={} status={} scheduledAt={}",
                     saved.getId(), saved.getJobType(), saved.getPriority(), saved.getStatus(), saved.getScheduledAt());
+
+            metrics.incrementJobsSubmitted(saved.getJobType());
 
             return new CreateJobResponse(
                     saved.getId(),
