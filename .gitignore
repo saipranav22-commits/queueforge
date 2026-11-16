@@ -1,0 +1,49 @@
+# ==============================================================================
+# QueueForge .gitignore
+# ==============================================================================
+
+# Compiled Java / Maven target directories
+target/
+backend/target/
+*.class
+
+# Caches and Temporary storage on D:
+.cache/
+temp/
+logs/
+*.log
+
+# Persistent Database Volumes on D:
+data/
+data/postgres/
+
+# Node / Frontend (Phase 4)
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.npm/
+
+# IDE and Editor configurations
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+bin/
+
+# Environment and Secret files
+.env
+.env.local
+*.key
+*.pem
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

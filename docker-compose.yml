@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    container_name: queueforge-postgres
+    restart: unless-stopped
+    ports:
+      - "${DB_HOST:-127.0.0.1}:${DB_PORT:-5435}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-queueforge}
+      POSTGRES_USER: ${DB_USERNAME:-queueforge_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password must be set in .env}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # Persistent storage pinned exclusively to D: host filesystem
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-queueforge_app} -d ${DB_NAME:-queueforge}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
