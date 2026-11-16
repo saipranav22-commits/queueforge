@@ -7,69 +7,130 @@ QueueForge is a high-reliability, asynchronous job processing platform engineere
 ## Engineering Highlights
 
 - **Durable Persistence Engine:** PostgreSQL acts as the ACID-compliant queue, eliminating the operational complexity of external brokers for moderate to high throughput workloads.
+- **Idempotency Protection:** SHA-256 canonical request fingerprinting combined with database unique constraints prevents duplicate execution under retries or concurrent submissions. Conflicting payloads reuse of the same idempotency key are rejected with `409 Conflict`.
 - **Contention-Free Concurrency:** Workers claim batches of prioritized jobs using `SELECT FOR UPDATE SKIP LOCKED`, preventing locking bottlenecks across concurrent worker threads.
 - **Worker Crash Resilience:** Leases with heartbeats detect worker node/thread failure and automatically requeue orphaned jobs.
 - **Exponential Backoff with Full Jitter:** Prevents thundering-herd retry storms against downstream dependencies.
-- **Administrative Dead-Letter Replay:** Full audit execution history and API-driven dead-letter triage and replay.
 - **Strict Drive Isolation:** Development environment runs with complete isolation on `D:` drive (JDK 21, Maven 3.9, Maven repository, temp directories, Docker volumes, and caches).
 
 ---
 
 ## Technology Stack
 
-- **Runtime & Framework:** Java 21 LTS (Eclipse Temurin), Spring Boot 3.3.x
-- **Persistence & Migrations:** Spring Data JPA, Hibernate, PostgreSQL 16, Flyway
-- **Build & Quality:** Apache Maven 3.9.x, JUnit 5, Mockito, Testcontainers
+- **Runtime & Framework:** Java 21 LTS (Eclipse Temurin), Spring Boot 3.3.5
+- **Persistence & Migrations:** Spring Data JPA, Hibernate 6.5, PostgreSQL 16, Flyway 10
+- **Build & Quality:** Apache Maven 3.9.16, JUnit 5, Mockito, Testcontainers
 - **Infrastructure:** Docker Compose (PostgreSQL 16 on port 5435 with volume on `D:\Projects\QueueForge\data\postgres`)
 
 ---
 
-## Getting Started
+## Quickstart & Environment Activation
 
 ### 1. Activate Environment (PowerShell)
-All tools and caches are pinned strictly to `D:` to avoid writing to system partitions.
+All tools, JVM temp files, and caches are pinned strictly to `D:` to avoid writing to system partitions.
 ```powershell
 # Dot-source the environment configuration into your current PowerShell session
 . .\env.ps1
 ```
 
 ### 2. Start PostgreSQL via Docker Compose
-*(Requires Phase 1B approval before launching)*
+Starts PostgreSQL 16 on port `5435` with persistent data on `D:\Projects\QueueForge\data\postgres`.
 ```powershell
 docker compose up -d
 ```
 
-### 3. Verify Backend Build
+### 3. Build & Run Tests
 ```powershell
 cd backend
-mvn clean compile
+mvn clean test
+```
+
+### 4. Start Spring Boot Application
+```powershell
+cd backend
+mvn spring-boot:run
+```
+*(Application runs on port `8085` by default)*
+
+---
+
+## API Documentation
+
+### 1. Submit Job (`POST /api/v1/jobs`)
+Submits a job for durable asynchronous processing. Persisted to PostgreSQL before returning `202 Accepted`.
+
+- **Headers:** `Idempotency-Key` (Optional, up to 128 characters)
+- **Request Body:**
+```json
+{
+  "jobType": "GENERATE_REPORT",
+  "payload": {
+    "reportName": "quarterly-sales",
+    "format": "PDF"
+  },
+  "priority": 85,
+  "maxRetries": 3,
+  "delaySeconds": 0
+}
+```
+- **Response (202 Accepted):**
+```json
+{
+  "jobId": "e37db3e7-7358-476a-80ec-29977687ad11",
+  "status": "PENDING",
+  "createdAt": "2026-11-16T07:09:17.173231400Z",
+  "scheduledAt": "2026-11-16T07:09:17.173231400Z"
+}
+```
+
+### 2. Retrieve Job Status (`GET /api/v1/jobs/{jobId}`)
+- **Response (200 OK):**
+```json
+{
+  "jobId": "e37db3e7-7358-476a-80ec-29977687ad11",
+  "jobType": "GENERATE_REPORT",
+  "status": "PENDING",
+  "priority": 85,
+  "retryCount": 0,
+  "maxRetries": 3,
+  "scheduledAt": "2026-11-16T07:09:17.173231Z",
+  "createdAt": "2026-11-16T07:09:17.173231Z"
+}
+```
+- **Response for Unknown ID (404 Not Found):**
+```json
+{
+  "timestamp": "2026-11-16T07:09:17.766618600Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Job with ID '00000000-0000-0000-0000-000000000000' was not found",
+  "path": "/api/v1/jobs/00000000-0000-0000-0000-000000000000"
+}
 ```
 
 ---
 
-## Project Structure
+## Idempotency Design & Technical Tradeoffs
 
-```
-QueueForge/
-├── .cache/                     # Local project caches (e.g., npm)
-├── backend/                    # Spring Boot 3 service
-│   ├── src/main/java/          # Application source code
-│   └── src/main/resources/     # Configuration and Flyway migrations
-├── data/postgres/              # Persistent PostgreSQL volume on D:
-├── docs/architecture/          # System architecture, schemas, and design RFCs
-├── temp/                       # Redirected JVM/Surefire/Tomcat temp files
-├── docker-compose.yml          # Isolated PostgreSQL service on port 5435
-├── env.ps1                     # PowerShell session activation script
-└── pom.xml (in backend/)       # Maven build descriptor
-```
+1. **Fingerprint Calculation:**
+   QueueForge computes a deterministic SHA-256 hash across canonical request parameters:
+   $$\text{Fingerprint} = \text{SHA-256}\left(\text{TYPE} \parallel \text{PRIORITY} \parallel \text{RETRIES} \parallel \text{DELAY} \parallel \text{CANONICAL\_PAYLOAD}\right)$$
+2. **Behavior on Repeat Submissions:**
+   - **Identical Request + Same Key:** Returns HTTP `202 Accepted` with the original job's ID and timestamps. Zero duplicate database rows are created.
+   - **Different Request + Same Key:** Returns HTTP `409 Conflict` preventing dangerous payload mutation under an existing idempotency key.
+3. **Concurrency Protection:**
+   The `idempotency_key` column is protected by a PostgreSQL `UNIQUE` constraint. When concurrent identical requests race to insert:
+   - One wins and commits.
+   - The concurrent transactions catch the database `DataIntegrityViolationException`, query the committed row, verify the fingerprint, and safely return HTTP `202 Accepted` with the existing job ID.
+   - This eliminates race conditions without distributed locks.
 
 ---
 
 ## Roadmap
 
 - [x] **Phase 1A:** Safe Workspace Initialization & Environment Isolation
-- [ ] **Phase 1B:** Database Containerization & Flyway Schema Ingestion
-- [ ] **Phase 1C:** Job Submission REST API with Idempotency & Validation
+- [x] **Phase 1B:** Database Containerization & Backend Integration
+- [x] **Phase 1C:** Job Submission, Idempotency & Status Retrieval API
 - [ ] **Phase 2:** Concurrent Worker Engine, `SKIP LOCKED` Claiming & Lease Recovery
 - [ ] **Phase 3:** Exponential Backoff, Dead-Letter Queue & Administrative Replay
 - [ ] **Phase 4:** Observability, Metrics (Actuator/Prometheus) & React Admin Dashboard
