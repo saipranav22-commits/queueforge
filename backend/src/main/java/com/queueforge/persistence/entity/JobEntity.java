@@ -44,11 +44,18 @@ public class JobEntity {
     @Column(name = "status", nullable = false, length = 32)
     private JobStatus status;
 
+    @Column(name = "attempt_count", nullable = false)
+    private int attemptCount;
+
     @Column(name = "retry_count", nullable = false)
     private int retryCount;
 
     @Column(name = "max_retries", nullable = false)
     private int maxRetries;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "failure_category", length = 32)
+    private com.queueforge.core.domain.FailureCategory failureCategory;
 
     @Column(name = "scheduled_at", nullable = false)
     private Instant scheduledAt;
@@ -90,6 +97,7 @@ public class JobEntity {
         this.payload = payload;
         this.priority = priority;
         this.status = JobStatus.PENDING;
+        this.attemptCount = 0;
         this.retryCount = 0;
         this.maxRetries = maxRetries;
         this.scheduledAt = scheduledAt;
@@ -188,6 +196,14 @@ public class JobEntity {
         this.status = status;
     }
 
+    public int getAttemptCount() {
+        return attemptCount;
+    }
+
+    public void setAttemptCount(int attemptCount) {
+        this.attemptCount = attemptCount;
+    }
+
     public int getRetryCount() {
         return retryCount;
     }
@@ -202,6 +218,14 @@ public class JobEntity {
 
     public void setMaxRetries(int maxRetries) {
         this.maxRetries = maxRetries;
+    }
+
+    public com.queueforge.core.domain.FailureCategory getFailureCategory() {
+        return failureCategory;
+    }
+
+    public void setFailureCategory(com.queueforge.core.domain.FailureCategory failureCategory) {
+        this.failureCategory = failureCategory;
     }
 
     public Instant getScheduledAt() {

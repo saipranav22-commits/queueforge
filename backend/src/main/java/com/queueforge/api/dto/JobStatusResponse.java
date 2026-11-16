@@ -11,8 +11,10 @@ public record JobStatusResponse(
         String jobType,
         String status,
         int priority,
+        int attemptCount,
         int retryCount,
         int maxRetries,
+        String failureCategory,
         Instant scheduledAt,
         Instant createdAt,
         Instant completedAt

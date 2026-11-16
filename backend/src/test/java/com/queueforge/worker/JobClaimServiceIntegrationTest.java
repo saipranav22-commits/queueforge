@@ -3,6 +3,7 @@ package com.queueforge.worker;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.queueforge.core.domain.ClaimedJob;
+import com.queueforge.core.domain.FailureCategory;
 import com.queueforge.core.domain.JobStatus;
 import com.queueforge.persistence.entity.JobEntity;
 import com.queueforge.persistence.repository.JobRepository;
@@ -83,7 +84,8 @@ class JobClaimServiceIntegrationTest {
         assertThat(inDb.getStatus()).isEqualTo(JobStatus.RUNNING);
         assertThat(inDb.getClaimToken()).isEqualTo(claimed.getFirst().claimToken());
         assertThat(inDb.getLeaseUntil()).isAfter(Instant.now());
-        assertThat(inDb.getRetryCount()).isEqualTo(1);
+        assertThat(inDb.getAttemptCount()).isEqualTo(1);
+        assertThat(inDb.getRetryCount()).isEqualTo(0);
     }
 
     @Test
@@ -194,8 +196,10 @@ class JobClaimServiceIntegrationTest {
         boolean failedRecorded = claimService.failJob(
                 claimed.id(),
                 claimed.claimToken(),
+                claimed.attemptCount(),
                 claimed.retryCount(),
                 claimed.maxRetries(),
+                FailureCategory.TRANSIENT_FAILURE,
                 "Simulated error: remote service down",
                 "java.lang.RuntimeException: remote service down\n\tat com.test...",
                 250,
@@ -268,7 +272,8 @@ class JobClaimServiceIntegrationTest {
         assertThat(secondClaim).hasSize(1);
         assertThat(secondClaim.getFirst().id()).isEqualTo(job.getId());
         assertThat(secondClaim.getFirst().claimToken()).isNotEqualTo(firstClaim.claimToken());
-        assertThat(secondClaim.getFirst().retryCount()).isEqualTo(2); // Attempt count increased!
+        assertThat(secondClaim.getFirst().attemptCount()).isEqualTo(2); // Attempt count increased
+        assertThat(secondClaim.getFirst().retryCount()).isEqualTo(1); // First retry
     }
 
     @Test

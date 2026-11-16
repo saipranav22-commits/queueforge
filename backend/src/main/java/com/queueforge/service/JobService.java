@@ -104,8 +104,10 @@ public class JobService {
                 job.getJobType(),
                 job.getStatus().name(),
                 job.getPriority(),
+                job.getAttemptCount(),
                 job.getRetryCount(),
                 job.getMaxRetries(),
+                job.getFailureCategory() != null ? job.getFailureCategory().name() : null,
                 job.getScheduledAt(),
                 job.getCreatedAt(),
                 job.getCompletedAt()

@@ -1,7 +1,10 @@
 package com.queueforge.worker;
 
+import com.queueforge.common.exception.PermanentJobException;
+import com.queueforge.common.exception.TransientJobException;
 import com.queueforge.config.WorkerProperties;
 import com.queueforge.core.domain.ClaimedJob;
+import com.queueforge.core.domain.FailureCategory;
 import com.queueforge.core.handler.JobExecutionContext;
 import com.queueforge.core.handler.JobHandler;
 import com.queueforge.core.handler.JobHandlerRegistry;
@@ -131,8 +134,8 @@ public class WorkerCoordinator implements SmartLifecycle {
         String workerName = Thread.currentThread().getName();
         long startTime = System.currentTimeMillis();
 
-        log.debug("[{}] Processing jobId={} type='{}' attempt={}",
-                workerName, job.id(), job.jobType(), job.retryCount());
+        log.debug("[{}] Processing jobId={} type='{}' attempt={} retry={}",
+                workerName, job.id(), job.jobType(), job.attemptCount(), job.retryCount());
 
         Optional<JobHandler> handlerOpt = handlerRegistry.getHandler(job.jobType());
         if (handlerOpt.isEmpty()) {
@@ -142,8 +145,10 @@ public class WorkerCoordinator implements SmartLifecycle {
             claimService.failJob(
                     job.id(),
                     job.claimToken(),
+                    job.attemptCount(),
+                    job.retryCount(),
                     job.maxRetries(),
-                    job.maxRetries(),
+                    FailureCategory.HANDLER_NOT_FOUND,
                     errorMsg,
                     null,
                     System.currentTimeMillis() - startTime,
@@ -183,7 +188,7 @@ public class WorkerCoordinator implements SmartLifecycle {
                 job.jobType(),
                 job.payload(),
                 job.claimToken(),
-                job.retryCount(),
+                job.attemptCount(),
                 workerName
         );
 
@@ -195,7 +200,7 @@ public class WorkerCoordinator implements SmartLifecycle {
             cancelHeartbeat(heartbeatTask, heartbeatExecutor);
 
             // Guarded completion update
-            claimService.completeJob(job.id(), job.claimToken(), job.retryCount(), duration, workerName);
+            claimService.completeJob(job.id(), job.claimToken(), job.attemptCount(), duration, workerName);
         } catch (Exception ex) {
             long duration = System.currentTimeMillis() - startTime;
             cancelHeartbeat(heartbeatTask, heartbeatExecutor);
@@ -204,12 +209,18 @@ public class WorkerCoordinator implements SmartLifecycle {
             ex.printStackTrace(new PrintWriter(sw));
             String stackTrace = sw.toString();
 
-            log.error("[{}] Job {} failed with exception: {}", workerName, job.id(), ex.getMessage());
+            FailureCategory failureCategory = (ex instanceof PermanentJobException)
+                    ? FailureCategory.PERMANENT_FAILURE
+                    : FailureCategory.TRANSIENT_FAILURE;
+
+            log.error("[{}] Job {} failed with exception (category={}): {}", workerName, job.id(), failureCategory, ex.getMessage());
             claimService.failJob(
                     job.id(),
                     job.claimToken(),
+                    job.attemptCount(),
                     job.retryCount(),
                     job.maxRetries(),
+                    failureCategory,
                     ex.getMessage(),
                     stackTrace,
                     duration,

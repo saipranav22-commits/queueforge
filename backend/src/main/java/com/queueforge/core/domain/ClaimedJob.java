@@ -12,6 +12,7 @@ public record ClaimedJob(
         String jobType,
         JsonNode payload,
         int priority,
+        int attemptCount,
         int retryCount,
         int maxRetries,
         Instant scheduledAt,

@@ -1,17 +1,20 @@
 # QueueForge – Reliable Job Queue with Dead-Letter Recovery
 
-QueueForge is a high-reliability, asynchronous job processing platform engineered with Java 21, Spring Boot 3, and PostgreSQL. It delivers durable at-least-once job execution, priority-based claiming using PostgreSQL's row-level locking (`SELECT FOR UPDATE SKIP LOCKED`), heartbeat leases for crash recovery, exponential backoff retries, and an administrative Dead-Letter Queue (DLQ) with replay capabilities.
+QueueForge is a high-reliability, asynchronous job processing platform engineered with Java 21, Spring Boot 3, and PostgreSQL. It delivers durable at-least-once job execution, priority-based claiming using PostgreSQL's row-level locking (`SELECT FOR UPDATE SKIP LOCKED`), heartbeat leases for crash recovery, exponential backoff retries with full jitter, error classification, and a secure administrative Dead-Letter Queue (DLQ) with atomic replay and discard capabilities.
 
 ---
 
 ## Engineering Highlights
 
 - **Durable Persistence Engine:** PostgreSQL acts as the ACID-compliant queue, eliminating the operational complexity of external brokers for moderate to high throughput workloads.
-- **Idempotency Protection:** SHA-256 canonical request fingerprinting combined with database unique constraints prevents duplicate execution under retries or concurrent submissions. Conflicting payloads reuse of the same idempotency key are rejected with `409 Conflict`.
+- **Idempotency Protection:** SHA-256 canonical request fingerprinting combined with database unique constraints prevents duplicate execution under retries or concurrent submissions. Conflicting payloads reusing the same idempotency key are rejected with `409 Conflict`.
 - **Contention-Free Concurrency (`SKIP LOCKED`):** Multiple workers claim batches of prioritized jobs using `SELECT FOR UPDATE SKIP LOCKED`, preventing locking bottlenecks across concurrent worker threads.
-- **Claim Token & Fencing Protection:** Every claim transaction assigns a unique random `claim_token` UUID and increments `claim_version`. Stale workers whose lease expired can never overwrite the state of a newer worker.
+- **Claim Token & Fencing Protection:** Every claim transaction assigns a unique random `claim_token` UUID and increments `claim_version`. Stale workers whose lease expired can never overwrite the state of a newer worker or alter rows (`lease_until >= CURRENT_TIMESTAMP`).
 - **Decoupled Claim & Execution:** Database locks are held strictly during the microsecond claim transaction and released immediately before business logic executes in a bounded thread pool.
 - **Worker Crash Resilience:** Leases with periodic heartbeats detect worker node/thread failure and automatically requeue orphaned jobs.
+- **Exponential Backoff with Full Jitter:** Retry delays scale exponentially ($\text{initialDelay} \times \text{multiplier}^{r-1}$) with randomized jitter to prevent the "thundering herd" problem on downstream resources.
+- **Strict Error Classification:** Differentiates between `TRANSIENT_FAILURE` (retried with backoff), `PERMANENT_FAILURE` (immediate DLQ), `HANDLER_NOT_FOUND` (immediate DLQ), and `LEASE_EXPIRED`.
+- **Secure Administrative DLQ Management:** Protected with `X-Admin-Key` header authentication. Provides paginated inspection, single-job diagnostic drilldown, atomic safe replay (returning jobs to `PENDING`), and audit-compliant discard (archiving without hard delete).
 - **Strict Drive Isolation:** Development environment runs with complete isolation on `D:` drive (JDK 21, Maven 3.9, Maven repository, temp directories, Docker volumes, and caches).
 
 ---
@@ -55,55 +58,88 @@ mvn spring-boot:run
 
 ---
 
-## Worker Engine Architecture & Interview Guide
+## Architecture & Interview Guide
 
 ### 1. The Core Lifecycle
 ```
 PENDING JOB
     ↓
 1. Transactional Claim (SELECT FOR UPDATE SKIP LOCKED)
+   - Increments attempt_count (initial = 1, 1st retry = 2)
+   - Computes retry_count (initial = 0, 1st retry = 1)
+   - Assigns claim_token UUID and sets lease_until
     ↓
-2. RUNNING + Unique claim_token + lease_until
+2. Commit Claim Transaction (Database lock released!)
     ↓
-3. Commit Claim Transaction (Database lock released!)
+3. Execute JobHandler outside DB transaction (bounded thread pool)
     ↓
-4. Execute JobHandler outside DB transaction (bounded thread pool)
-    ↓
-5. Guarded Completion Update (WHERE id = ? AND claim_token = ? AND status = 'RUNNING')
-    ↓
-COMPLETED + Audit Log
+   ├── Success ──> Guarded Completion Update (status = 'COMPLETED')
+   │
+   ├── Transient Exception ──> Has retries left?
+   │                            ├── Yes ──> Exponential Backoff (status = 'PENDING', scheduled_at = NOW() + delay)
+   │                            └── No  ──> Exhausted ──> DEAD_LETTER (category = 'TRANSIENT_FAILURE')
+   │
+   └── Permanent Exception / Missing Handler ──> Immediate DEAD_LETTER (category = 'PERMANENT_FAILURE' / 'HANDLER_NOT_FOUND')
 ```
 
-### 2. Why `SELECT FOR UPDATE SKIP LOCKED`?
-In standard `SELECT FOR UPDATE`, multiple concurrent workers competing for the highest-priority jobs block waiting for Worker 1's transaction to commit. This creates severe database lock contention and serialization deadlocks.
-With `SKIP LOCKED`, PostgreSQL skips rows already locked by other transactions. Worker 1 locks jobs 1–5, Worker 2 simultaneously locks jobs 6–10 without blocking, achieving true non-blocking horizontal scaling across worker threads.
+### 2. Attempt vs. Retry Accounting
+QueueForge distinguishes explicitly between attempts started and retries executed:
+- **`attempt_count`**: Total execution attempts initiated. Initial claim is attempt 1.
+- **`retry_count`**: Retries attempted *after* the initial execution. Initial claim has retry count 0.
+- **`max_retries`**: Maximum additional retries allowed. A job with `max_retries = 3` allows up to $3 + 1 = 4$ total execution attempts.
 
-### 3. Why Release DB Locks Before Execution?
-If a worker holds an open database transaction while executing long-running business logic (e.g. generating a 30-second report or calling an external API), it holds a database connection from the HikariCP pool and database locks for the entire 30 seconds. A handful of tasks would exhaust the database pool.
-QueueForge holds the DB transaction for **< 2 milliseconds** to transition the row to `RUNNING` and assign a `claim_token`. The connection is immediately returned to the pool while the worker thread executes independently.
+On atomic claim:
+```sql
+UPDATE qf_jobs
+SET status = 'RUNNING',
+    attempt_count = attempt_count + 1,
+    retry_count = CASE WHEN attempt_count = 0 THEN 0 ELSE retry_count + 1 END,
+    ...
+```
 
-### 4. How Claim Tokens Protect Against Stale Workers (Fencing)
-Suppose Worker A claims Job 1 with `claim_token = UUID_A` and a 30-second lease. Worker A experiences a massive GC pause or network stall lasting 45 seconds.
-1. The lease expires (`lease_until < NOW()`).
-2. The `LeaseRecoverySweeper` reclaims Job 1 back to `PENDING`.
-3. Worker B claims Job 1 with a new `claim_token = UUID_B`.
-4. Worker A wakes up and attempts to complete the job.
-5. Worker A executes:
+### 3. Exponential Backoff Formula
+$$\text{Nominal Delay}(r) = \min\left(\text{maxDelay},\ \text{initialDelay} \times \text{multiplier}^{r-1}\right)$$
+$$\text{Jitter} = \text{Nominal Delay} \times \text{jitterFactor} \times \text{random}(-1.0,\ +1.0)$$
+$$\text{Final Delay} = \max(1,\ \text{round}(\text{Nominal Delay} + \text{Jitter}))$$
+
+Default configuration:
+- `initialDelay`: 5 seconds
+- `multiplier`: 3.0
+- `maxDelay`: 3600 seconds (1 hour)
+- `jitterFactor`: 0.20 ($\pm 20\%$)
+
+Progression:
+- Retry 1: $5 \times 3^0 = 5\text{s} \pm 20\% \implies [4\text{s}, 6\text{s}]$
+- Retry 2: $5 \times 3^1 = 15\text{s} \pm 20\% \implies [12\text{s}, 18\text{s}]$
+- Retry 3: $5 \times 3^2 = 45\text{s} \pm 20\% \implies [36\text{s}, 54\text{s}]$
+- Retry 4: $5 \times 3^3 = 135\text{s} \pm 20\% \implies [108\text{s}, 162\text{s}]$
+
+### 4. Fencing & Active Lease Guard
+To eliminate race conditions when a worker experiences long GC pauses or network delays:
+1. `completeJob`, `failJob`, and `extendLease` are guarded by:
    ```sql
-   UPDATE qf_jobs SET status = 'COMPLETED' WHERE id = 'Job1' AND claim_token = 'UUID_A' AND status = 'RUNNING';
+   WHERE id = ?
+     AND status = 'RUNNING'
+     AND claim_token = ?
+     AND (lease_until IS NULL OR lease_until >= CURRENT_TIMESTAMP)
    ```
-6. The query matches 0 rows! Worker A is **fenced out** and cannot overwrite the work of Worker B.
+2. If a worker's lease expired before it attempts to write, the update matches 0 rows and fails safely.
 
-### 5. What "At-Least-Once" Semantics Means
-Because network partitions or JVM crashes can occur after business logic executes but before the completion query commits, a job may be re-executed by another worker. QueueForge guarantees that no job is silently lost (**at-least-once**), requiring job handlers to be designed **idempotently**.
+### 5. Error Classification Taxonomy
+| Category | Cause | Action |
+|---|---|---|
+| `TRANSIENT_FAILURE` | Network blip, database lock timeout, 503 Service Unavailable | Retried with exponential backoff until `retry_count >= max_retries`, then `DEAD_LETTER` |
+| `PERMANENT_FAILURE` | Unparseable schema, invalid business domain rule, 4xx Bad Request | Immediately routes to `DEAD_LETTER` without wasting retry quota |
+| `HANDLER_NOT_FOUND` | No registered handler for job type | Immediately routes to `DEAD_LETTER` |
+| `LEASE_EXPIRED` | Worker crashed or abandoned execution | Sweeper reclaims to `PENDING` (or `DEAD_LETTER` if retries exhausted) |
 
 ---
 
 ## API Documentation
 
-### 1. Submit Job (`POST /api/v1/jobs`)
-Submits a job for durable asynchronous processing. Persisted to PostgreSQL before returning `202 Accepted`.
+### Public Job APIs
 
+#### 1. Submit Job (`POST /api/v1/jobs`)
 - **Headers:** `Idempotency-Key` (Optional, up to 128 characters)
 - **Request Body:**
 ```json
@@ -123,24 +159,86 @@ Submits a job for durable asynchronous processing. Persisted to PostgreSQL befor
 {
   "jobId": "8f2ec480-5045-4cd4-a803-2ad6a991e3cd",
   "status": "PENDING",
-  "createdAt": "2026-11-16T10:59:15.711227300Z",
-  "scheduledAt": "2026-11-16T10:59:15.711227300Z"
+  "createdAt": "2026-11-16T10:59:15.711227Z",
+  "scheduledAt": "2026-11-16T10:59:15.711227Z"
 }
 ```
 
-### 2. Retrieve Job Status (`GET /api/v1/jobs/{jobId}`)
+#### 2. Retrieve Job Status (`GET /api/v1/jobs/{jobId}`)
 - **Response (200 OK):**
 ```json
 {
   "jobId": "8f2ec480-5045-4cd4-a803-2ad6a991e3cd",
   "jobType": "GENERATE_REPORT",
   "status": "COMPLETED",
-  "priority": 90,
-  "retryCount": 1,
+  "priority": 85,
+  "attemptCount": 1,
+  "retryCount": 0,
   "maxRetries": 3,
   "scheduledAt": "2026-11-16T10:59:15.711227Z",
   "createdAt": "2026-11-16T10:59:15.711227Z",
   "completedAt": "2026-11-16T10:59:16.132207Z"
+}
+```
+
+---
+
+### Admin Dead-Letter Queue (DLQ) APIs
+*All `/api/v1/admin/**` endpoints require the `X-Admin-Key` header.*
+
+#### 3. List DLQ Jobs (`GET /api/v1/admin/dlq`)
+- **Headers:** `X-Admin-Key: <ADMIN_API_KEY>`
+- **Query Parameters:** `page=0`, `size=20`, `jobType` (optional), `failureCategory` (optional)
+- **Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "jobId": "f4a716f4-8224-4409-839c-70736d2e8b4a",
+      "jobType": "SEND_EMAIL",
+      "status": "DEAD_LETTER",
+      "attemptCount": 1,
+      "retryCount": 0,
+      "maxRetries": 2,
+      "failureCategory": "HANDLER_NOT_FOUND",
+      "lastErrorMessage": "No registered handler found for job type: 'SEND_EMAIL'",
+      "createdAt": "2026-11-16T16:06:17.112Z",
+      "scheduledAt": "2026-11-16T16:06:17.112Z",
+      "updatedAt": "2026-11-16T16:06:17.135Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+#### 4. Get DLQ Job Diagnostics (`GET /api/v1/admin/dlq/{jobId}`)
+- **Headers:** `X-Admin-Key: <ADMIN_API_KEY>`
+- **Response (200 OK):** Returns complete payload, error message, stack trace, and execution metrics.
+
+#### 5. Replay DLQ Job (`POST /api/v1/admin/dlq/{jobId}/replay`)
+- **Headers:** `X-Admin-Key: <ADMIN_API_KEY>`
+- Atomically resets status to `PENDING`, sets `scheduled_at = NOW()`, clears failure diagnostics, and resets attempt/retry counters.
+- **Response (200 OK):**
+```json
+{
+  "jobId": "f4a716f4-8224-4409-839c-70736d2e8b4a",
+  "status": "PENDING",
+  "message": "Job successfully returned to PENDING queue for replay"
+}
+```
+
+#### 6. Discard DLQ Job (`POST /api/v1/admin/dlq/{jobId}/discard`)
+- **Headers:** `X-Admin-Key: <ADMIN_API_KEY>`
+- Atomically transitions job to `ARCHIVED`. Never hard-deletes, retaining full historical audit records.
+- **Response (200 OK):**
+```json
+{
+  "jobId": "f4a716f4-8224-4409-839c-70736d2e8b4a",
+  "status": "ARCHIVED",
+  "message": "Job successfully discarded and archived"
 }
 ```
 
@@ -152,5 +250,6 @@ Submits a job for durable asynchronous processing. Persisted to PostgreSQL befor
 - [x] **Phase 1B:** Database Containerization & Backend Integration
 - [x] **Phase 1C:** Job Submission, Idempotency & Status Retrieval API
 - [x] **Phase 2A:** Concurrent Worker Engine, `SKIP LOCKED` Claiming & Fenced Leases
-- [ ] **Phase 2B/3:** Exponential Backoff with Jitter, Dead-Letter Queue & Administrative Replay
-- [ ] **Phase 4:** Observability, Metrics (Actuator/Prometheus) & React Admin Dashboard
+- [x] **Phase 2B:** Retry Engine, Exponential Backoff with Jitter, Dead-Letter Queue & Admin Recovery
+- [ ] **Phase 3:** Observability, Metrics (Micrometer / Actuator / Prometheus) & Queue Health Telemetry
+- [ ] **Phase 4:** Production React Admin Dashboard & Live Job Monitoring
