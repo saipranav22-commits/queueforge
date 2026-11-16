@@ -368,6 +368,78 @@ npm run build
 
 ---
 
+## Phase 4B: Full-Stack Verification & Security Hardening
+
+QueueForge has undergone verification across backend APIs, the React console, security hardening, database durability, and local performance benchmarks.
+
+### 1. Security Architecture & Field Masking
+- **Role-Based Sensitive Field Masking:** Anonymous/unauthenticated consumers accessing `GET /api/v1/jobs/{id}` and `GET /api/v1/jobs/{id}/history` receive masked payloads (`_masked: true`) with sensitive parameters scrubbed, internal worker hostnames obscured, and raw error stack traces redacted.
+- **Admin Unlock & Session Verification:** When authenticated via `POST /api/v1/auth/login` (or with `X-Admin-Key`), full job payloads and execution logs are unlocked seamlessly.
+- **Zero Secrets Committed:** Static code analysis scans verified zero API secrets, private keys, or passwords exist in frontend source code or git history.
+- **Constant-Time Verification:** Administrative key comparison uses `MessageDigest.isEqual` to eliminate side-channel timing attacks.
+- **Login Rate Limiter:** Protects against credential brute-forcing by enforcing a 5 requests/minute threshold per IP (HTTP 429).
+- **Session Protection:** Administrative session tokens (`QF_SESSION`) are configured with `HttpOnly; SameSite=Lax; Path=/api/v1` cookies and validated with anti-CSRF tokens.
+
+### 2. Browser End-to-End Automation (Playwright on Edge)
+A 16-point automated browser verification suite (`frontend/src/e2e/run_e2e_verification.js`) executed against Microsoft Edge natively without downloading browser binaries or touching `C:`:
+1. `GET /` Overview Dashboard renders with KPI stats and worker metrics.
+2. Sidebar navigation to all pages (`/jobs`, `/dlq`, `/workers`, `/monitoring`).
+3. Real-time PostgreSQL database metrics and connection pool state.
+4. Submission of test job via dashboard quick action.
+5. Job Explorer live search and status filtering.
+6. Job Details displays masked confidential payload when unauthenticated.
+7. Admin Unlock modal opens on protected action.
+8. Admin login succeeds with key verification and cookie receipt.
+9. Unmasked payload and execution timeline render for authenticated admin.
+10. Dead-Letter Queue displays exhausted jobs with error taxonomy.
+11. Authorized administrative replay returns dead-letter job to `PENDING`.
+12. Workers health console displays live thread capacity and coordinator status.
+13. Monitoring page renders latency percentiles and Grafana deep-links.
+14. Mobile viewport (375x812) responsive drawer toggle and navigation.
+15. Session persistence across browser reload.
+16. Admin logout locks privileged actions and clears session cookie.
+
+All 9 UI verification screenshots are archived in [`docs/screenshots`](file:///D:/Projects/QueueForge/docs/screenshots/):
+- `01_overview_dashboard.png`
+- `02_job_explorer.png`
+- `03_job_detail_masked.png`
+- `04_admin_unlock_modal.png`
+- `05_job_detail_unlocked.png`
+- `06_dead_letter_queue.png`
+- `07_workers_health.png`
+- `08_monitoring_metrics.png`
+- `09_mobile_responsive_view.png`
+
+### 3. Automated Test Suites
+- **Backend Test Suite (JUnit 5 + Spring Boot Test):** **73 passed, 0 failures, 0 errors** covering controllers, coordinator, claim service, idempotency, backoff, lease fencing, DLQ admin APIs, and Micrometer metrics.
+- **Frontend Test Suite (Vitest + Testing Library):** **7 passed, 0 failures** across components, modals, status badges, and security scans.
+- **TypeScript & Build:** `tsc -b` passed with 0 errors; Vite production bundle built in 2.4s.
+
+### 4. Local Performance Benchmarks
+Controlled workload benchmark under concurrent worker processing:
+- **Workload:** 40 jobs batch submission across priorities 1–100.
+- **Submission Throughput:** **25.33 jobs/second** (40 jobs persisted in 1.579s).
+- **Processing Rate:** **19.43 jobs/second** (40 jobs claimed and executed in 2.059s).
+- **Execution Latency:**
+  - **p50:** 4.43 ms
+  - **p95:** 19.11 ms
+  - **p99:** 24.00 ms
+- **Queue Wait Duration:**
+  - **p50:** 722.25 ms
+  - **p95:** 1,443.19 ms
+- **HikariCP Pool Utilization:** 0 active / 6 idle connections.
+- **JVM Resident Memory (RSS):** 126.1 MB.
+
+### 5. Durability & Clean Stack Restart
+- Pre-restart sentinel job submitted to queue.
+- Spring Boot backend and Docker Compose stack cleanly stopped.
+- Docker Compose restarted with persistent PostgreSQL storage on `D:\Projects\QueueForge\data\postgres`.
+- Backend restarted and validated Flyway migrations in 6 seconds.
+- Sentinel job survived container restart without data loss and completed successfully.
+- Prometheus (`:9090`) and Grafana (`:3000`) verified healthy.
+
+---
+
 ## Roadmap
 
 - [x] **Phase 1A:** Safe Workspace Initialization & Environment Isolation
@@ -377,3 +449,4 @@ npm run build
 - [x] **Phase 2B:** Retry Engine, Exponential Backoff with Jitter, Dead-Letter Queue & Admin Recovery
 - [x] **Phase 3:** Observability, Metrics (Micrometer / Actuator / Prometheus), Grafana Dashboards & Queue Health Telemetry
 - [x] **Phase 4A:** Production React Admin Dashboard, Browser Security Boundaries & Execution Timeline
+- [x] **Phase 4B:** Full-Stack Verification, Security Hardening & Zero-C-Drive Isolation

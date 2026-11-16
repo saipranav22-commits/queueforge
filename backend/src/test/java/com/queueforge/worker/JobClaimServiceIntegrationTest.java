@@ -91,7 +91,7 @@ class JobClaimServiceIntegrationTest {
     @Test
     @DisplayName("3. A successful handler transitions the job to COMPLETED with execution log")
     void successfulCompletion_transitionsToCompleted() {
-        JobEntity job = createPendingJob("GENERATE_REPORT", 70, Instant.now());
+        JobEntity job = createPendingJob("GENERATE_REPORT", 70, Instant.now().minusSeconds(5));
         ClaimedJob claimed = claimService.claimJobs(1, 30, "test-worker-3").getFirst();
 
         boolean completed = claimService.completeJob(claimed.id(), claimed.claimToken(), claimed.retryCount(), 120, "test-worker-3");
@@ -190,7 +190,7 @@ class JobClaimServiceIntegrationTest {
     @Test
     @DisplayName("7. A failed handler records failure attempt and does not terminate other workers")
     void failedHandler_recordsFailureAttempt() {
-        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now());
+        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now().minusSeconds(5));
         ClaimedJob claimed = claimService.claimJobs(1, 30, "fail-worker").getFirst();
 
         boolean failedRecorded = claimService.failJob(
@@ -225,7 +225,7 @@ class JobClaimServiceIntegrationTest {
     @Test
     @DisplayName("8. A stale ownership token cannot complete a job (Fencing Protection)")
     void staleOwnershipToken_cannotCompleteJob() {
-        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now());
+        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now().minusSeconds(5));
         ClaimedJob originalClaim = claimService.claimJobs(1, 30, "worker-1").getFirst();
 
         UUID staleToken = UUID.randomUUID(); // Different token from active claim_token
@@ -249,7 +249,7 @@ class JobClaimServiceIntegrationTest {
     @Test
     @DisplayName("9. An expired lease can be recovered and reclaimed")
     void expiredLease_isRecoveredAndReclaimed() {
-        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now());
+        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now().minusSeconds(5));
         ClaimedJob firstClaim = claimService.claimJobs(1, 30, "worker-crashed").getFirst();
 
         // Simulate lease expiration by setting lease_until in the past
@@ -279,7 +279,7 @@ class JobClaimServiceIntegrationTest {
     @Test
     @DisplayName("10. A stale worker cannot overwrite a reclaimed and completed job")
     void staleWorker_cannotOverwriteReclaimedJob() {
-        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now());
+        JobEntity job = createPendingJob("GENERATE_REPORT", 50, Instant.now().minusSeconds(5));
         ClaimedJob oldClaim = claimService.claimJobs(1, 30, "worker-slow").getFirst();
 
         // Lease expires and recovery sweeper resets to PENDING

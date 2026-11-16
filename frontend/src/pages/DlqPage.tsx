@@ -139,10 +139,10 @@ export const DlqPage: React.FC = () => {
                       {job.retryCount} / {job.maxRetries}
                     </td>
                     <td className="px-6 py-3 text-rose-300 max-w-sm truncate font-sans text-xs">
-                      {job.lastErrorSnippet || 'No error details recorded'}
+                      {job.lastErrorMessage || 'No error details recorded'}
                     </td>
                     <td className="px-6 py-3 text-slate-400 font-sans text-xs">
-                      {formatDate(job.failedAt || job.createdAt)}
+                      {formatDate(job.completedAt || job.createdAt)}
                     </td>
                     <td className="px-6 py-3 text-right font-sans">
                       <div className="flex items-center justify-end gap-2">

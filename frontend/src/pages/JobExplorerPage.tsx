@@ -151,7 +151,7 @@ export const JobExplorerPage: React.FC = () => {
                 <th className="px-6 py-3">Type</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Retries</th>
-                <th className="px-6 py-3">Payload Excerpt</th>
+                <th className="px-6 py-3">Idempotency Key</th>
                 <th className="px-6 py-3">Created</th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
@@ -181,8 +181,8 @@ export const JobExplorerPage: React.FC = () => {
                     <td className="px-6 py-3 text-slate-400">
                       {job.retryCount} / {job.maxRetries}
                     </td>
-                    <td className="px-6 py-3 text-slate-400 max-w-xs truncate font-sans text-xs">
-                      {job.payloadExcerpt || '—'}
+                    <td className="px-6 py-3 text-slate-400 font-mono text-xs max-w-xs truncate">
+                      {job.idempotencyKey || '—'}
                     </td>
                     <td className="px-6 py-3 text-slate-400 font-sans text-xs">
                       {formatDate(job.createdAt)}

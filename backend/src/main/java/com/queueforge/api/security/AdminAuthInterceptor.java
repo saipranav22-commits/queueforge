@@ -85,6 +85,30 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         return false;
     }
 
+    /**
+     * Checks if the incoming request has valid admin credentials (either via X-Admin-Key header or active QF_SESSION cookie).
+     * Does not reject the request; used for role-based conditional data masking.
+     */
+    public boolean isAuthorized(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+
+        // 1. Header verification
+        String apiKey = request.getHeader(ADMIN_KEY_HEADER);
+        if (apiKey != null && isValidAdminKey(apiKey)) {
+            return true;
+        }
+
+        // 2. Cookie session verification
+        Optional<String> sessionIdOpt = extractSessionCookie(request);
+        if (sessionIdOpt.isPresent()) {
+            return sessionService.getSession(sessionIdOpt.get()).isPresent();
+        }
+
+        return false;
+    }
+
     private boolean isValidAdminKey(String providedKey) {
         if (providedKey == null || adminProperties.getApiKey() == null) {
             return false;

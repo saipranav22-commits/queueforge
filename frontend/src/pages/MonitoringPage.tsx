@@ -142,7 +142,7 @@ export const MonitoringPage: React.FC = () => {
                       style={{
                         width: `${Math.min(
                           100,
-                          (count / Math.max(1, metrics?.deadLetterTotal ?? 1)) * 100
+                          (count / Math.max(1, metrics?.failedTotal ?? 1)) * 100
                         )}%`,
                       }}
                     />

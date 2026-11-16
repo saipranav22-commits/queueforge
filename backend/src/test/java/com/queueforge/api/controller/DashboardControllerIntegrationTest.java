@@ -121,7 +121,7 @@ class DashboardControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/jobs/{jobId}/detail returns full payload and execution logs")
+    @DisplayName("GET /api/v1/jobs/{jobId}/detail returns full payload and execution logs when authenticated")
     void getJobDetail_returnsFullInfo() throws Exception {
         JobEntity job = insertJob("GENERATE_REPORT", JobStatus.COMPLETED, 75);
 
@@ -131,7 +131,8 @@ class DashboardControllerIntegrationTest {
             VALUES (?, 'worker-test-1', 1, 'COMPLETED', 125, CURRENT_TIMESTAMP)
             """, job.getId());
 
-        mockMvc.perform(get("/api/v1/jobs/" + job.getId() + "/detail"))
+        mockMvc.perform(get("/api/v1/jobs/" + job.getId() + "/detail")
+                        .header("X-Admin-Key", "qf_admin_dev_secret_2026"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.jobId", is(job.getId().toString())))
                 .andExpect(jsonPath("$.status", is("COMPLETED")))
@@ -140,5 +141,24 @@ class DashboardControllerIntegrationTest {
                 .andExpect(jsonPath("$.executionLogs", hasSize(1)))
                 .andExpect(jsonPath("$.executionLogs[0].workerId", is("worker-test-1")))
                 .andExpect(jsonPath("$.executionLogs[0].executionTimeMs", is(125)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/jobs/{jobId}/detail masks payload and internal worker details for unauthenticated requests")
+    void getJobDetail_unauthenticated_masksSensitivePayloadAndWorkerInfo() throws Exception {
+        JobEntity job = insertJob("GENERATE_REPORT", JobStatus.COMPLETED, 75);
+
+        jdbcTemplate.update("""
+            INSERT INTO qf_job_execution_logs (job_id, worker_id, attempt, status, execution_time_ms, created_at)
+            VALUES (?, 'worker-internal-node-9', 1, 'COMPLETED', 125, CURRENT_TIMESTAMP)
+            """, job.getId());
+
+        mockMvc.perform(get("/api/v1/jobs/" + job.getId() + "/detail"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId", is(job.getId().toString())))
+                .andExpect(jsonPath("$.payload._masked", is(true)))
+                .andExpect(jsonPath("$.payload.test").doesNotExist())
+                .andExpect(jsonPath("$.executionLogs", hasSize(1)))
+                .andExpect(jsonPath("$.executionLogs[0].workerId", is("worker-***")));
     }
 }

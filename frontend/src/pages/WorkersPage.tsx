@@ -137,7 +137,7 @@ export const WorkersPage: React.FC = () => {
             <div className="flex justify-between items-center py-1 font-mono">
               <span className="text-slate-400">HikariCP Pool Status</span>
               <span className="text-emerald-400 font-semibold">
-                {health?.databaseStatus === 'UP' ? 'Healthy & Connected' : 'Disconnected'}
+                {health?.dbStatus === 'UP' ? 'Healthy & Connected' : 'Disconnected'}
               </span>
             </div>
           </div>

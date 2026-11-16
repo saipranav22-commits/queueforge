@@ -1,5 +1,7 @@
 package com.queueforge.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.queueforge.api.dto.*;
 import com.queueforge.common.exception.IdempotencyConflictException;
 import com.queueforge.common.exception.JobNotFoundException;
@@ -36,15 +38,18 @@ public class JobService {
     private final IdempotencyFingerprintService fingerprintService;
     private final QueueForgeMetrics metrics;
     private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
     public JobService(JobRepository jobRepository,
                       IdempotencyFingerprintService fingerprintService,
                       QueueForgeMetrics metrics,
-                      JdbcTemplate jdbcTemplate) {
+                      JdbcTemplate jdbcTemplate,
+                      ObjectMapper objectMapper) {
         this.jobRepository = jobRepository;
         this.fingerprintService = fingerprintService;
         this.metrics = metrics;
         this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -208,16 +213,32 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     public JobDetailResponse getJobDetail(UUID jobId) {
+        return getJobDetail(jobId, true);
+    }
+
+    /**
+     * Retrieves job details with optional sensitive data masking for unauthenticated clients.
+     */
+    @Transactional(readOnly = true)
+    public JobDetailResponse getJobDetail(UUID jobId, boolean authorized) {
         JobEntity job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new JobNotFoundException(jobId));
 
-        List<JobExecutionLogResponse> logs = getJobHistory(jobId);
+        List<JobExecutionLogResponse> logs = getJobHistory(jobId, authorized);
+
+        JsonNode payloadToReturn = authorized
+                ? job.getPayload()
+                : objectMapper.createObjectNode()
+                        .put("_masked", true)
+                        .put("notice", "Confidential payload protected. Administrator authentication required to view raw contents.");
+
+        String lockedByToReturn = authorized ? job.getLockedBy() : (job.getLockedBy() != null ? "[PROTECTED]" : null);
 
         return new JobDetailResponse(
                 job.getId(),
                 job.getJobType(),
                 job.getStatus().name(),
-                job.getPayload(),
+                payloadToReturn,
                 job.getPriority(),
                 job.getAttemptCount(),
                 job.getRetryCount(),
@@ -229,7 +250,7 @@ public class JobService {
                 job.getUpdatedAt(),
                 job.getCompletedAt(),
                 job.getIdempotencyKey(),
-                job.getLockedBy(),
+                lockedByToReturn,
                 logs
         );
     }
@@ -239,6 +260,14 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     public List<JobExecutionLogResponse> getJobHistory(UUID jobId) {
+        return getJobHistory(jobId, true);
+    }
+
+    /**
+     * Retrieves execution logs with worker details sanitized for unauthenticated clients.
+     */
+    @Transactional(readOnly = true)
+    public List<JobExecutionLogResponse> getJobHistory(UUID jobId, boolean authorized) {
         if (!jobRepository.existsById(jobId)) {
             throw new JobNotFoundException(jobId);
         }
@@ -250,16 +279,23 @@ public class JobService {
             ORDER BY attempt ASC, created_at ASC
             """;
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> new JobExecutionLogResponse(
-                rs.getLong("id"),
-                (UUID) rs.getObject("job_id"),
-                rs.getString("worker_id"),
-                rs.getInt("attempt"),
-                rs.getString("status"),
-                rs.getLong("execution_time_ms"),
-                rs.getString("error_message"),
-                rs.getTimestamp("created_at").toInstant()
-        ), jobId);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            String rawWorker = rs.getString("worker_id");
+            String workerId = authorized ? rawWorker : (rawWorker != null ? "worker-***" : null);
+            String rawError = rs.getString("error_message");
+            String errorMessage = authorized ? rawError : (rawError != null && rawError.length() > 120 ? rawError.substring(0, 120) + "..." : rawError);
+
+            return new JobExecutionLogResponse(
+                    rs.getLong("id"),
+                    (UUID) rs.getObject("job_id"),
+                    workerId,
+                    rs.getInt("attempt"),
+                    rs.getString("status"),
+                    rs.getLong("execution_time_ms"),
+                    errorMessage,
+                    rs.getTimestamp("created_at").toInstant()
+            );
+        }, jobId);
     }
 
     private JobSummaryResponse toSummaryResponse(JobEntity job) {

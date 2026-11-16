@@ -12,6 +12,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import {
   useJobDetail,
@@ -59,6 +61,13 @@ export const JobDetailPage: React.FC = () => {
     );
   }
 
+  const isPayloadMasked =
+    !isAuthenticated &&
+    job.payload &&
+    (Boolean(job.payload._masked) ||
+      (typeof job.payload === 'object' && '_masked' in job.payload) ||
+      (typeof job.payload === 'string' && (job.payload.includes('_masked') || job.payload.includes('REDACTED'))));
+
   const handleActionClick = (action: 'replay' | 'discard') => {
     if (!isAuthenticated) {
       openUnlockModal(() => setConfirmAction(action));
@@ -81,6 +90,9 @@ export const JobDetailPage: React.FC = () => {
       setConfirmAction(null);
     }
   };
+
+  const payloadString =
+    typeof job.payload === 'string' ? job.payload : JSON.stringify(job.payload, null, 2);
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -132,20 +144,22 @@ export const JobDetailPage: React.FC = () => {
             Retries Exhausted
           </span>
           <div className="text-base font-bold font-mono text-white">
-            {job.retryCount} / {job.maxRetries} attempts
+            {job.retryCount} / {job.maxRetries} retries
           </div>
-          <div className="text-xs text-slate-500">Timeout: {job.timeoutSeconds}s</div>
+          <div className="text-xs text-slate-500">
+            Attempts: {job.attemptCount} | Priority: {job.priority}
+          </div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-            Claim / Worker
+            Locked By / Worker
           </span>
           <div className="text-xs font-mono text-slate-300 truncate">
-            {job.workerId || 'None (Unassigned)'}
+            {job.lockedBy || 'None (Unassigned)'}
           </div>
-          <div className="text-[11px] font-mono text-slate-500 truncate">
-            Token: {job.claimToken || '—'}
+          <div className="text-[11px] text-slate-500">
+            Status: {job.status}
           </div>
         </div>
 
@@ -156,17 +170,17 @@ export const JobDetailPage: React.FC = () => {
           <div className="text-xs font-mono text-slate-300 truncate">
             {job.idempotencyKey || 'None'}
           </div>
-          <div className="text-[11px] font-mono text-slate-500 truncate">
-            Hash: {job.idempotencyFingerprint ? `${job.idempotencyFingerprint.slice(0, 16)}...` : '—'}
+          <div className="text-[11px] text-slate-500">
+            Scheduled: {formatDate(job.scheduledAt)}
           </div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-            Created Date
+            Timestamps
           </span>
           <div className="text-xs font-mono text-slate-300">
-            {formatDate(job.createdAt)}
+            Created: {formatDate(job.createdAt)}
           </div>
           <div className="text-[11px] text-slate-500">
             Updated: {formatDate(job.updatedAt)}
@@ -175,7 +189,7 @@ export const JobDetailPage: React.FC = () => {
       </div>
 
       {/* Error Diagnostics (if failed/dead-letter) */}
-      {(job.lastErrorMessage || job.lastErrorCategory) && (
+      {(job.lastErrorMessage || job.failureCategory) && (
         <div className="rounded-xl bg-rose-950/20 border border-rose-900/50 p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -184,38 +198,43 @@ export const JobDetailPage: React.FC = () => {
                 Failure Diagnostics
               </span>
             </div>
-            {job.lastErrorCategory && (
+            {job.failureCategory && (
               <span className="px-2 py-0.5 text-xs font-mono rounded bg-rose-950/60 text-rose-300 border border-rose-800">
-                {job.lastErrorCategory}
+                {job.failureCategory}
               </span>
             )}
           </div>
           <p className="text-xs font-mono text-rose-200/90 leading-relaxed bg-rose-950/40 p-3 rounded-lg border border-rose-900/40">
             {job.lastErrorMessage}
           </p>
-          {job.lastErrorStackTrace && (
-            <div>
-              <button
-                onClick={() => setShowStackTrace((prev) => !prev)}
-                className="inline-flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 font-medium"
-              >
-                {showStackTrace ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                {showStackTrace ? 'Hide Stack Trace' : 'Show Full Stack Trace'}
-              </button>
-              {showStackTrace && (
-                <div className="mt-2 p-3 rounded-lg bg-slate-950 border border-slate-800 max-h-60 overflow-y-auto">
-                  <pre className="text-[11px] font-mono text-rose-300/80 leading-relaxed">
-                    {job.lastErrorStackTrace}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
-      {/* Payload Viewer */}
-      <JsonViewer jsonString={job.payloadJson} title="Job Payload JSON" />
+      {/* Payload Viewer / Protection */}
+      {isPayloadMasked ? (
+        <div className="rounded-xl border border-amber-900/40 bg-amber-950/10 p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-slate-200">Sensitive Job Payload Protected</h4>
+              <p className="text-xs text-slate-400">
+                Authentication is required to inspect raw payload arguments and operational details.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => openUnlockModal()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition shadow-md shadow-blue-600/20"
+          >
+            <Unlock className="w-3.5 h-3.5" />
+            Unlock to View
+          </button>
+        </div>
+      ) : (
+        <JsonViewer jsonString={payloadString} title="Job Payload JSON" />
+      )}
 
       {/* Execution Attempt History / Timeline */}
       <div className="rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg space-y-4">
@@ -234,27 +253,26 @@ export const JobDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-blue-400">
-                      Attempt #{item.attemptNumber}
+                      Attempt #{item.attempt}
                     </span>
                     <span className="text-slate-500">|</span>
                     <span className="text-slate-300">Worker: {item.workerId}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-slate-400 text-[11px]">
-                      Duration: {formatDurationMs(item.durationMs)}
+                      Duration: {formatDurationMs(item.executionTimeMs)}
                     </span>
                     <StatusBadge status={item.status} size="sm" />
                   </div>
                 </div>
 
                 <div className="text-[11px] text-slate-500 font-sans flex items-center justify-between">
-                  <span>Started: {formatDate(item.executionStartedAt)}</span>
-                  <span>Ended: {formatDate(item.executionEndedAt)}</span>
+                  <span>Logged: {formatDate(item.createdAt)}</span>
                 </div>
 
                 {item.errorMessage && (
                   <div className="mt-1 text-xs text-rose-300 bg-rose-950/40 p-2 rounded border border-rose-900/30">
-                    <span className="font-semibold text-rose-400">[{item.failureCategory || 'ERROR'}]: </span>
+                    <span className="font-semibold text-rose-400">[ERROR]: </span>
                     {item.errorMessage}
                   </div>
                 )}

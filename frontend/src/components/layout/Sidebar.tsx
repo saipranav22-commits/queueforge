@@ -8,10 +8,16 @@ import {
   Cpu,
   Shield,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { useDashboardStats } from '../../hooks/useQueueForgeData';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) => {
   const { data: stats } = useDashboardStats();
 
   const navItems = [
@@ -48,22 +54,32 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-slate-800 bg-slate-900/90 flex flex-col justify-between select-none">
+    <aside className="w-64 h-full flex-shrink-0 border-r border-slate-800 bg-slate-900/95 flex flex-col justify-between select-none">
       <div>
         {/* Brand Header */}
-        <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <div className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-              <span>QueueForge</span>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                v0.1
-              </span>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Shield className="w-4 h-4 text-white" />
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Reliable Job Engine</p>
+            <div>
+              <div className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                <span>QueueForge</span>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  v0.1
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-medium">Reliable Job Engine</p>
+            </div>
           </div>
+          {isMobile && (
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Items */}
@@ -76,6 +92,11 @@ export const Sidebar: React.FC = () => {
               key={item.to}
               to={item.to}
               end={item.end}
+              onClick={() => {
+                if (isMobile && onClose) {
+                  onClose();
+                }
+              }}
               className={({ isActive }) =>
                 `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                   isActive

@@ -10,52 +10,47 @@ export interface JobSummary {
   jobId: string;
   jobType: string;
   status: JobStatus;
+  priority: number;
+  attemptCount: number;
   retryCount: number;
   maxRetries: number;
-  payloadExcerpt: string;
+  failureCategory?: string | null;
+  lastErrorMessage?: string | null;
+  scheduledAt?: string | null;
   createdAt: string;
-  claimExpiresAt: string | null;
-  completedAt: string | null;
-  failedAt: string | null;
-  lastErrorSnippet: string | null;
+  completedAt?: string | null;
+  idempotencyKey?: string | null;
 }
 
 export interface JobDetail {
   jobId: string;
   jobType: string;
   status: JobStatus;
+  payload: any;
+  priority: number;
+  attemptCount: number;
   retryCount: number;
   maxRetries: number;
-  timeoutSeconds: number;
-  payloadJson: string;
-  idempotencyKey: string | null;
-  idempotencyFingerprint: string | null;
-  claimToken: string | null;
-  claimExpiresAt: string | null;
-  workerId: string | null;
+  failureCategory: string | null;
+  lastErrorMessage: string | null;
+  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
-  failedAt: string | null;
-  lastErrorMessage: string | null;
-  lastErrorCategory: string | null;
-  lastErrorStackTrace: string | null;
-  attemptCount: number;
+  idempotencyKey: string | null;
+  lockedBy: string | null;
+  executionLogs: JobExecutionLog[];
 }
 
 export interface JobExecutionLog {
   id: number;
   jobId: string;
-  attemptNumber: number;
   workerId: string;
-  claimToken: string | null;
-  executionStartedAt: string;
-  executionEndedAt: string | null;
-  durationMs: number | null;
+  attempt: number;
   status: string;
-  failureCategory: string | null;
+  executionTimeMs: number;
   errorMessage: string | null;
-  errorStackTrace: string | null;
+  createdAt: string;
 }
 
 export interface PageResponse<T> {
