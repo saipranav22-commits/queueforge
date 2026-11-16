@@ -244,6 +244,14 @@ public class QueueForgeMetrics implements SmartLifecycle {
         return deadLetterJobs.get();
     }
 
+    public long getArchivedCount() {
+        return archivedJobs.get();
+    }
+
+    public MeterRegistry getMeterRegistry() {
+        return registry;
+    }
+
     private String normalizeTag(String value) {
         return (value != null && !value.isBlank()) ? value.trim().toUpperCase() : "UNKNOWN";
     }

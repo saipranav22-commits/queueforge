@@ -304,7 +304,8 @@ Log File Destination:
 The monitoring stack runs in isolated Docker containers with persistent data on `D:`:
 - **Prometheus:** `http://127.0.0.1:9090` (persistent data on `D:\Projects\QueueForge\data\prometheus`)
 - **Grafana:** `http://127.0.0.1:3000` (persistent data on `D:\Projects\QueueForge\data\grafana`)
-  - Default credentials: `admin` / `admin` (Anonymous Viewer enabled)
+  - Hardened access: Anonymous access disabled (`GF_AUTH_ANONYMOUS_ENABLED=false`)
+  - Admin credentials configured via git-ignored `.env` (`GRAFANA_ADMIN_USER=qf_admin`)
   - Auto-provisioned Datasource: Prometheus (`http://prometheus:9090`)
   - Auto-provisioned Dashboard: **QueueForge Engine Overview** (`queueforge-overview`) with 10 panels:
     1. *Pending Jobs* (Stat / Gauge)
@@ -320,6 +321,53 @@ The monitoring stack runs in isolated Docker containers with persistent data on 
 
 ---
 
+## Phase 4A: Production React Administration Dashboard
+
+QueueForge features a dark-mode developer console engineered for backend operations, queue inspection, and dead-letter recovery.
+
+### 1. Frontend Technology Stack
+- **Framework & Tooling:** React 19, TypeScript, Vite, React Router 7
+- **Styling:** Tailwind CSS v4, Lucide React icons
+- **Server State & Real-time Sync:** TanStack React Query v5 (polling every 2–3s)
+- **Data Visualization:** Recharts (queue state distribution pie chart)
+- **Testing & Quality:** Vitest, React Testing Library, JSDOM
+
+### 2. Dual-Mode Authentication & Security Architecture
+- **Zero Secrets in Client Bundle:** The administrative API key is never bundled in JavaScript, written to `.env`, exposed in `VITE_` variables, or persisted in `localStorage`/`sessionStorage`.
+- **Server-Side Session Authentication:** Operators unlock admin mode via `POST /api/v1/auth/login`. On successful authentication, the server sets a `SameSite=Lax; HttpOnly; Path=/api/v1` session cookie (`QF_SESSION`) with a sliding 2-hour TTL.
+- **CSRF Defense:** The server generates a cryptographic CSRF token returned in the login payload. The frontend client stores this token strictly in memory and automatically attaches it via `X-CSRF-Token` to state-changing requests (`POST`, `PUT`, `DELETE`).
+- **Timing Attack Mitigation:** Secret key comparison in `AuthSessionService` uses constant-time `MessageDigest.isEqual`.
+- **Brute-Force Rate Limiting:** In-memory rate limiting restricts failed login attempts to a maximum of 5 attempts per client IP per 60 seconds (HTTP 429 Too Many Requests).
+- **Automated CLI & Test Compatibility:** Automated testing scripts and curl clients remain supported using the existing `X-Admin-Key` header.
+
+### 3. Console Operations Views
+1. **Overview Dashboard (`/`):** Live KPI cards (Pending Queue, Active Processing, Completed, DLQ), lifetime submissions, worker thread utilization bar, state distribution chart, and quick "Submit Test Job" action.
+2. **Job Explorer (`/jobs`):** Bounded paginated table with multi-criteria filtering by lifecycle status (`PENDING`, `CLAIMED`, `RUNNING`, `COMPLETED`, `FAILED`, `DEAD_LETTER`), job type search, payload excerpt search, and sorting.
+3. **Job Details & Execution Timeline (`/jobs/:jobId`):** Deep diagnostics view including execution metadata, claim tokens, idempotency fingerprints, sanitized payload JSON viewer, collapsible stack traces, and complete attempt history from `qf_job_execution_logs`.
+4. **Dead-Letter Queue (`/dlq`):** Exhausted job inspection with error taxonomy snippets and administrative action controls (Replay & Discard) backed by the Admin Unlock modal.
+5. **Workers & System Health (`/workers`):** Real-time coordinator health, concurrency pool metrics, database connection pool statistics, and architecture documentation on `SELECT FOR UPDATE SKIP LOCKED` and lease fencing tokens.
+6. **Monitoring & Latency Percentiles (`/monitoring`):** Execution latency percentiles (p50, p95, p99), queue wait latency, failure category breakdown, and deep-links to Grafana and Prometheus.
+
+### 4. Running the Frontend (Strict D: Drive Isolation)
+```powershell
+# Dot-source the environment configuration
+. .\env.ps1
+
+# Navigate to frontend directory
+cd frontend
+
+# Run development server with backend proxy to http://127.0.0.1:8085
+npm run dev
+
+# Run frontend tests
+npm run test
+
+# Build production bundle
+npm run build
+```
+
+---
+
 ## Roadmap
 
 - [x] **Phase 1A:** Safe Workspace Initialization & Environment Isolation
@@ -328,4 +376,4 @@ The monitoring stack runs in isolated Docker containers with persistent data on 
 - [x] **Phase 2A:** Concurrent Worker Engine, `SKIP LOCKED` Claiming & Fenced Leases
 - [x] **Phase 2B:** Retry Engine, Exponential Backoff with Jitter, Dead-Letter Queue & Admin Recovery
 - [x] **Phase 3:** Observability, Metrics (Micrometer / Actuator / Prometheus), Grafana Dashboards & Queue Health Telemetry
-- [ ] **Phase 4:** Production React Admin Dashboard & Live Job Monitoring
+- [x] **Phase 4A:** Production React Admin Dashboard, Browser Security Boundaries & Execution Timeline

@@ -23,8 +23,9 @@ $env:TMPDIR = "D:\Projects\QueueForge\temp"
 # 5. Maven Repository and JVM Temp Redirection
 $env:MAVEN_OPTS = "-Xmx512m -Xms64m -Dmaven.repo.local=D:/Development/maven-repository -Djava.io.tmpdir=D:/Projects/QueueForge/temp"
 
-# 6. NPM Cache Redirection to D:
+# 6. NPM Cache & Prefix Redirection to D:
 $env:npm_config_cache = "D:\Projects\QueueForge\.cache\npm"
+$env:npm_config_prefix = "D:\Projects\QueueForge\.cache\npm-global"
 
 # 7. Safely load local .env variables (without hardcoding secrets into Git)
 $dotenvPath = "D:\Projects\QueueForge\.env"

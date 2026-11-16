@@ -1,8 +1,10 @@
 package com.queueforge.api.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.queueforge.api.controller.AuthController;
 import com.queueforge.api.dto.ErrorResponse;
 import com.queueforge.config.AdminProperties;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -14,52 +16,75 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Instant;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Security interceptor guarding /api/v1/admin/** endpoints.
- * Requires a valid X-Admin-Key HTTP header.
- *
- * NOTE FOR PRODUCTION DEPLOYMENT:
- * The static API key approach used here is designed strictly for local development and internal administrative tooling.
- * Prior to exposing administrative endpoints on untrusted networks or public clouds, this mechanism MUST be upgraded to:
- * 1. OAuth2 / OpenID Connect (OIDC) with short-lived JWT tokens issued by an identity provider (e.g. Keycloak, Auth0).
- * 2. Role-Based Access Control (RBAC) to enforce granular permissions (e.g. ROLE_QUEUE_ADMIN vs. ROLE_OPERATOR).
- * 3. Mutual TLS (mTLS) for machine-to-machine internal cluster management.
- * 4. Audit logging capturing authenticated actor identity on every state-mutating operation.
+ * Supports dual-mode authentication:
+ * 1. CLI / Automated: X-Admin-Key header (constant-time token comparison)
+ * 2. Browser Admin Console: HttpOnly QF_SESSION cookie with CSRF protection on mutating requests
  */
 @Component
 public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(AdminAuthInterceptor.class);
     public static final String ADMIN_KEY_HEADER = "X-Admin-Key";
+    public static final String CSRF_HEADER = "X-CSRF-Token";
+    private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
 
     private final AdminProperties adminProperties;
+    private final AuthSessionService sessionService;
     private final ObjectMapper objectMapper;
 
-    public AdminAuthInterceptor(AdminProperties adminProperties, ObjectMapper objectMapper) {
+    public AdminAuthInterceptor(AdminProperties adminProperties,
+                                AuthSessionService sessionService,
+                                ObjectMapper objectMapper) {
         this.adminProperties = adminProperties;
+        this.sessionService = sessionService;
         this.objectMapper = objectMapper;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 1. Check Header Authentication (CLI / Test Automation)
         String apiKey = request.getHeader(ADMIN_KEY_HEADER);
-
-        if (!isValidAdminKey(apiKey)) {
-            log.warn("Unauthorized administrative access attempt from IP={} uri={}",
-                    request.getRemoteAddr(), request.getRequestURI());
-
-            sendUnauthorizedResponse(request, response, "Missing or invalid administrative authentication key");
-            return false;
+        if (apiKey != null && isValidAdminKey(apiKey)) {
+            return true;
         }
 
-        return true;
+        // 2. Check Browser Session Cookie Authentication
+        Optional<String> sessionIdOpt = extractSessionCookie(request);
+        if (sessionIdOpt.isPresent()) {
+            Optional<SessionInfo> sessionOpt = sessionService.getSession(sessionIdOpt.get());
+            if (sessionOpt.isPresent()) {
+                SessionInfo session = sessionOpt.get();
+
+                // 3. Enforce CSRF token verification on state-changing requests
+                if (MUTATING_METHODS.contains(request.getMethod().toUpperCase())) {
+                    String csrfHeader = request.getHeader(CSRF_HEADER);
+                    if (csrfHeader == null || !MessageDigest.isEqual(
+                            csrfHeader.getBytes(StandardCharsets.UTF_8),
+                            session.getCsrfToken().getBytes(StandardCharsets.UTF_8))) {
+                        log.warn("CSRF validation failed for admin request from IP='{}' URI='{}'",
+                                request.getRemoteAddr(), request.getRequestURI());
+                        sendForbiddenResponse(request, response, "Invalid or missing CSRF token");
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        log.warn("Unauthorized administrative access attempt from IP='{}' URI='{}'",
+                request.getRemoteAddr(), request.getRequestURI());
+
+        sendUnauthorizedResponse(request, response, "Missing or invalid administrative authentication key");
+        return false;
     }
 
-    /**
-     * Constant-time comparison to prevent side-channel timing attacks.
-     */
     private boolean isValidAdminKey(String providedKey) {
         if (providedKey == null || adminProperties.getApiKey() == null) {
             return false;
@@ -69,13 +94,32 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         return MessageDigest.isEqual(providedBytes, expectedBytes);
     }
 
+    private Optional<String> extractSessionCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) {
+            return Optional.empty();
+        }
+        return Arrays.stream(request.getCookies())
+                .filter(c -> AuthController.SESSION_COOKIE_NAME.equals(c.getName()))
+                .map(Cookie::getValue)
+                .filter(v -> v != null && !v.isBlank())
+                .findFirst();
+    }
+
     private void sendUnauthorizedResponse(HttpServletRequest request, HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        sendErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized", message);
+    }
+
+    private void sendForbiddenResponse(HttpServletRequest request, HttpServletResponse response, String message) throws IOException {
+        sendErrorResponse(request, response, HttpServletResponse.SC_FORBIDDEN, "Forbidden", message);
+    }
+
+    private void sendErrorResponse(HttpServletRequest request, HttpServletResponse response, int status, String error, String message) throws IOException {
+        response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
         ErrorResponse errorResponse = ErrorResponse.of(
-                HttpServletResponse.SC_UNAUTHORIZED,
-                "Unauthorized",
+                status,
+                error,
                 message,
                 request.getRequestURI()
         );

@@ -1,20 +1,29 @@
 package com.queueforge.service;
 
-import com.queueforge.api.dto.CreateJobRequest;
-import com.queueforge.api.dto.CreateJobResponse;
-import com.queueforge.api.dto.JobStatusResponse;
+import com.queueforge.api.dto.*;
 import com.queueforge.common.exception.IdempotencyConflictException;
 import com.queueforge.common.exception.JobNotFoundException;
+import com.queueforge.core.domain.JobStatus;
+import com.queueforge.metrics.QueueForgeMetrics;
 import com.queueforge.persistence.entity.JobEntity;
 import com.queueforge.persistence.repository.JobRepository;
 import com.queueforge.service.idempotency.IdempotencyFingerprintService;
+import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,18 +34,21 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final IdempotencyFingerprintService fingerprintService;
-    private final com.queueforge.metrics.QueueForgeMetrics metrics;
+    private final QueueForgeMetrics metrics;
+    private final JdbcTemplate jdbcTemplate;
 
     public JobService(JobRepository jobRepository,
                       IdempotencyFingerprintService fingerprintService,
-                      com.queueforge.metrics.QueueForgeMetrics metrics) {
+                      QueueForgeMetrics metrics,
+                      JdbcTemplate jdbcTemplate) {
         this.jobRepository = jobRepository;
         this.fingerprintService = fingerprintService;
         this.metrics = metrics;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     /**
-     * Submits and persists a job with at-least-once persistence and idempotency protection.
+     * Submits a job with durable PostgreSQL persistence and idempotency protection.
      */
     public CreateJobResponse submitJob(CreateJobRequest request, String rawIdempotencyKey) {
         String idempotencyKey = normalizeIdempotencyKey(rawIdempotencyKey);
@@ -119,6 +131,155 @@ public class JobService {
         );
     }
 
+    /**
+     * Lists jobs with bounded pagination, filtering, searching and sorting.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<JobSummaryResponse> listJobs(
+            int page,
+            int size,
+            JobStatus status,
+            String jobType,
+            String search,
+            String sortBy,
+            String sortDirection) {
+
+        int boundedPage = Math.max(0, page);
+        int boundedSize = Math.min(100, Math.max(1, size));
+
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String sortProperty = switch (sortBy != null ? sortBy.toLowerCase() : "") {
+            case "priority" -> "priority";
+            case "scheduledat" -> "scheduledAt";
+            case "completedat" -> "completedAt";
+            case "status" -> "status";
+            case "jobtype" -> "jobType";
+            default -> "createdAt";
+        };
+
+        Pageable pageable = PageRequest.of(boundedPage, boundedSize, Sort.by(direction, sortProperty));
+
+        Specification<JobEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (jobType != null && !jobType.isBlank()) {
+                predicates.add(cb.equal(root.get("jobType"), jobType.trim().toUpperCase()));
+            }
+            if (search != null && !search.isBlank()) {
+                String searchTrimmed = search.trim();
+                Predicate idMatch = null;
+                try {
+                    UUID searchUuid = UUID.fromString(searchTrimmed);
+                    idMatch = cb.equal(root.get("id"), searchUuid);
+                } catch (IllegalArgumentException ignored) {
+                }
+
+                Predicate keyMatch = cb.like(cb.lower(root.get("idempotencyKey")), "%" + searchTrimmed.toLowerCase() + "%");
+                if (idMatch != null) {
+                    predicates.add(cb.or(idMatch, keyMatch));
+                } else {
+                    predicates.add(keyMatch);
+                }
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<JobEntity> resultPage = jobRepository.findAll(spec, pageable);
+
+        List<JobSummaryResponse> content = resultPage.getContent().stream()
+                .map(this::toSummaryResponse)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                resultPage.getNumber(),
+                resultPage.getSize(),
+                resultPage.getTotalElements(),
+                resultPage.getTotalPages()
+        );
+    }
+
+    /**
+     * Retrieves full job details including payload, error info, and execution history.
+     */
+    @Transactional(readOnly = true)
+    public JobDetailResponse getJobDetail(UUID jobId) {
+        JobEntity job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+
+        List<JobExecutionLogResponse> logs = getJobHistory(jobId);
+
+        return new JobDetailResponse(
+                job.getId(),
+                job.getJobType(),
+                job.getStatus().name(),
+                job.getPayload(),
+                job.getPriority(),
+                job.getAttemptCount(),
+                job.getRetryCount(),
+                job.getMaxRetries(),
+                job.getFailureCategory() != null ? job.getFailureCategory().name() : null,
+                job.getLastErrorMessage(),
+                job.getScheduledAt(),
+                job.getCreatedAt(),
+                job.getUpdatedAt(),
+                job.getCompletedAt(),
+                job.getIdempotencyKey(),
+                job.getLockedBy(),
+                logs
+        );
+    }
+
+    /**
+     * Retrieves persisted execution logs for a job from qf_job_execution_logs.
+     */
+    @Transactional(readOnly = true)
+    public List<JobExecutionLogResponse> getJobHistory(UUID jobId) {
+        if (!jobRepository.existsById(jobId)) {
+            throw new JobNotFoundException(jobId);
+        }
+
+        String sql = """
+            SELECT id, job_id, worker_id, attempt, status, execution_time_ms, error_message, created_at
+            FROM qf_job_execution_logs
+            WHERE job_id = ?
+            ORDER BY attempt ASC, created_at ASC
+            """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new JobExecutionLogResponse(
+                rs.getLong("id"),
+                (UUID) rs.getObject("job_id"),
+                rs.getString("worker_id"),
+                rs.getInt("attempt"),
+                rs.getString("status"),
+                rs.getLong("execution_time_ms"),
+                rs.getString("error_message"),
+                rs.getTimestamp("created_at").toInstant()
+        ), jobId);
+    }
+
+    private JobSummaryResponse toSummaryResponse(JobEntity job) {
+        return new JobSummaryResponse(
+                job.getId(),
+                job.getJobType(),
+                job.getStatus().name(),
+                job.getPriority(),
+                job.getAttemptCount(),
+                job.getRetryCount(),
+                job.getMaxRetries(),
+                job.getFailureCategory() != null ? job.getFailureCategory().name() : null,
+                job.getLastErrorMessage(),
+                job.getScheduledAt(),
+                job.getCreatedAt(),
+                job.getCompletedAt(),
+                job.getIdempotencyKey()
+        );
+    }
+
     private CreateJobResponse handleExistingIdempotentJob(JobEntity existing, String fingerprint, String idempotencyKey) {
         if (fingerprint != null && !fingerprint.equals(existing.getIdempotencyFingerprint())) {
             log.warn("Idempotency conflict detected for key='{}'. Existing job id={} fingerprint mismatch.",
@@ -142,12 +303,6 @@ public class JobService {
             return null;
         }
         String trimmed = rawKey.trim();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-        if (trimmed.length() > 128) {
-            throw new IllegalArgumentException("Idempotency-Key length cannot exceed 128 characters");
-        }
-        return trimmed;
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
