@@ -46,6 +46,7 @@ queueforge:
     heartbeat-interval-seconds: 10
     recovery-poll-interval-ms: 1000
     shutdown-timeout-seconds: 5
+    chaos-payloads-enabled: true
   retry:
     initial-delay-seconds: 5
     multiplier: 3.0

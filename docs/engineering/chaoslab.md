@@ -53,14 +53,14 @@ Without automated fault injection, catastrophic failure modes remain hidden:
 1. **`ScenarioRunner`**: Orchestrates deterministic multi-stage experiments with strict timeouts and state assertions.
 2. **`FaultInjector`**: Targets verified test worker containers (`qf-chaos-worker-*`). Includes safety boundary checks that strictly forbid operations on any containers outside the disposable `queueforge-chaos` compose project.
 3. **`EventRecorder`**: Thread-safe append-only chronology of execution events (`JOB_SUBMITTED`, `JOB_CLAIMED`, `FAULT_INJECTED`, `LEASE_EXPIRED`, `JOB_RECOVERED`, `STALE_COMMIT_REJECTED`, `JOB_COMPLETED`, `JOB_DEAD_LETTERED`).
-4. **`InvariantVerifier`**: Formally evaluates execution traces, database row states, and audit log entries against 9 correctness invariants.
-5. **`ExperimentReporter`**: Emits timestamped, machine-readable JSON and human-readable Markdown reports detailing event timelines, recovery durations, and invariant proofs.
+4. **`InvariantVerifier`**: Evaluates execution traces, database row states, and audit log entries against 9 correctness invariants.
+5. **`ExperimentReporter`**: Emits timestamped, machine-readable JSON and human-readable Markdown reports detailing event timelines, recovery durations, and invariant verification outcomes.
 
 ---
 
-## 3. Correctness Invariants: Formal Specifications
+## 3. Correctness Invariants: Specifications & Empirical Verification
 
-QueueForge verifies 6 Safety invariants and 3 Liveness invariants:
+QueueForge verifies 6 Safety invariants and 3 Liveness invariants through automated trace and state inspection:
 
 | Invariant | Category | Description | Verification Logic |
 | :--- | :--- | :--- | :--- |

@@ -47,6 +47,7 @@ public class QueueForgeMetrics implements SmartLifecycle {
     private final AtomicLong completedJobs = new AtomicLong(0);
     private final AtomicLong deadLetterJobs = new AtomicLong(0);
     private final AtomicLong archivedJobs = new AtomicLong(0);
+    private final AtomicLong pendingOutboxEvents = new AtomicLong(0);
 
     // Refresh synchronization
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -80,6 +81,10 @@ public class QueueForgeMetrics implements SmartLifecycle {
 
         Gauge.builder("queueforge.jobs.dead_letter", deadLetterJobs, AtomicLong::get)
                 .description("Current number of jobs in dead-letter queue requiring administrative attention")
+                .register(registry);
+
+        Gauge.builder("queueforge.outbox.pending", pendingOutboxEvents, AtomicLong::get)
+                .description("Current number of pending outbox events awaiting delivery")
                 .register(registry);
 
         Gauge.builder("queueforge.workers.active", this, QueueForgeMetrics::getActiveWorkerCount)
@@ -152,6 +157,14 @@ public class QueueForgeMetrics implements SmartLifecycle {
             completedJobs.set(counts.getOrDefault(JobStatus.COMPLETED.name(), 0L));
             deadLetterJobs.set(counts.getOrDefault(JobStatus.DEAD_LETTER.name(), 0L));
             archivedJobs.set(counts.getOrDefault(JobStatus.ARCHIVED.name(), 0L));
+
+            try {
+                Long outboxPending = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM outbox_events WHERE status = 'PENDING'", Long.class);
+                pendingOutboxEvents.set(outboxPending != null ? outboxPending : 0L);
+            } catch (Exception ignored) {
+                // Table might not be created during early migration stages
+            }
 
             lastRefreshTimestamp = System.currentTimeMillis();
         } catch (Exception e) {
@@ -240,6 +253,66 @@ public class QueueForgeMetrics implements SmartLifecycle {
                 .tag("job_type", normalizeTag(jobType))
                 .register(registry)
                 .record(duration);
+    }
+
+    // =========================================================================
+    // Outbox Metrics
+    // =========================================================================
+
+    public void incrementOutboxCreated(String eventType) {
+        Counter.builder("queueforge.outbox.events.created.total")
+                .description("Total number of transactional outbox events written with order transaction")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxDelivered(String eventType) {
+        Counter.builder("queueforge.outbox.events.delivered.total")
+                .description("Total number of outbox events successfully delivered and acknowledged")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxFailed(String eventType, String errorCategory) {
+        Counter.builder("queueforge.outbox.events.failed.total")
+                .description("Total number of outbox event dispatch attempts that resulted in failure")
+                .tag("event_type", normalizeTag(eventType))
+                .tag("error_category", normalizeTag(errorCategory))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxDeadLetter(String eventType) {
+        Counter.builder("queueforge.outbox.events.dead_letter.total")
+                .description("Total number of outbox events moved to dead-letter state after retry exhaustion")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxAttempt(String eventType) {
+        Counter.builder("queueforge.outbox.delivery.attempts.total")
+                .description("Total number of outbox event dispatch attempts initiated")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void recordOutboxDeliveryDuration(String eventType, Duration duration) {
+        if (duration.isNegative()) {
+            duration = Duration.ZERO;
+        }
+        Timer.builder("queueforge.outbox.delivery.duration")
+                .description("Latency of outbox delivery from dispatch claim to receiver acknowledgement")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .record(duration);
+    }
+
+    public long getPendingOutboxCount() {
+        return pendingOutboxEvents.get();
     }
 
     // =========================================================================

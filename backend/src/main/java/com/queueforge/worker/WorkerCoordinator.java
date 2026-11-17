@@ -180,7 +180,9 @@ public class WorkerCoordinator implements SmartLifecycle {
             // Periodic heartbeat extension for long-running executions
             int heartbeatInterval = properties.getHeartbeatIntervalSeconds();
             int leaseDuration = properties.getLeaseDurationSeconds();
-            boolean disableHeartbeat = job.payload() != null && job.payload().path("disableHeartbeat").asBoolean(false);
+            boolean disableHeartbeat = properties.isChaosPayloadsEnabled()
+                    && job.payload() != null
+                    && job.payload().path("disableHeartbeat").asBoolean(false);
             ScheduledFuture<?> heartbeatTask = null;
 
             if (!disableHeartbeat && heartbeatInterval > 0) {

@@ -108,9 +108,9 @@ RETURNING j.*;
 
 ---
 
-## 4. Concurrency Invariants & Proofs
+## 4. Concurrency Invariants & Enforcement Guarantees
 
-QueueForge guarantees six strict invariants across arbitrary numbers of concurrent JVM worker instances:
+QueueForge enforces six strict concurrency invariants across arbitrary numbers of concurrent JVM worker instances:
 
 | Invariant | Description | Enforcement Mechanism |
 | :--- | :--- | :--- |
