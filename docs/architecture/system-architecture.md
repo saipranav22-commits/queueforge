@@ -1,121 +1,209 @@
-# QueueForge Architecture & Design Specification
+# QueueForge Architecture & Technical Specification
 
-## 1. System Overview
+## 1. Executive Summary & Design Rationale
 
-QueueForge is designed as a modular monolith providing asynchronous, guaranteed-delivery background job processing using PostgreSQL as a durable queue.
+QueueForge is an asynchronous, guaranteed-delivery background task execution engine built with Java 21, Spring Boot 3.3.5, PostgreSQL 16, and React 19. It solves the classic distributed systems challenge of reliable background processing without the operational overhead and operational complexity of external message brokers (such as RabbitMQ or Kafka) for workloads where transactional durability, auditability, and SQL-level inspection are paramount.
+
+---
+
+## 2. System Architecture
 
 ```mermaid
-flowchart LR
-    Client["Client / External App"] -->|"POST /api/v1/jobs (Idempotency-Key)"| Ingestion["Job Ingestion API"]
-    Admin["Ops / Administrator"] -->|"POST /api/v1/admin/dlq/{id}/replay"| DLQ["DLQ Management API"]
+flowchart TD
+    subgraph Clients ["Clients & External Ingress"]
+        WebUser["Browser / Operator"]
+        ApiClient["Microservice / API Client"]
+    end
 
-    subgraph Service ["QueueForge Service (JVM 21)"]
-        Ingestion -->|"Insert PENDING"| DB[(PostgreSQL 16 Engine)]
-        DLQ -->|"Replay -> PENDING"| DB
+    subgraph Edge ["Edge & Reverse Proxy (127.0.0.1:8088)"]
+        Nginx["Nginx 1.27 Reverse Proxy"]
+        StaticAssets["React 19 SPA Static Bundle"]
+    end
 
-        subgraph WorkerEngine ["Worker Engine Subsystem"]
-            Claimer["Job Claim Scheduler"] -->|"SELECT ... FOR UPDATE SKIP LOCKED"| DB
-            Claimer -->|"Dispatch"| WorkerPool["Bounded Thread Pool (1..N)"]
-            WorkerPool -->|"Execute"| Handlers["Job Handlers (e.g. ReportGeneration)"]
-            WorkerPool -->|"Update COMPLETED / FAILED"| DB
-            
-            LeaseSweeper["Lease Recovery Sweeper"] -->|"Reclaim Stale Leases"| DB
+    subgraph AppServer ["Spring Boot Application Server (Port 8085)"]
+        subgraph ApiLayer ["REST API Layer"]
+            JobCtrl["JobController (/api/v1/jobs)"]
+            AuthCtrl["AuthController (/api/v1/auth)"]
+            AdminDlqCtrl["AdminDlqController (/api/v1/admin/dlq)"]
+            SystemCtrl["SystemHealthController (/api/v1/system/health)"]
+            Actuator["Spring Actuator / Prometheus (/actuator)"]
         end
+
+        subgraph SecurityLayer ["Security & Session Interceptors"]
+            AuthInterceptor["AdminAuthInterceptor (Session Cookie + CSRF)"]
+            RateLimiter["IP-based RateLimiter"]
+            PayloadMasker["Role-based Payload Sanitize Engine"]
+        end
+
+        subgraph CoreEngine ["Worker Engine Subsystem"]
+            WorkerCoord["WorkerCoordinator (Fixed Pool)"]
+            ClaimSvc["JobClaimService (SKIP LOCKED)"]
+            HeartbeatMgr["LeaseHeartbeatScheduler"]
+            Sweeper["LeaseRecoverySweeper"]
+            HandlerRegistry["JobHandlerRegistry"]
+        end
+
+        subgraph Observability ["Metrics & Logging"]
+            MicroMeter["Micrometer MeterRegistry"]
+            MdcFilter["MDC Logging Context Filter"]
+        end
+    end
+
+    subgraph Storage ["Persistent Storage Tier"]
+        PG[("PostgreSQL 16.8 Engine")]
+        JobsTable[("qf_jobs Table (Indexed Queue)")]
+        ExecLogs[("qf_job_execution_logs Table")]
+        FlywayHistory[("flyway_schema_history")]
+    end
+
+    subgraph Telemetry ["Observability Infrastructure"]
+        Prometheus["Prometheus v2.51.0 (:9091)"]
+        Grafana["Grafana 10.4.1 (:3001)"]
+    end
+
+    WebUser -->|"HTTPS/HTTP"| Nginx
+    ApiClient -->|"POST /api/v1/jobs"| Nginx
+    Nginx -->|"Proxy /"| StaticAssets
+    Nginx -->|"Proxy /api/"| ApiLayer
+
+    JobCtrl --> SecurityLayer
+    AuthCtrl --> SecurityLayer
+    AdminDlqCtrl --> SecurityLayer
+    SecurityLayer --> CoreEngine
+
+    ClaimSvc -->|"1. Microsecond Claim Transaction"| JobsTable
+    WorkerCoord -->|"2. Dispatch to Thread Pool"| HandlerRegistry
+    HandlerRegistry -->|"3. Execute Business Logic"| HandlerRegistry
+    WorkerCoord -->|"4. Atomic Completion / Retry"| JobsTable
+    WorkerCoord -->|"5. Audit Logging"| ExecLogs
+    Sweeper -->|"Sweep Expired Leases"| JobsTable
+
+    Prometheus -->|"Scrape /actuator/prometheus"| Actuator
+    Grafana -->|"Query TSDB"| Prometheus
+    MicroMeter --> Actuator
+```
+
+---
+
+## 3. Job Processing Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: API Ingestion (POST /api/v1/jobs)
+    
+    PENDING --> RUNNING: Claimed by Worker (SKIP LOCKED)
+    note right of RUNNING
+      Atomic Claim assigns:
+      - claim_token (UUID)
+      - lease_until (NOW + 30s)
+      - attempt_count++
+    end note
+
+    RUNNING --> COMPLETED: Handler Execution Succeeded
+    note right of COMPLETED
+      Guarded by active lease
+      Fencing token validated
+    end note
+
+    RUNNING --> RETRY_SCHEDULED: Transient Error (retry_count < max_retries)
+    note right of RETRY_SCHEDULED
+      Exponential Backoff + Full Jitter
+      scheduled_at = NOW + delay
+      status resets to PENDING
+    end note
+
+    RETRY_SCHEDULED --> PENDING: Backoff Delay Elapsed (scheduled_at <= NOW)
+    
+    RUNNING --> DEAD_LETTER: Permanent Error OR max_retries Exhausted
+    note right of DEAD_LETTER
+      Classified into Taxonomy:
+      - TRANSIENT_FAILURE (exhausted)
+      - PERMANENT_FAILURE (immediate)
+      - HANDLER_NOT_FOUND (immediate)
+      - LEASE_EXPIRED (exhausted)
+    end note
+
+    RUNNING --> PENDING: Worker Crash (Sweeper detects lease_until < NOW)
+    
+    DEAD_LETTER --> PENDING: Administrative Replay Action (POST /replay)
+    DEAD_LETTER --> ARCHIVED: Administrative Discard Action (POST /discard)
+    
+    COMPLETED --> [*]
+    ARCHIVED --> [*]
+```
+
+---
+
+## 4. Concurrent Worker Claiming & Lease Fencing
+
+To ensure high concurrency without lock contention or thread blocking, QueueForge decouples job claiming from job execution.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant W as Worker Thread (Worker-1)
+    participant CS as JobClaimService
+    participant DB as PostgreSQL 16 (qf_jobs)
+    participant H as JobHandler (Business Logic)
+
+    Note over W,DB: Step 1: Microsecond Claim Transaction
+    W->>CS: Poll for available jobs (concurrency quota available)
+    CS->>DB: BEGIN TRANSACTION
+    CS->>DB: SELECT id FROM qf_jobs WHERE status='PENDING' AND scheduled_at <= NOW() ORDER BY priority DESC, scheduled_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+    Note over DB: Locks ONLY the selected row. Skips rows locked by other workers immediately.
+    CS->>DB: UPDATE qf_jobs SET status='RUNNING', locked_by='Worker-1', claim_token=UUID, lease_until=NOW()+30s, attempt_count=attempt_count+1 WHERE id = ?
+    CS->>DB: COMMIT TRANSACTION
+    Note over CS,DB: Database lock is released! Connection returned to HikariCP pool.
+
+    Note over W,H: Step 2: Unbound Business Logic Execution
+    W->>H: execute(jobPayload)
+    Note over H: Business logic executes in JVM thread pool outside any database lock.
+
+    alt Execution Successful
+        W->>CS: completeJob(jobId, claimToken, attemptCount)
+        CS->>DB: UPDATE qf_jobs SET status='COMPLETED', completed_at=NOW() WHERE id=? AND claim_token=? AND lease_until >= NOW()
+        Note over DB: Verified: Token matches and lease has not expired.
+    else Transient Exception Occurred
+        W->>CS: failJob(jobId, claimToken, TRANSIENT_FAILURE)
+        CS->>DB: Compute backoff: delay = initialDelay * (multiplier ^ retry) +/- jitter
+        CS->>DB: UPDATE qf_jobs SET status='PENDING', scheduled_at=NOW()+delay WHERE id=? AND claim_token=? AND lease_until >= NOW()
     end
 ```
 
 ---
 
-## 2. Core Architectural Guarantees
+## 5. Active Lease Guard & Worker Crash Recovery
 
-### At-Least-Once Delivery Semantics
-Jobs are guaranteed to be executed at least once. If a worker thread or process crashes after the handler executes but before the database status is updated to `COMPLETED`, the job lease will expire and a surviving worker will re-execute the job. Therefore:
-- All job handlers must be designed to be **idempotent**.
-- Handlers should store checkpoint tokens or use database unique constraints where external side-effects occur.
+Distributed systems often suffer from "zombie workers": a worker experiences a long JVM stop-the-world garbage collection pause or network partition, loses its lease to another worker, and later wakes up attempting to write its outdated result.
 
-### Contention-Free Job Claiming (`SKIP LOCKED`)
-Traditional relational queue implementations often suffer from row-level lock contention and serialization deadlocks when multiple workers query the head of the queue concurrently.
-
-QueueForge uses PostgreSQL's row-level lock skipping:
-```sql
-UPDATE qf_jobs
-SET 
-    status = 'RUNNING',
-    locked_by = :workerId,
-    lease_until = CURRENT_TIMESTAMP + (:leaseSeconds * INTERVAL '1 second'),
-    updated_at = CURRENT_TIMESTAMP
-WHERE id IN (
-    SELECT id
-    FROM qf_jobs
-    WHERE status = 'PENDING'
-      AND scheduled_at <= CURRENT_TIMESTAMP
-    ORDER BY priority DESC, scheduled_at ASC
-    LIMIT :batchSize
-    FOR UPDATE SKIP LOCKED
-)
-RETURNING *;
-```
-When multiple workers execute this transaction simultaneously:
-- Worker 1 claims rows 1 through 10.
-- Worker 2 skips rows 1 through 10 immediately without blocking, locking rows 11 through 20.
-- Database transactions remain instantaneous (`< 5ms`), freeing connections back to the HikariCP pool.
-
-### Crash & Lease Recovery
-- Every claimed job receives a `lease_until` timestamp (`CURRENT_TIMESTAMP + leaseDuration`).
-- Long-running jobs periodically issue a heartbeat update to extend `lease_until`.
-- A background scheduler (`LeaseRecoveryManager`) periodically sweeps for orphaned rows:
-```sql
-UPDATE qf_jobs
-SET 
-    status = 'PENDING',
-    locked_by = NULL,
-    lease_until = NULL,
-    retry_count = retry_count + 1,
-    last_error_message = 'Worker lease timed out; reclaimed by LeaseSweeper',
-    updated_at = CURRENT_TIMESTAMP
-WHERE status = 'RUNNING'
-  AND lease_until < CURRENT_TIMESTAMP;
-```
-
----
-
-## 3. Job State Lifecycle
+QueueForge eliminates zombie writes using **Dual Fencing**:
+1. **Cryptographic Claim Tokens:** Every claim assigns a new random UUID `claim_token`.
+2. **Temporal Lease Guard:** Updates must satisfy `WHERE id = ? AND claim_token = ? AND (lease_until IS NULL OR lease_until >= CURRENT_TIMESTAMP)`.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> PENDING: API Ingestion (POST /api/v1/jobs)
-    PENDING --> RUNNING: Claimed by Worker (SKIP LOCKED)
+flowchart TD
+    StartSweeper["LeaseRecoverySweeper (Runs every 5s)"] --> FindExpired["Query: status = 'RUNNING' AND lease_until < CURRENT_TIMESTAMP"]
+    FindExpired --> CheckRows{"Any Expired Leases Found?"}
     
-    RUNNING --> COMPLETED: Handler Success
-    RUNNING --> RETRY_SCHEDULED: Recoverable Error (retry_count < max_retries)
-    RUNNING --> DEAD_LETTER: Unrecoverable Error OR retry_count >= max_retries
-    RUNNING --> PENDING: Lease Expired (Worker crashed)
+    CheckRows -->|No| Sleep["Sleep until next poll interval"]
+    CheckRows -->|Yes| EvaluateBudget{"Has Retries Remaining? (retry_count < max_retries)"}
     
-    RETRY_SCHEDULED --> RUNNING: Backoff Elapsed (scheduled_at <= NOW) & Claimed
-    DEAD_LETTER --> PENDING: Admin Replay Action
+    EvaluateBudget -->|Yes| ReclaimPending["Reset status = 'PENDING'<br/>Increment retry_count<br/>Clear locked_by & claim_token<br/>Set scheduled_at = NOW()"]
+    EvaluateBudget -->|No| ReclaimDlq["Transition to 'DEAD_LETTER'<br/>Set failure_category = 'LEASE_EXPIRED'<br/>Record diagnostic error message"]
     
-    COMPLETED --> [*]
-    DEAD_LETTER --> ARCHIVED: Admin Delete / Archive
+    ReclaimPending --> AuditLog["Insert audit record into qf_job_execution_logs"]
+    ReclaimDlq --> AuditLog
+    AuditLog --> Sleep
 ```
 
 ---
 
-## 4. Exponential Backoff Formula
-To prevent thundering-herd problems against failed downstream systems:
-$$\text{Delay}(n) = \min\left(M,\ B \cdot 2^n\right) \times \left(1 + \text{rand}(-J, J)\right)$$
-Where:
-- $B$ = Base delay (e.g., 5 seconds)
-- $n$ = `retry_count`
-- $M$ = Maximum backoff ceiling (e.g., 3600 seconds)
-- $J$ = Jitter factor (e.g., 20%)
+## 6. Technical Decisions & Tradeoffs
 
----
-
-## 5. Storage and Isolation Architecture
-
-To comply with system drive isolation constraints:
-- **Build & Dependencies:** Maven local repository is located at `D:\Development\maven-repository`.
-- **Runtime Temp:** Temp files are isolated to `D:\Projects\QueueForge\temp`.
-- **Database Engine:** PostgreSQL runs in a dedicated Docker container on port `5435`.
-- **Database Data:** Persistent data is stored in `D:\Projects\QueueForge\data\postgres` through a host bind-mount.
-- **Docker WSL2 VHDX:** Container layers and image caches reside in `D:\Development\docker-data\disk\DockerDesktopWSL\disk\docker_data.vhdx`.
+| Decision | Rationale | Trade-Off Considered |
+| :--- | :--- | :--- |
+| **PostgreSQL vs. RabbitMQ / Kafka** | Leverages ACID transactions, transactional outbox pattern readiness, and SQL-level inspection. Zero secondary broker operational complexity. | Throughput ceiling is bounded by PostgreSQL write IOPS (~500–2,000 jobs/sec on typical hardware) vs. Kafka's 100k+/sec log append. Ideal for transactional, high-value jobs. |
+| **`SELECT FOR UPDATE SKIP LOCKED`** | Eliminates thread blocking, table locking, and deadlocks across concurrent workers. | Requires indexed queries (`status`, `scheduled_at`, `priority`) to maintain efficient index scans as table size grows. |
+| **Decoupled Claim & Execution** | DB locks are held for milliseconds during status transition, then freed. Long-running handler tasks never exhaust database connection pools. | Requires heartbeat mechanism and lease timeout to reclaim orphaned jobs if workers crash mid-execution. |
+| **In-Memory Rate Limiting & Session Store** | Ultra-fast authentication verification with zero database query overhead during API routing. | Sessions do not persist across backend container restarts and cannot be shared across multiple backend replicas without an external cache like Redis. |
+| **Full Jitter Exponential Backoff** | Prevents synchronized retry spikes ("thundering herd") against recovering downstream microservices. | Introduces minor non-determinism in exact retry arrival times within the bounded $\pm 20\%$ jitter window. |

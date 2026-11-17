@@ -37,9 +37,12 @@ bin/
 
 # Environment and Secret files
 .env
-.env.local
+.env.*
+!.env*.example
 *.key
 *.pem
+*.dump
+*.tar
 
 # OS generated files
 Thumbs.db
