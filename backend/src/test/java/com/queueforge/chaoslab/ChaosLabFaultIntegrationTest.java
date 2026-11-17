@@ -43,8 +43,8 @@ class ChaosLabFaultIntegrationTest {
 
     @BeforeEach
     void cleanUp() {
-        jdbcTemplate.execute("DELETE FROM qf_job_execution_logs WHERE worker_id LIKE 'chaos-%'");
-        jdbcTemplate.execute("DELETE FROM qf_jobs WHERE job_type = 'CHAOS_TEST'");
+        jdbcTemplate.execute("DELETE FROM qf_job_execution_logs");
+        jdbcTemplate.execute("DELETE FROM qf_jobs");
     }
 
     private JobEntity insertTestJob(String idempotencyKey, int priority, int maxRetries) {

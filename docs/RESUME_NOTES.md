@@ -33,8 +33,8 @@
 
 1. **Decoupled Claim & Execution Architecture:** Database transactions are isolated to the atomic row claim phase ($< 5\text{ ms}$ duration), liberating HikariCP connections while task handlers execute in a bounded JVM thread pool.
 2. **Deterministic Idempotency:** SHA-256 canonical payload hashing coupled with unique database constraints prevents duplicate execution under network retries and concurrent submissions (HTTP 409 Conflict on payload mismatch).
-3. **Rigorous Test Coverage:** **73 backend integration tests** (100% pass rate) validating concurrency, lock skipping, lease fencing, and retry backoff, alongside **7 frontend component tests** and **16 browser E2E Playwright verification scenarios**.
-4. **Local Controlled Benchmark:** Validated 40-job concurrent burst processing on a 4-thread worker pool, sustaining 25.33 submissions/sec and 19.43 completions/sec with median execution latency of 4.43 ms and preventing connection pool starvation.
+3. **Rigorous Test Coverage:** **113 backend integration tests** and **10 receiver tests** (100% pass rate) validating concurrency, lock skipping, lease fencing, retry backoff, outbox delivery, and security boundaries, alongside **7 frontend component tests** and **8 cross-process distributed failure experiments**.
+4. **Local Controlled Benchmark & Concurrency Validation:** Validated 40-job concurrent burst processing on a 4-thread worker pool, and demonstrated 50-event cross-process outbox dispatch contention partitioned across two independent JVMs with bounded batches and zero duplicate charges.
    *(Note: Local benchmark was measured on a single-node Windows/WSL2 Docker container runtime and serves to verify concurrency algorithms, distinct from distributed horizontal cloud benchmarks).*
 
 ---
@@ -49,3 +49,6 @@
 
 ### Talking Point 3: Protecting Downstream Resources with Full Jitter
 - *"If a downstream microservice recovers after an outage, standard exponential backoff causes all retrying workers to strike the service in synchronized waves. We implement Full Jitter, multiplying nominal exponential delay by $\text{random}(-0.20, +0.20)$. This uniformly distributes retry traffic over time, flattening traffic spikes and allowing the downstream system to recover."*
+
+### Talking Point 4: The Transactional Outbox & The Two Generals' Fallacy
+- *"A common misconception is that a Transactional Outbox provides 'exactly-once delivery'. Across an unreliable network, exactly-once network transport is physically impossible. The outbox guarantees at-least-once delivery; if an HTTP ACK drops after the receiver commits, the sender must retry. To achieve an exactly-once business outcome, consumer-side idempotency with deduplication records and canonical payload fingerprinting is strictly mandatory."*

@@ -155,7 +155,7 @@ QueueForge verifies 8 discrete distributed experiments across independent JVM pr
 | **Experiment B** | **Dispatcher Crash After Claim (Lease Expiration)** | Claimed event with 2s lease, then killed dispatcher JVM mid-flight. | **PASSED**: Event remained `DISPATCHING`; after 3s TTL, second dispatcher reclaimed via `SKIP LOCKED` and delivered successfully. |
 | **Experiment C** | **Lost HTTP Acknowledgement (Socket Severance)** | Receiver fault hook committed charge to `queueforge_payment_receiver`, then severed TCP socket before returning HTTP ACK. | **PASSED**: Audit in uncertain state proved charge and inbox row existed in receiver DB, while sender DB remained `PENDING`. |
 | **Experiment D** | **Duplicate Retry & Idempotent Replay** | Dispatcher retried duplicate event against receiver after connection drop. | **PASSED**: Receiver detected duplicate key, returned cached charge (`idempotentReplay=true`), sender marked `DELIVERED` & `PAID`. Receiver DB had **EXACTLY 1 charge** (zero double charging). |
-| **Experiment E** | **Two Concurrent Independent Dispatcher Processes** | Two independent JVMs (ports 8085 and 8086) simultaneously dispatched 10 pending events. | **PASSED**: PostgreSQL `SKIP LOCKED` partitioned events with zero duplicates and zero deadlock (10 total delivered, exactly 10 charges in receiver DB). |
+| **Experiment E** | **Two Concurrent Independent Dispatcher Processes** | Two independent JVMs (ports 8085 and 8086) simultaneously competed for 50 pending events using bounded batch size (5). | **PASSED**: PostgreSQL `SKIP LOCKED` partitioned events with zero duplicates and zero deadlock (Dispatcher 1 delivered 30, Dispatcher 2 delivered 20; exactly 50 total charges in receiver DB, 0 remaining in sender outbox). |
 | **Experiment F** | **Receiver Process Outage & Eventual Delivery** | Terminated receiver JVM via SIGKILL during dispatch. | **PASSED**: Dispatcher caught `ConnectException`, scheduled exponential backoff; restarted receiver JVM, and subsequent retry succeeded. |
 | **Experiment G** | **Conflicting Payload Fingerprint Rejection** | Reused idempotency key with modified amount / fingerprint. | **PASSED**: Receiver rejected with HTTP 409 Conflict; dispatcher routed event to `DEAD_LETTER`. |
 | **Experiment H** | **Fencing Token Monotonicity** | Zombie dispatcher attempted to mark event `DELIVERED` with stale claim token. | **PASSED**: Database rejected update (`UPDATE 0`); winning dispatcher's active token succeeded (`UPDATE 1`). |
@@ -176,28 +176,43 @@ To maintain rigorous distributed systems honesty during technical assessments, Q
 1. **No "Exactly-Once Network Delivery"**: Network packets can and will duplicate, drop, or delay.
 2. **No "Single Distributed 2PC Transaction"**: QueueForge does *not* use Two-Phase Commit or XA transactions across sender and receiver. Sender and receiver maintain completely independent transactional boundaries.
 3. **Outbox Alone Does Not Prevent Duplicates**: A transactional outbox without an idempotent consumer is vulnerable to double-charging on lost acknowledgements.
+4. **Physical Database Server Isolation**: In the local and development environments, `queueforge` and `queueforge_payment_receiver` are two independent relational catalogs hosted inside a single PostgreSQL server container. While this provides complete transactional, schema, migration, and connection pool isolation, it does not simulate physical server hardware failures or independent physical disk loss between databases.
 
 ---
 
-## 6. ChaosLab Security Hardening
+## 6. Phase 3C: Security & Distributed Correctness Hardening
 
-In Phase 3B, test controls were strictly decoupled from production code:
-- **`ReportGenerationJobHandler.java`**: Completely purged of test controls (`signalRunningFile`, `barrierFile`, `delayMs`), returning it to a pure production CPU-bound report generator.
-- **`ChaosTestJobHandler.java`**: Dedicated test handler registered only when `queueforge.worker.chaos-payloads-enabled=true`. Implements path traversal sanitization (rejection of `..`, restriction to approved directories) and bounds maximum test wait times to 30 seconds to prevent thread starvation.
-- **`WorkerCoordinator.java`**: Heartbeat suspension (`disableHeartbeat`) is strictly gated behind both `properties.isChaosPayloadsEnabled()` and `job.jobType().equalsIgnoreCase("CHAOS_TEST")`.
+In Phase 3C, comprehensive application security controls and concurrent edge-case protections were implemented:
+
+### A. Administrative Outbox Dispatch Guarding
+- **Endpoint Migration**: Manual on-demand outbox dispatch was moved from the unauthenticated `/api/v1/outbox/dispatch` to `/api/v1/admin/outbox/dispatch`.
+- **Dual-Mode Admin Authentication**: Guarded by `AdminAuthInterceptor`, requiring either an `X-Admin-Key` header matching `queueforge.admin.api-key` or an authenticated session cookie with a valid CSRF token.
+- **Node Role Enforcement**: Guarded by `AppModeGuardInterceptor`, which immediately rejects manual dispatch requests on `WORKER_ONLY` nodes with HTTP 503 Service Unavailable.
+- **Input Clamping**: Request parameters are strictly bounded: `batchSize` is clamped to `[1..50]`, and `leaseDurationSeconds` is clamped to `[1..60]` to prevent unbounded query allocations.
+
+### B. Receiver Test Endpoint Isolation & Authorization
+- **Production Controller Cleanliness**: `PaymentReceiverController` retains strictly `POST /api/v1/payments/charges` and standard error handling.
+- **Conditional Registration**: Destructive testing operations (`POST /reset`, `POST /simulate/lost-ack`, `POST /simulate/unavailable`, inspection endpoints) were moved to a dedicated `PaymentReceiverTestController`.
+- **Disabled by Default**: Configured with `@ConditionalOnProperty(name = "queueforge.receiver.test-endpoints-enabled", havingValue = "true", matchIfMissing = false)`. In production configuration, Spring MVC returns HTTP 404 for all test routes.
+- **Shared Secret Protection**: When enabled in test environments, every test endpoint verifies the `X-Test-Secret` header, returning HTTP 401 Unauthorized for missing or invalid secrets.
+
+### C. Receiver Concurrency & Rollback Correctness
+- **High Concurrency Races**: Verified that under 10 concurrent identical payment requests, exactly 1 charge is persisted and 9 return cached responses with `idempotentReplay=true`.
+- **Concurrent Conflicting Requests**: Verified that when two requests share the same idempotency key but supply conflicting fingerprints, exactly 1 succeeds (HTTP 201) and the second is rejected with HTTP 409 Conflict.
+- **Transactional Rollback**: Verified that bad requests (e.g. invalid currency format) trigger full transaction rollbacks, persisting 0 charges and 0 inbox deduplication rows.
 
 ---
 
 ## 7. How to Reproduce and Verify
 
-### 1. Run Backend Unit & Integration Tests (108 Tests)
+### 1. Run Backend Unit & Integration Tests (113 Tests)
 ```powershell
 . D:\Projects\QueueForge\env.ps1
 cd D:\Projects\QueueForge\backend
 mvn test -B
 ```
 
-### 2. Run Receiver Tests (2 Tests)
+### 2. Run Receiver Tests (10 Tests)
 ```powershell
 . D:\Projects\QueueForge\env.ps1
 cd D:\Projects\QueueForge\simulated-payment-receiver

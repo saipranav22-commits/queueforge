@@ -143,3 +143,15 @@ Reports are emitted automatically in:
 - `chaoslab/reports/CHAOS-EXP-A-HARD-CRASH.json`
 - `chaoslab/reports/CHAOS-EXP-B-ZOMBIE-WORKER.json`
 - `chaoslab/reports/CHAOS-EXP-C-DB-DISCONNECT.json`
+
+---
+
+## 7. ChaosLab Security Hardening
+
+To ensure test and fault-injection capabilities never introduce security vulnerabilities into production deployments, the following controls are strictly enforced:
+
+1. **Dedicated Test Handler Separation**: Production handlers (`ReportGenerationJobHandler`) are strictly decoupled from test-injection logic. All barrier waits, simulated delays, signal files, and fault simulation run solely in `ChaosTestJobHandler`.
+2. **Conditional Activation**: `ChaosTestJobHandler` is annotated with `@ConditionalOnProperty(prefix = "queueforge.worker", name = "chaos-payloads-enabled", havingValue = "true")`. It is completely omitted from the Spring ApplicationContext in production builds.
+3. **Public Submission Safeguards**: If a client submits a `CHAOS_TEST` job type in production, workers encounter no registered handler and immediately route the task to `DEAD_LETTER` with `FailureCategory.HANDLER_NOT_FOUND`, preventing execution of test payloads.
+4. **Path Traversal Guards**: Any signal file or barrier path specified in test payloads is normalized and validated against approved test signal directories (`/chaos-signals`, `temp`). Path traversal sequences (`..`) and absolute paths outside the whitelist are rejected with `SecurityException`.
+5. **Bounded Wait Caps**: Barrier synchronization wait times are capped at 30 seconds (`MAX_BARRIER_TIMEOUT_MS`), and artificial execution delays are capped at 60 seconds (`MAX_ARTIFICIAL_DELAY_MS`) to prevent thread exhaustion.

@@ -33,6 +33,11 @@ management:
       exposure:
         include: health,info
 
+queueforge:
+  receiver:
+    test-endpoints-enabled: false
+    test-secret: ${RECEIVER_TEST_SECRET:qf_test_secret_internal_2026}
+
 logging:
   level:
     com.queueforge.receiver: INFO

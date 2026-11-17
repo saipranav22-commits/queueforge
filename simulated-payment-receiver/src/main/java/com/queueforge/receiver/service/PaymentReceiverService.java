@@ -113,7 +113,19 @@ public class PaymentReceiverService {
             });
         } catch (DataIntegrityViolationException e) {
             log.warn("[Receiver] Concurrent duplicate insert race detected for idempotencyKey='{}'. Re-querying winner record.", idempotencyKey);
-            Optional<InboxDeduplication> existingAfterRace = inboxRepository.findByIdempotencyKey(idempotencyKey);
+            Optional<InboxDeduplication> existingAfterRace = Optional.empty();
+            for (int attempt = 0; attempt < 5; attempt++) {
+                existingAfterRace = inboxRepository.findByIdempotencyKey(idempotencyKey);
+                if (existingAfterRace.isPresent()) {
+                    break;
+                }
+                try {
+                    Thread.sleep(30);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
             if (existingAfterRace.isPresent()) {
                 response = resolveExisting(existingAfterRace.get(), expectedFingerprint, idempotencyKey, request.orderId());
             } else {

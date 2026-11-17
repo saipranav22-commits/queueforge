@@ -11,7 +11,9 @@ param (
     [string]$DbUser = "queueforge_app",
     [string]$DbPass = "qf_dev_secret_d_isolated_2026",
     [int]$ReceiverPort = 8098,
-    [int]$BackendPort = 8085
+    [int]$BackendPort = 8085,
+    [string]$ReceiverTestSecret = "qf_test_secret_internal_2026",
+    [string]$AdminApiKey = "qf_admin_dev_secret_2026"
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,6 +82,7 @@ function Start-Receiver {
         "-jar",
         "$receiverJar",
         "--server.port=$ReceiverPort",
+        "--queueforge.receiver.test-endpoints-enabled=true",
         "--spring.datasource.url=jdbc:postgresql://${DbHost}:${DbPort}/${ReceiverDb}",
         "--spring.datasource.username=$DbUser",
         "--spring.datasource.password=$DbPass"
@@ -173,7 +176,7 @@ try {
     $backendProcess = Start-Backend -port $BackendPort -dispatcherEnabled $false
 
     # Dispatch pending outbox event over real HTTP
-    $dispatchResp = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/outbox/dispatch" -Method Post
+    $dispatchResp = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/admin/outbox/dispatch" -Method Post -Headers @{ "X-Admin-Key" = $AdminApiKey }
     Write-Host "Dispatched $($dispatchResp.dispatchedCount) events via HTTP to receiver" -ForegroundColor Cyan
 
     # Verify recovery
@@ -217,7 +220,7 @@ try {
     Start-Sleep -Seconds 3
 
     # New dispatcher claims and delivers
-    $dispatchRespB = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/outbox/dispatch" -Method Post
+    $dispatchRespB = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/admin/outbox/dispatch" -Method Post -Headers @{ "X-Admin-Key" = $AdminApiKey }
     Write-Host "Second dispatcher reclaimed and dispatched $($dispatchRespB.dispatchedCount) events" -ForegroundColor Cyan
 
     $bStatus2 = Invoke-PsqlQuery $SenderDb "SELECT status FROM outbox_events WHERE aggregate_id = '$orderIdB';"
@@ -248,11 +251,11 @@ try {
 
     # Enable simulated lost-ack hook on receiver
     Write-Host "Arming receiver fault hook: Commit charge but abort connection before returning HTTP ACK..." -ForegroundColor Magenta
-    Invoke-RestMethod -Uri "http://127.0.0.1:$ReceiverPort/api/v1/payments/simulate/lost-ack?enabled=true" -Method Post | Out-Null
+    Invoke-RestMethod -Uri "http://127.0.0.1:$ReceiverPort/api/v1/payments/simulate/lost-ack?enabled=true" -Method Post -Headers @{ "X-Test-Secret" = $ReceiverTestSecret } | Out-Null
 
     # Dispatcher attempts delivery; receiver commits charge, but drops connection
     Write-Host "Dispatcher attempting HTTP dispatch under network acknowledgement loss..." -ForegroundColor Cyan
-    $dispatchRespC1 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/outbox/dispatch" -Method Post
+    $dispatchRespC1 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/admin/outbox/dispatch" -Method Post -Headers @{ "X-Admin-Key" = $AdminApiKey }
     Write-Host "Dispatcher dispatch result: $($dispatchRespC1.dispatchedCount) delivered (Expected: 0 due to socket drop)" -ForegroundColor DarkGray
 
     # Cross-database inspection in the uncertain state
@@ -274,13 +277,13 @@ try {
 
     # Now disarm the fault hook and retry delivery
     Write-Host "`nDisarming lost-ack fault hook on receiver; dispatcher re-delivers duplicate event..." -ForegroundColor Cyan
-    Invoke-RestMethod -Uri "http://127.0.0.1:$ReceiverPort/api/v1/payments/simulate/lost-ack?enabled=false" -Method Post | Out-Null
+    Invoke-RestMethod -Uri "http://127.0.0.1:$ReceiverPort/api/v1/payments/simulate/lost-ack?enabled=false" -Method Post -Headers @{ "X-Test-Secret" = $ReceiverTestSecret } | Out-Null
 
     # Advance next_retry_at to CURRENT_TIMESTAMP so dispatcher picks it up immediately
     Invoke-PsqlQuery $SenderDb "UPDATE outbox_events SET next_retry_at = CURRENT_TIMESTAMP WHERE aggregate_id = '$orderIdC';" | Out-Null
 
     # Dispatcher retries
-    $dispatchRespC2 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/outbox/dispatch" -Method Post
+    $dispatchRespC2 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/admin/outbox/dispatch" -Method Post -Headers @{ "X-Admin-Key" = $AdminApiKey }
     Write-Host "Dispatcher retry result: $($dispatchRespC2.dispatchedCount) delivered" -ForegroundColor Cyan
 
     # Final cross-database inspection
@@ -305,47 +308,81 @@ try {
     # EXPERIMENT E: Two Concurrent Independent Dispatcher Processes (SKIP LOCKED Mutual Exclusion)
     # -------------------------------------------------------------------------
     Write-Host "`n>>> [Experiment E] Two Concurrent Independent Dispatcher Processes (SKIP LOCKED Mutual Exclusion) <<<" -ForegroundColor Yellow
-    # Create 10 orders
-    for ($i = 1; $i -le 10; $i++) {
+    # Create 50 orders
+    Write-Host "Creating 50 pending orders and outbox events in '$SenderDb'..." -ForegroundColor Cyan
+    for ($i = 1; $i -le 50; $i++) {
         $ordNum = "ORD-CONC-$i-" + [System.Guid]::NewGuid().ToString().Substring(0, 6)
         $body = @{ orderNumber = $ordNum; customerId = "cust_conc"; amountCents = (1000 * $i); currency = "USD" } | ConvertTo-Json
         Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/orders" -Method Post -Body $body -ContentType "application/json" | Out-Null
     }
-    Write-Host "Created 10 pending orders and outbox events in '$SenderDb'" -ForegroundColor Cyan
+    Write-Host "Successfully enqueued 50 pending orders and outbox events." -ForegroundColor Cyan
 
     # Launch second backend JVM on port 8086
     Write-Host "Starting second independent dispatcher process on port 8086..." -ForegroundColor DarkGray
     $backend2Process = Start-Backend -port 8086 -dispatcherEnabled $false
 
     try {
-        Write-Host "Triggering concurrent HTTP dispatch on port 8085 and port 8086 simultaneously..." -ForegroundColor Cyan
+        Write-Host "Triggering concurrent HTTP dispatch loops on port 8085 and port 8086 simultaneously (batchSize=5)..." -ForegroundColor Cyan
         $job1 = Start-Job -ScriptBlock {
-            Invoke-RestMethod -Uri "http://127.0.0.1:8085/api/v1/outbox/dispatch?batchSize=10" -Method Post
-        }
+            param($apiKey)
+            $total = 0
+            for ($k = 0; $k -lt 25; $k++) {
+                try {
+                    $r = Invoke-RestMethod -Uri "http://127.0.0.1:8085/api/v1/admin/outbox/dispatch?batchSize=5&leaseDurationSeconds=10" -Method Post -Headers @{ "X-Admin-Key" = $apiKey }
+                    $total += $r.dispatchedCount
+                    if ($r.dispatchedCount -eq 0) {
+                        Start-Sleep -Milliseconds 150
+                        $r2 = Invoke-RestMethod -Uri "http://127.0.0.1:8085/api/v1/admin/outbox/dispatch?batchSize=5&leaseDurationSeconds=10" -Method Post -Headers @{ "X-Admin-Key" = $apiKey }
+                        $total += $r2.dispatchedCount
+                        if ($r2.dispatchedCount -eq 0) { break }
+                    }
+                } catch {
+                    break
+                }
+            }
+            return [PSCustomObject]@{ dispatchedCount = $total }
+        } -ArgumentList $AdminApiKey
+
         $job2 = Start-Job -ScriptBlock {
-            Invoke-RestMethod -Uri "http://127.0.0.1:8086/api/v1/outbox/dispatch?batchSize=10" -Method Post
-        }
+            param($apiKey)
+            $total = 0
+            for ($k = 0; $k -lt 25; $k++) {
+                try {
+                    $r = Invoke-RestMethod -Uri "http://127.0.0.1:8086/api/v1/admin/outbox/dispatch?batchSize=5&leaseDurationSeconds=10" -Method Post -Headers @{ "X-Admin-Key" = $apiKey }
+                    $total += $r.dispatchedCount
+                    if ($r.dispatchedCount -eq 0) {
+                        Start-Sleep -Milliseconds 150
+                        $r2 = Invoke-RestMethod -Uri "http://127.0.0.1:8086/api/v1/admin/outbox/dispatch?batchSize=5&leaseDurationSeconds=10" -Method Post -Headers @{ "X-Admin-Key" = $apiKey }
+                        $total += $r2.dispatchedCount
+                        if ($r2.dispatchedCount -eq 0) { break }
+                    }
+                } catch {
+                    break
+                }
+            }
+            return [PSCustomObject]@{ dispatchedCount = $total }
+        } -ArgumentList $AdminApiKey
 
         $res1 = Receive-Job -Job $job1 -Wait
         $res2 = Receive-Job -Job $job2 -Wait
         Remove-Job $job1, $job2
 
-        Write-Host "Dispatcher 1 delivered: $($res1.dispatchedCount) events" -ForegroundColor DarkGray
-        Write-Host "Dispatcher 2 delivered: $($res2.dispatchedCount) events" -ForegroundColor DarkGray
+        Write-Host "Dispatcher 1 (port 8085) delivered: $($res1.dispatchedCount) events" -ForegroundColor DarkGray
+        Write-Host "Dispatcher 2 (port 8086) delivered: $($res2.dispatchedCount) events" -ForegroundColor DarkGray
         $totalDelivered = $res1.dispatchedCount + $res2.dispatchedCount
 
         $pendingLeft = Invoke-PsqlQuery $SenderDb "SELECT count(*) FROM outbox_events WHERE status != 'DELIVERED';"
         $totalCharges = Invoke-PsqlQuery $ReceiverDb "SELECT count(*) FROM simulated_payment_charges WHERE customer_id = 'cust_conc';"
 
-        Write-Host "  [Concurrency Audit] Total Events Processed Across Both Dispatchers: $totalDelivered" -ForegroundColor Gray
+        Write-Host "  [Concurrency Audit] Total Events Processed Across Both Dispatchers: $totalDelivered (Expected: 50)" -ForegroundColor Gray
         Write-Host "  [Concurrency Audit] Remaining Non-Delivered Outbox Events           : $pendingLeft (Expected: 0)" -ForegroundColor Gray
-        Write-Host "  [Concurrency Audit] Total Charges in Receiver DB                    : $totalCharges (Expected: 10)" -ForegroundColor Green
+        Write-Host "  [Concurrency Audit] Total Charges in Receiver DB                    : $totalCharges (Expected: 50)" -ForegroundColor Green
 
-        if ($totalDelivered -eq 10 -and $pendingLeft -eq "0" -and $totalCharges -eq "10") {
-            Write-Host "[Experiment E Passed] PostgreSQL SKIP LOCKED strictly partitioned work across concurrent processes with zero duplicates." -ForegroundColor Green
+        if ($totalDelivered -eq 50 -and $pendingLeft -eq "0" -and $totalCharges -eq "50" -and $res1.dispatchedCount -gt 0 -and $res2.dispatchedCount -gt 0) {
+            Write-Host "[Experiment E Passed] PostgreSQL SKIP LOCKED strictly partitioned 50 events across concurrent processes with zero duplicates (Disp1=$($res1.dispatchedCount), Disp2=$($res2.dispatchedCount))." -ForegroundColor Green
             $passedScenarios++
         } else {
-            throw "Experiment E failed: TotalDelivered=$totalDelivered, PendingLeft=$pendingLeft, TotalCharges=$totalCharges"
+            throw "Experiment E failed: TotalDelivered=$totalDelivered, PendingLeft=$pendingLeft, TotalCharges=$totalCharges, Disp1=$($res1.dispatchedCount), Disp2=$($res2.dispatchedCount)"
         }
     } finally {
         if ($backend2Process -and -not $backend2Process.HasExited) {
@@ -367,7 +404,7 @@ try {
     Start-Sleep -Seconds 1
 
     Write-Host "Dispatcher attempting HTTP delivery to offline receiver (expecting ConnectException)..." -ForegroundColor Cyan
-    $dispatchRespF1 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/outbox/dispatch" -Method Post
+    $dispatchRespF1 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/admin/outbox/dispatch" -Method Post -Headers @{ "X-Admin-Key" = $AdminApiKey }
     Write-Host "Dispatched count during outage: $($dispatchRespF1.dispatchedCount) (Expected: 0)" -ForegroundColor DarkGray
 
     $fOutboxStatus1 = Invoke-PsqlQuery $SenderDb "SELECT status FROM outbox_events WHERE aggregate_id = '$orderIdF';"
@@ -382,7 +419,7 @@ try {
     Invoke-PsqlQuery $SenderDb "UPDATE outbox_events SET next_retry_at = CURRENT_TIMESTAMP WHERE aggregate_id = '$orderIdF';" | Out-Null
 
     # Re-dispatch
-    $dispatchRespF2 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/outbox/dispatch" -Method Post
+    $dispatchRespF2 = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/api/v1/admin/outbox/dispatch" -Method Post -Headers @{ "X-Admin-Key" = $AdminApiKey }
     $fOutboxStatus2 = Invoke-PsqlQuery $SenderDb "SELECT status FROM outbox_events WHERE aggregate_id = '$orderIdF';"
     $fCharges2 = Invoke-PsqlQuery $ReceiverDb "SELECT count(*) FROM simulated_payment_charges WHERE order_id = '$orderIdF';"
 

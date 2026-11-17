@@ -1,10 +1,7 @@
 package com.queueforge.receiver.controller;
 
-import com.queueforge.receiver.domain.InboxDeduplication;
 import com.queueforge.receiver.dto.PaymentChargeRequest;
 import com.queueforge.receiver.dto.PaymentChargeResponse;
-import com.queueforge.receiver.repository.ChargeRepository;
-import com.queueforge.receiver.repository.InboxDeduplicationRepository;
 import com.queueforge.receiver.service.PaymentReceiverService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -14,22 +11,20 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.UUID;
 
+/**
+ * Production Payment Receiver Controller.
+ * Exposes exclusively the public payment charge ingestion endpoint.
+ * Contains no destructive reset endpoints or test toggles.
+ */
 @RestController
 @RequestMapping("/api/v1/payments")
 public class PaymentReceiverController {
 
     private final PaymentReceiverService receiverService;
-    private final ChargeRepository chargeRepository;
-    private final InboxDeduplicationRepository inboxRepository;
 
-    public PaymentReceiverController(PaymentReceiverService receiverService,
-                                     ChargeRepository chargeRepository,
-                                     InboxDeduplicationRepository inboxRepository) {
+    public PaymentReceiverController(PaymentReceiverService receiverService) {
         this.receiverService = receiverService;
-        this.chargeRepository = chargeRepository;
-        this.inboxRepository = inboxRepository;
     }
 
     @PostMapping("/charges")
@@ -45,37 +40,6 @@ public class PaymentReceiverController {
             httpServletResponse.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Simulated network failure: connection severed after commit");
             return null;
         }
-    }
-
-    @PostMapping("/simulate/lost-ack")
-    public ResponseEntity<Map<String, Object>> setSimulateLostAck(@RequestParam boolean enabled) {
-        receiverService.setSimulateLostAck(enabled);
-        return ResponseEntity.ok(Map.of("simulateLostAck", enabled));
-    }
-
-    @PostMapping("/simulate/unavailable")
-    public ResponseEntity<Map<String, Object>> setSimulateUnavailable(@RequestParam boolean enabled) {
-        receiverService.setSimulateUnavailable(enabled);
-        return ResponseEntity.ok(Map.of("simulateUnavailable", enabled));
-    }
-
-    @GetMapping("/charges/count")
-    public ResponseEntity<Map<String, Object>> getChargeCount(@RequestParam UUID orderId) {
-        long count = chargeRepository.countByOrderId(orderId);
-        return ResponseEntity.ok(Map.of("orderId", orderId, "chargeCount", count));
-    }
-
-    @GetMapping("/inbox/{idempotencyKey}")
-    public ResponseEntity<InboxDeduplication> getInboxRecord(@PathVariable String idempotencyKey) {
-        return inboxRepository.findByIdempotencyKey(idempotencyKey)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/reset")
-    public ResponseEntity<Map<String, String>> resetData() {
-        receiverService.resetAll();
-        return ResponseEntity.ok(Map.of("status", "CLEANED"));
     }
 
     @ExceptionHandler(PaymentReceiverService.IdempotencyConflictException.class)
