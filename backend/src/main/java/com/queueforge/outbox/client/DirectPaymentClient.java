@@ -3,16 +3,16 @@ package com.queueforge.outbox.client;
 import com.queueforge.outbox.dto.PaymentChargeRequest;
 import com.queueforge.outbox.dto.PaymentChargeResponse;
 import com.queueforge.outbox.service.PaymentReceiverService;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Direct client invoking the simulated external payment receiver.
- * The receiver runs in an isolated REQUIRES_NEW transaction boundary, ensuring
- * that no database transaction is shared across sender and receiver boundaries.
+ * Direct client invoking the in-process payment receiver.
+ * Kept strictly as a test fixture for in-process integration tests.
+ * Enabled ONLY when queueforge.outbox.payment.client-type=DIRECT.
  */
 @Component
-@Primary
+@ConditionalOnProperty(name = "queueforge.outbox.payment.client-type", havingValue = "DIRECT")
 public class DirectPaymentClient implements PaymentClient {
 
     private final PaymentReceiverService paymentReceiverService;

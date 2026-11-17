@@ -10,7 +10,8 @@ public enum SupportedJobType {
     DATA_EXPORT,
     INDEX_DOCUMENT,
     WEBHOOK_DISPATCH,
-    CLEANUP_TEMP_DATA;
+    CLEANUP_TEMP_DATA,
+    CHAOS_TEST;
 
     private static final Set<String> TYPE_NAMES = Arrays.stream(values())
             .map(Enum::name)

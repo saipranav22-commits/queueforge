@@ -105,7 +105,7 @@ function Execute-ChaosSql {
 function Submit-ChaosJob {
     param([hashtable]$payload, [int]$priority = 75, [int]$maxRetries = 3)
     $body = @{
-        jobType = "GENERATE_REPORT"
+        jobType = "CHAOS_TEST"
         priority = $priority
         maxRetries = $maxRetries
         payload = $payload

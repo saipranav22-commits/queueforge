@@ -181,6 +181,7 @@ public class WorkerCoordinator implements SmartLifecycle {
             int heartbeatInterval = properties.getHeartbeatIntervalSeconds();
             int leaseDuration = properties.getLeaseDurationSeconds();
             boolean disableHeartbeat = properties.isChaosPayloadsEnabled()
+                    && "CHAOS_TEST".equalsIgnoreCase(job.jobType())
                     && job.payload() != null
                     && job.payload().path("disableHeartbeat").asBoolean(false);
             ScheduledFuture<?> heartbeatTask = null;

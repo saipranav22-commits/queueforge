@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # QueueForge V2 — Phase 3: Transactional Outbox & Idempotent Consumer Demo
 # Demonstrates atomic commit, at-least-once delivery, and lost-ack deduplication
 # ==============================================================================

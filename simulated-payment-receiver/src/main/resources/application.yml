@@ -1,0 +1,39 @@
+server:
+  port: ${SERVER_PORT:8098}
+  shutdown: graceful
+
+spring:
+  application:
+    name: simulated-payment-receiver
+
+  datasource:
+    url: jdbc:postgresql://${RECEIVER_DB_HOST:${DB_HOST:127.0.0.1}}:${RECEIVER_DB_PORT:${DB_PORT:5435}}/${RECEIVER_DB_NAME:queueforge_payment_receiver}
+    username: ${DB_USERNAME:queueforge_app}
+    password: ${DB_PASSWORD:qf_dev_secret_d_isolated_2026}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ReceiverHikariPool
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.queueforge.receiver: INFO
+    org.springframework.web: INFO

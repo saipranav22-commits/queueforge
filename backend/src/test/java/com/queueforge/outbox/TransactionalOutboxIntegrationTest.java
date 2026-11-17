@@ -32,7 +32,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @TestPropertySource(properties = {
-        "queueforge.worker.enabled=false"
+        "queueforge.worker.enabled=false",
+        "queueforge.outbox.payment.client-type=DIRECT"
 })
 class TransactionalOutboxIntegrationTest {
 
