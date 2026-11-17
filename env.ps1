@@ -47,6 +47,7 @@ if (-not $env:DB_HOST) { $env:DB_HOST = "127.0.0.1" }
 if (-not $env:DB_PORT) { $env:DB_PORT = "5435" }
 if (-not $env:DB_NAME) { $env:DB_NAME = "queueforge" }
 if (-not $env:DB_USERNAME) { $env:DB_USERNAME = "queueforge_app" }
+if (-not $env:LOG_FILE) { $env:LOG_FILE = "D:\Projects\QueueForge\logs\queueforge.log" }
 
 # 8. Output Diagnostics
 Write-Host "==========================================================" -ForegroundColor Green

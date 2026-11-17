@@ -2,16 +2,10 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Clock,
-  Cpu,
-  Shield,
-  Key,
   AlertTriangle,
   History,
   RotateCcw,
   Trash2,
-  ChevronDown,
-  ChevronUp,
   Lock,
   Unlock,
 } from 'lucide-react';
@@ -33,7 +27,6 @@ export const JobDetailPage: React.FC = () => {
   const { isAuthenticated, openUnlockModal } = useAuth();
   const { replayJob, discardJob, isReplaying, isDiscarding } = useDlqActions();
 
-  const [showStackTrace, setShowStackTrace] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'replay' | 'discard' | null>(null);
 
   if (isLoading) {

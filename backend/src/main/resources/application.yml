@@ -74,7 +74,7 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [jobId=%X{jobId:-NONE} worker=%X{workerId:-NONE} attempt=%X{attempt:-0}] - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [jobId=%X{jobId:-NONE} worker=%X{workerId:-NONE} attempt=%X{attempt:-0}] - %msg%n"
   file:
-    name: ${LOG_FILE:D:/Projects/QueueForge/logs/queueforge.log}
+    name: ${LOG_FILE:logs/queueforge.log}
   level:
     com.queueforge: INFO
     org.springframework.web: INFO
@@ -82,17 +82,17 @@ logging:
 
 queueforge:
   worker:
-    enabled: true
-    concurrency: 4
-    poll-interval-ms: 250
-    lease-duration-seconds: 30
-    heartbeat-interval-seconds: 10
-    recovery-poll-interval-ms: 5000
-    shutdown-timeout-seconds: 10
+    enabled: ${WORKER_ENABLED:true}
+    concurrency: ${WORKER_CONCURRENCY:4}
+    poll-interval-ms: ${WORKER_POLL_INTERVAL_MS:250}
+    lease-duration-seconds: ${WORKER_LEASE_DURATION_SECONDS:30}
+    heartbeat-interval-seconds: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:10}
+    recovery-poll-interval-ms: ${WORKER_RECOVERY_POLL_INTERVAL_MS:5000}
+    shutdown-timeout-seconds: ${WORKER_SHUTDOWN_TIMEOUT_SECONDS:10}
   retry:
-    initial-delay-seconds: 5
-    multiplier: 3.0
-    max-delay-seconds: 3600
-    jitter-factor: 0.20
+    initial-delay-seconds: ${RETRY_INITIAL_DELAY_SECONDS:5}
+    multiplier: ${RETRY_MULTIPLIER:3.0}
+    max-delay-seconds: ${RETRY_MAX_DELAY_SECONDS:3600}
+    jitter-factor: ${RETRY_JITTER_FACTOR:0.20}
   admin:
     api-key: ${ADMIN_API_KEY:qf_admin_dev_secret_2026}

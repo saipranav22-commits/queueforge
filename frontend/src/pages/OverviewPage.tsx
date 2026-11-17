@@ -4,12 +4,10 @@ import {
   Clock,
   PlayCircle,
   CheckCircle2,
-  AlertOctagon,
   Flame,
   Gauge,
   PlusCircle,
   ArrowRight,
-  TrendingUp,
 } from 'lucide-react';
 import { useDashboardStats, useJobs } from '../hooks/useQueueForgeData';
 import { MetricCard } from '../components/common/MetricCard';

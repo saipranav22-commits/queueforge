@@ -69,7 +69,7 @@ export function useJobHistory(jobId: string | undefined) {
     queryKey: ['job-history', jobId],
     queryFn: () => apiRequest<JobExecutionLog[]>(`/jobs/${jobId}/history`),
     enabled: !!jobId,
-    refetchInterval: (query) => {
+    refetchInterval: () => {
       // If any active attempts, poll more often
       return 3000;
     },

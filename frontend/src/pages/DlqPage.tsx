@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Flame,
   RotateCcw,
   Trash2,
   ShieldAlert,
@@ -11,7 +10,6 @@ import {
 } from 'lucide-react';
 import { useJobs, useDlqActions } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
-import { StatusBadge } from '../components/common/StatusBadge';
 import { Pagination } from '../components/common/Pagination';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { formatDate } from '../lib/formatters';

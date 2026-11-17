@@ -4,18 +4,14 @@ import {
   Database,
   Shield,
   Activity,
-  Server,
-  Lock,
   Layers,
-  Heart,
 } from 'lucide-react';
-import { useSystemHealth, useDashboardStats } from '../hooks/useQueueForgeData';
+import { useSystemHealth } from '../hooks/useQueueForgeData';
 import { MetricCard } from '../components/common/MetricCard';
 import { formatUptime } from '../lib/formatters';
 
 export const WorkersPage: React.FC = () => {
   const { data: health, isLoading: healthLoading } = useSystemHealth();
-  const { data: stats } = useDashboardStats();
 
   return (
     <div className="space-y-6">

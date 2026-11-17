@@ -1,0 +1,138 @@
+name: queueforge-prod
+
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    container_name: queueforge-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-queueforge}
+      POSTGRES_USER: ${DB_USERNAME:-queueforge_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password must be set}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/prod/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-queueforge_app} -d ${DB_NAME:-queueforge}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+    networks:
+      - queueforge-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: queueforge-backend:latest
+    container_name: queueforge-prod-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-queueforge}
+      DB_USERNAME: ${DB_USERNAME:-queueforge_app}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+      SERVER_PORT: 8085
+      LOG_FILE: /app/logs/queueforge.log
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-250}
+      WORKER_LEASE_DURATION_SECONDS: ${WORKER_LEASE_DURATION_SECONDS:-30}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8085/actuator/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
+    networks:
+      - queueforge-prod-network
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: queueforge-frontend:latest
+    container_name: queueforge-prod-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8088}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - queueforge-prod-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: queueforge-prod-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prod/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    ports:
+      - "${PROMETHEUS_HOST_PORT:-127.0.0.1:9091}:9090"
+    networks:
+      - queueforge-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: queueforge-prod-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-qf_admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Grafana password must be set}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./data/prod/grafana:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_HOST_PORT:-127.0.0.1:3001}:3000"
+    networks:
+      - queueforge-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  queueforge-prod-network:
+    driver: bridge

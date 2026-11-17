@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.gitignore
+.cache
+*.log
+.env
+.env.*
+tests
+src/e2e

@@ -1,0 +1,7 @@
+target/
+.git
+.gitignore
+*.log
+temp/
+.env
+.env.*
