@@ -1,0 +1,605 @@
+[ {
+  "profileName" : "Profile 1: Balanced",
+  "schedulerMode" : "Baseline (FIFO/Priority)",
+  "totalJobs" : 1000,
+  "throughputJobsPerSec" : 64.56611570247934,
+  "durationMs" : 15488,
+  "jainsFairnessIndex" : 1.0,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-1",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-2",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-3",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-4",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-5",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-6",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-7",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-8",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-9",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  }, {
+    "tenantId" : "tenant-10",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 8949,
+    "p95WaitMs" : 15435,
+    "p99WaitMs" : 16020,
+    "maxWaitMs" : 16020
+  } ]
+}, {
+  "profileName" : "Profile 1: Balanced",
+  "schedulerMode" : "FairShare (DRR)",
+  "totalJobs" : 1000,
+  "throughputJobsPerSec" : 38.1854284405071,
+  "durationMs" : 26188,
+  "jainsFairnessIndex" : 1.0,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-1",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-2",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-3",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-4",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-5",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-6",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-7",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-8",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-9",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  }, {
+    "tenantId" : "tenant-10",
+    "weight" : 1,
+    "jobsTotal" : 100,
+    "jobsCompleted" : 100,
+    "p50WaitMs" : 14207,
+    "p95WaitMs" : 25569,
+    "p99WaitMs" : 26592,
+    "maxWaitMs" : 26592
+  } ]
+}, {
+  "profileName" : "Profile 2: Skewed Weights",
+  "schedulerMode" : "Baseline (FIFO/Priority)",
+  "totalJobs" : 950,
+  "throughputJobsPerSec" : 70.32869410719573,
+  "durationMs" : 13508,
+  "jainsFairnessIndex" : 1.0,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-heavy",
+    "weight" : 10,
+    "jobsTotal" : 500,
+    "jobsCompleted" : 500,
+    "p50WaitMs" : 6346,
+    "p95WaitMs" : 10704,
+    "p99WaitMs" : 13251,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-1",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-2",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-3",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-4",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-5",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-6",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-7",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-8",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  }, {
+    "tenantId" : "tenant-light-9",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 10704,
+    "p95WaitMs" : 13531,
+    "p99WaitMs" : 13781,
+    "maxWaitMs" : 13781
+  } ]
+}, {
+  "profileName" : "Profile 2: Skewed Weights",
+  "schedulerMode" : "FairShare (DRR)",
+  "totalJobs" : 950,
+  "throughputJobsPerSec" : 46.114266297752536,
+  "durationMs" : 20601,
+  "jainsFairnessIndex" : 1.0,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-heavy",
+    "weight" : 10,
+    "jobsTotal" : 500,
+    "jobsCompleted" : 500,
+    "p50WaitMs" : 12553,
+    "p95WaitMs" : 19322,
+    "p99WaitMs" : 20016,
+    "maxWaitMs" : 20056
+  }, {
+    "tenantId" : "tenant-light-1",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20498,
+    "p99WaitMs" : 20722,
+    "maxWaitMs" : 20722
+  }, {
+    "tenantId" : "tenant-light-2",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20508,
+    "p99WaitMs" : 20732,
+    "maxWaitMs" : 20732
+  }, {
+    "tenantId" : "tenant-light-3",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20508,
+    "p99WaitMs" : 20943,
+    "maxWaitMs" : 20943
+  }, {
+    "tenantId" : "tenant-light-4",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20508,
+    "p99WaitMs" : 20943,
+    "maxWaitMs" : 20943
+  }, {
+    "tenantId" : "tenant-light-5",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20508,
+    "p99WaitMs" : 20943,
+    "maxWaitMs" : 20943
+  }, {
+    "tenantId" : "tenant-light-6",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20508,
+    "p99WaitMs" : 20943,
+    "maxWaitMs" : 20943
+  }, {
+    "tenantId" : "tenant-light-7",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20742,
+    "p99WaitMs" : 20953,
+    "maxWaitMs" : 20953
+  }, {
+    "tenantId" : "tenant-light-8",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20742,
+    "p99WaitMs" : 20953,
+    "maxWaitMs" : 20953
+  }, {
+    "tenantId" : "tenant-light-9",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 11973,
+    "p95WaitMs" : 20742,
+    "p99WaitMs" : 20953,
+    "maxWaitMs" : 20953
+  } ]
+}, {
+  "profileName" : "Profile 3: Noisy Neighbor",
+  "schedulerMode" : "Baseline (FIFO/Priority)",
+  "totalJobs" : 1080,
+  "throughputJobsPerSec" : 70.92198581560284,
+  "durationMs" : 15228,
+  "jainsFairnessIndex" : 0.2329073482428115,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-noisy-a",
+    "weight" : 1,
+    "jobsTotal" : 1000,
+    "jobsCompleted" : 1000,
+    "p50WaitMs" : 12567,
+    "p95WaitMs" : 14342,
+    "p99WaitMs" : 15138,
+    "maxWaitMs" : 15622
+  }, {
+    "tenantId" : "tenant-quiet-b",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 15138,
+    "p95WaitMs" : 15622,
+    "p99WaitMs" : 15622,
+    "maxWaitMs" : 15622
+  }, {
+    "tenantId" : "tenant-quiet-c",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 15138,
+    "p95WaitMs" : 15622,
+    "p99WaitMs" : 15622,
+    "maxWaitMs" : 15622
+  }, {
+    "tenantId" : "tenant-quiet-d",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 15138,
+    "p95WaitMs" : 15622,
+    "p99WaitMs" : 15622,
+    "maxWaitMs" : 15622
+  }, {
+    "tenantId" : "tenant-quiet-e",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 15138,
+    "p95WaitMs" : 15622,
+    "p99WaitMs" : 15622,
+    "maxWaitMs" : 15622
+  } ]
+}, {
+  "profileName" : "Profile 3: Noisy Neighbor",
+  "schedulerMode" : "FairShare (DRR)",
+  "totalJobs" : 1080,
+  "throughputJobsPerSec" : 42.15127624697526,
+  "durationMs" : 25622,
+  "jainsFairnessIndex" : 0.2329073482428115,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-noisy-a",
+    "weight" : 1,
+    "jobsTotal" : 1000,
+    "jobsCompleted" : 1000,
+    "p50WaitMs" : 18597,
+    "p95WaitMs" : 25389,
+    "p99WaitMs" : 26045,
+    "maxWaitMs" : 26135
+  }, {
+    "tenantId" : "tenant-quiet-b",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 2423,
+    "p95WaitMs" : 3346,
+    "p99WaitMs" : 3346,
+    "maxWaitMs" : 3346
+  }, {
+    "tenantId" : "tenant-quiet-c",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 2423,
+    "p95WaitMs" : 3346,
+    "p99WaitMs" : 3346,
+    "maxWaitMs" : 3346
+  }, {
+    "tenantId" : "tenant-quiet-d",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 2423,
+    "p95WaitMs" : 3346,
+    "p99WaitMs" : 3346,
+    "maxWaitMs" : 3346
+  }, {
+    "tenantId" : "tenant-quiet-e",
+    "weight" : 1,
+    "jobsTotal" : 20,
+    "jobsCompleted" : 20,
+    "p50WaitMs" : 2423,
+    "p95WaitMs" : 3346,
+    "p99WaitMs" : 3346,
+    "maxWaitMs" : 3346
+  } ]
+}, {
+  "profileName" : "Profile 4: Variable Durations",
+  "schedulerMode" : "Baseline (FIFO/Priority)",
+  "totalJobs" : 250,
+  "throughputJobsPerSec" : 58.8235294117647,
+  "durationMs" : 4250,
+  "jainsFairnessIndex" : 1.0,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-long-job",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 2579,
+    "p95WaitMs" : 4096,
+    "p99WaitMs" : 4256,
+    "maxWaitMs" : 4256
+  }, {
+    "tenantId" : "tenant-short-b",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 2579,
+    "p95WaitMs" : 4096,
+    "p99WaitMs" : 4256,
+    "maxWaitMs" : 4256
+  }, {
+    "tenantId" : "tenant-short-c",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 2579,
+    "p95WaitMs" : 4096,
+    "p99WaitMs" : 4256,
+    "maxWaitMs" : 4256
+  }, {
+    "tenantId" : "tenant-short-d",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 2579,
+    "p95WaitMs" : 4096,
+    "p99WaitMs" : 4256,
+    "maxWaitMs" : 4256
+  }, {
+    "tenantId" : "tenant-short-e",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 2579,
+    "p95WaitMs" : 4096,
+    "p99WaitMs" : 4256,
+    "maxWaitMs" : 4256
+  } ]
+}, {
+  "profileName" : "Profile 4: Variable Durations",
+  "schedulerMode" : "FairShare (DRR)",
+  "totalJobs" : 250,
+  "throughputJobsPerSec" : 39.65736040609137,
+  "durationMs" : 6304,
+  "jainsFairnessIndex" : 1.0,
+  "tenantMetrics" : [ {
+    "tenantId" : "tenant-long-job",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 3624,
+    "p95WaitMs" : 6118,
+    "p99WaitMs" : 6327,
+    "maxWaitMs" : 6327
+  }, {
+    "tenantId" : "tenant-short-b",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 3624,
+    "p95WaitMs" : 6118,
+    "p99WaitMs" : 6327,
+    "maxWaitMs" : 6327
+  }, {
+    "tenantId" : "tenant-short-c",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 3624,
+    "p95WaitMs" : 6118,
+    "p99WaitMs" : 6327,
+    "maxWaitMs" : 6327
+  }, {
+    "tenantId" : "tenant-short-d",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 3624,
+    "p95WaitMs" : 6118,
+    "p99WaitMs" : 6327,
+    "maxWaitMs" : 6327
+  }, {
+    "tenantId" : "tenant-short-e",
+    "weight" : 1,
+    "jobsTotal" : 50,
+    "jobsCompleted" : 50,
+    "p50WaitMs" : 3624,
+    "p95WaitMs" : 6118,
+    "p99WaitMs" : 6327,
+    "maxWaitMs" : 6327
+  } ]
+} ]

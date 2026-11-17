@@ -26,9 +26,10 @@ public class AdminDlqController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String jobType,
-            @RequestParam(required = false) FailureCategory failureCategory) {
+            @RequestParam(required = false) FailureCategory failureCategory,
+            @RequestParam(required = false) String tenantId) {
 
-        PageResponse<DlqJobSummaryResponse> response = dlqService.listDlqJobs(page, size, jobType, failureCategory);
+        PageResponse<DlqJobSummaryResponse> response = dlqService.listDlqJobs(page, size, jobType, failureCategory, tenantId);
         return ResponseEntity.ok(response);
     }
 

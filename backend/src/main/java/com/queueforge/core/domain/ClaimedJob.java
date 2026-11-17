@@ -17,6 +17,21 @@ public record ClaimedJob(
         int maxRetries,
         Instant scheduledAt,
         Instant leaseUntil,
-        String lockedBy
+        String lockedBy,
+        String tenantId
 ) {
+    public ClaimedJob(UUID id,
+                      UUID claimToken,
+                      long claimVersion,
+                      String jobType,
+                      JsonNode payload,
+                      int priority,
+                      int attemptCount,
+                      int retryCount,
+                      int maxRetries,
+                      Instant scheduledAt,
+                      Instant leaseUntil,
+                      String lockedBy) {
+        this(id, claimToken, claimVersion, jobType, payload, priority, attemptCount, retryCount, maxRetries, scheduledAt, leaseUntil, lockedBy, "default");
+    }
 }

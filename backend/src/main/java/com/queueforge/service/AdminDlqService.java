@@ -1,6 +1,7 @@
 package com.queueforge.service;
 
 import com.queueforge.api.dto.*;
+import com.queueforge.api.security.TenantContext;
 import com.queueforge.common.exception.JobNotFoundException;
 import com.queueforge.core.domain.FailureCategory;
 import com.queueforge.core.domain.JobStatus;
@@ -43,12 +44,27 @@ public class AdminDlqService {
      */
     @Transactional(readOnly = true)
     public PageResponse<DlqJobSummaryResponse> listDlqJobs(int page, int size, String jobType, FailureCategory failureCategory) {
+        return listDlqJobs(page, size, jobType, failureCategory, null);
+    }
+
+    /**
+     * Lists jobs in the Dead-Letter Queue with tenant isolation.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<DlqJobSummaryResponse> listDlqJobs(int page, int size, String jobType, FailureCategory failureCategory, String filterTenantId) {
         int validatedPage = Math.max(0, page);
         int validatedSize = Math.min(100, Math.max(1, size));
 
         Specification<JobEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), JobStatus.DEAD_LETTER));
+
+            // Enforce tenant isolation
+            if (!TenantContext.isMasterAdmin()) {
+                predicates.add(cb.equal(root.get("tenantId"), TenantContext.getTenantId()));
+            } else if (filterTenantId != null && !filterTenantId.isBlank()) {
+                predicates.add(cb.equal(root.get("tenantId"), filterTenantId.trim().toLowerCase()));
+            }
 
             if (jobType != null && !jobType.isBlank()) {
                 predicates.add(cb.equal(root.get("jobType"), jobType.trim().toUpperCase()));
@@ -75,7 +91,8 @@ public class AdminDlqService {
                         job.getLastErrorMessage(),
                         job.getCreatedAt(),
                         job.getScheduledAt(),
-                        job.getUpdatedAt()
+                        job.getUpdatedAt(),
+                        job.getTenantId()
                 ))
                 .toList();
 
@@ -95,6 +112,13 @@ public class AdminDlqService {
     public DlqJobDetailResponse getDlqJob(UUID jobId) {
         JobEntity job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new JobNotFoundException(jobId));
+
+        if (!TenantContext.isMasterAdmin()) {
+            String callerTenant = TenantContext.getTenantId();
+            if (!callerTenant.equalsIgnoreCase(job.getTenantId())) {
+                throw new JobNotFoundException(jobId);
+            }
+        }
 
         if (job.getStatus() != JobStatus.DEAD_LETTER) {
             throw new IllegalStateException("Job " + jobId + " is not in DEAD_LETTER status (current: " + job.getStatus() + ")");
@@ -116,7 +140,8 @@ public class AdminDlqService {
                 job.getCreatedAt(),
                 job.getScheduledAt(),
                 job.getCompletedAt(),
-                job.getUpdatedAt()
+                job.getUpdatedAt(),
+                job.getTenantId()
         );
     }
 
@@ -126,6 +151,16 @@ public class AdminDlqService {
      */
     @Transactional
     public ReplayJobResponse replayDlqJob(UUID jobId) {
+        JobEntity job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+
+        if (!TenantContext.isMasterAdmin()) {
+            String callerTenant = TenantContext.getTenantId();
+            if (!callerTenant.equalsIgnoreCase(job.getTenantId())) {
+                throw new JobNotFoundException(jobId);
+            }
+        }
+
         String sql = """
             UPDATE qf_jobs
             SET status = 'PENDING',
@@ -152,10 +187,6 @@ public class AdminDlqService {
             return new ReplayJobResponse(jobId, "PENDING", "Job successfully returned to PENDING queue for replay");
         }
 
-        // Job was either not found or not in DEAD_LETTER
-        JobEntity job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new JobNotFoundException(jobId));
-
         throw new IllegalStateException("Cannot replay job " + jobId + " because its current status is " + job.getStatus() + " (expected DEAD_LETTER)");
     }
 
@@ -165,6 +196,16 @@ public class AdminDlqService {
      */
     @Transactional
     public DiscardJobResponse discardDlqJob(UUID jobId) {
+        JobEntity job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+
+        if (!TenantContext.isMasterAdmin()) {
+            String callerTenant = TenantContext.getTenantId();
+            if (!callerTenant.equalsIgnoreCase(job.getTenantId())) {
+                throw new JobNotFoundException(jobId);
+            }
+        }
+
         String sql = """
             UPDATE qf_jobs
             SET status = 'ARCHIVED',
@@ -183,17 +224,15 @@ public class AdminDlqService {
             return new DiscardJobResponse(jobId, "ARCHIVED", "Job successfully discarded and archived");
         }
 
-        JobEntity job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new JobNotFoundException(jobId));
-
         throw new IllegalStateException("Cannot discard job " + jobId + " because its current status is " + job.getStatus() + " (expected DEAD_LETTER)");
     }
 
     private void recordAuditLog(UUID jobId, String workerId, int attempt, String status, long durationMs, String note) {
         String logSql = """
-            INSERT INTO qf_job_execution_logs (job_id, worker_id, attempt, status, execution_time_ms, error_message, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO qf_job_execution_logs (job_id, worker_id, attempt, status, execution_time_ms, error_message, tenant_id, created_at)
+            SELECT ?, ?, ?, ?, ?, ?, tenant_id, CURRENT_TIMESTAMP
+            FROM qf_jobs WHERE id = ?
             """;
-        jdbcTemplate.update(logSql, jobId, workerId, attempt, status, durationMs, note);
+        jdbcTemplate.update(logSql, jobId, workerId, attempt, status, durationMs, note, jobId);
     }
 }

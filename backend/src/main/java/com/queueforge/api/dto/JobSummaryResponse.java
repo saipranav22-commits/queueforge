@@ -19,6 +19,14 @@ public record JobSummaryResponse(
         Instant scheduledAt,
         Instant createdAt,
         Instant completedAt,
-        String idempotencyKey
+        String idempotencyKey,
+        String tenantId
 ) {
+    public JobSummaryResponse(UUID jobId, String jobType, String status, int priority,
+                              int attemptCount, int retryCount, int maxRetries,
+                              String failureCategory, String lastErrorMessage,
+                              Instant scheduledAt, Instant createdAt, Instant completedAt,
+                              String idempotencyKey) {
+        this(jobId, jobType, status, priority, attemptCount, retryCount, maxRetries, failureCategory, lastErrorMessage, scheduledAt, createdAt, completedAt, idempotencyKey, "default");
+    }
 }

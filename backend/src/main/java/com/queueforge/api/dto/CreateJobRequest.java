@@ -25,8 +25,14 @@ public record CreateJobRequest(
 
         @Min(value = 0, message = "delaySeconds cannot be negative")
         @Max(value = 604800, message = "delaySeconds cannot exceed 604800 (7 days)")
-        Integer delaySeconds
+        Integer delaySeconds,
+
+        String tenantId
 ) {
+    public CreateJobRequest(String jobType, JsonNode payload, Integer priority, Integer maxRetries, Integer delaySeconds) {
+        this(jobType, payload, priority, maxRetries, delaySeconds, null);
+    }
+
     public int effectivePriority() {
         return priority != null ? priority : 50;
     }

@@ -33,6 +33,9 @@ public class JobEntity {
     @Column(name = "job_type", nullable = false, length = 64)
     private String jobType;
 
+    @Column(name = "tenant_id", nullable = false, length = 64)
+    private String tenantId = "default";
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
     private JsonNode payload;
@@ -91,6 +94,18 @@ public class JobEntity {
                      int priority,
                      int maxRetries,
                      Instant scheduledAt) {
+        this("default", idempotencyKey, idempotencyFingerprint, jobType, payload, priority, maxRetries, scheduledAt);
+    }
+
+    public JobEntity(String tenantId,
+                     String idempotencyKey,
+                     String idempotencyFingerprint,
+                     String jobType,
+                     JsonNode payload,
+                     int priority,
+                     int maxRetries,
+                     Instant scheduledAt) {
+        this.tenantId = (tenantId != null && !tenantId.isBlank()) ? tenantId : "default";
         this.idempotencyKey = idempotencyKey;
         this.idempotencyFingerprint = idempotencyFingerprint;
         this.jobType = jobType;
@@ -107,6 +122,9 @@ public class JobEntity {
 
     @PrePersist
     protected void onCreate() {
+        if (this.tenantId == null || this.tenantId.isBlank()) {
+            this.tenantId = "default";
+        }
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
@@ -170,6 +188,14 @@ public class JobEntity {
 
     public void setJobType(String jobType) {
         this.jobType = jobType;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public JsonNode getPayload() {

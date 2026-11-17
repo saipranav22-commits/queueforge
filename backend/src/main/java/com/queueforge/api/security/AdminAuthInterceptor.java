@@ -54,6 +54,12 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 1b. Allow tenant credentials for tenant-scoped DLQ operations
+        String tenantKey = request.getHeader("X-Tenant-Key");
+        if (tenantKey != null && !tenantKey.isBlank() && request.getRequestURI().startsWith("/api/v1/admin/dlq")) {
+            return true;
+        }
+
         // 2. Check Browser Session Cookie Authentication
         Optional<String> sessionIdOpt = extractSessionCookie(request);
         if (sessionIdOpt.isPresent()) {
