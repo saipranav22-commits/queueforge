@@ -40,6 +40,9 @@ class DashboardControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private com.queueforge.config.AdminProperties adminProperties;
+
     @BeforeEach
     void cleanDb() {
         jdbcTemplate.execute("DELETE FROM qf_job_execution_logs");
@@ -132,7 +135,7 @@ class DashboardControllerIntegrationTest {
             """, job.getId());
 
         mockMvc.perform(get("/api/v1/jobs/" + job.getId() + "/detail")
-                        .header("X-Admin-Key", "qf_admin_dev_secret_2026"))
+                        .header("X-Admin-Key", adminProperties.getApiKey()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.jobId", is(job.getId().toString())))
                 .andExpect(jsonPath("$.status", is("COMPLETED")))

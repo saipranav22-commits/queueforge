@@ -37,12 +37,17 @@ class AuthControllerIntegrationTest {
     @Autowired
     private AuthSessionService sessionService;
 
-    private static final String VALID_KEY = "qf_admin_dev_secret_2026";
+    @Autowired
+    private com.queueforge.config.AdminProperties adminProperties;
+
+    private String getValidKey() {
+        return adminProperties.getApiKey();
+    }
 
     @Test
     @DisplayName("POST /api/v1/auth/login with valid admin key sets HttpOnly cookie and returns CSRF token")
     void login_validKey_establishesSession() throws Exception {
-        LoginRequest req = new LoginRequest(VALID_KEY);
+        LoginRequest req = new LoginRequest(getValidKey());
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -84,7 +89,7 @@ class AuthControllerIntegrationTest {
     @DisplayName("Cookie-authenticated session allows access to Admin DLQ endpoints with CSRF token")
     void adminAccess_withValidSessionAndCsrf_succeeds() throws Exception {
         // 1. Login
-        LoginRequest loginReq = new LoginRequest(VALID_KEY);
+        LoginRequest loginReq = new LoginRequest(getValidKey());
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginReq)))
@@ -117,7 +122,7 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/v1/auth/logout clears session and expires cookie")
     void logout_clearsSession() throws Exception {
-        LoginRequest loginReq = new LoginRequest(VALID_KEY);
+        LoginRequest loginReq = new LoginRequest(getValidKey());
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginReq)))
