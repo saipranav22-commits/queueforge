@@ -10,7 +10,7 @@
 
 QueueForge is a transactional, guaranteed-delivery asynchronous task execution platform and operations console engineered with **Java 21**, **Spring Boot 3**, **PostgreSQL 16**, and **React 19**. 
 
-It eliminates the operational complexity and dual-write inconsistency of external message brokers for workloads requiring ACID durability, priority-aware scheduling, contention-free worker claiming via PostgreSQL row-level locking (`SELECT FOR UPDATE SKIP LOCKED`), cryptographic lease fencing, automated crash recovery, exponential backoff with full jitter, and an authenticated administrative Dead-Letter Queue (DLQ) operations console.
+It eliminates the operational complexity and dual-write inconsistency of external message brokers for workloads requiring ACID durability, priority-aware scheduling, contention-free worker claiming via PostgreSQL row-level lock skipping (`SELECT FOR UPDATE SKIP LOCKED`), cryptographic lease fencing, automated crash recovery, exponential backoff with full jitter, and an authenticated administrative Dead-Letter Queue (DLQ) operations console.
 
 ---
 
@@ -118,7 +118,7 @@ flowchart TD
 
 ## 3. Key Backend Capabilities
 
-- **Contention-Free Concurrency (`SKIP LOCKED`):** Workers claim jobs using row-level lock skipping. Zero thread blocking, zero serialization failures, zero table lock contention.
+- **Non-Blocking Concurrency via SKIP LOCKED:** Workers claim jobs using row-level lock skipping, avoiding serialization blocks and table-level locks across concurrent workers.
 - **Dual Fencing (Claim Tokens + Temporal Leases):** Prevents "zombie worker" split-brain writes. Every claim assigns a unique `claim_token` UUID; completions require `claim_token = ? AND lease_until >= NOW()`.
 - **Decoupled Claim & Execution:** Database locks are held strictly during the microsecond status transition and released before business logic executes in a bounded thread pool, preserving HikariCP connection availability.
 - **Exponential Backoff with Full Jitter:** Retries scale as $\text{initialDelay} \times \text{multiplier}^{r-1}$ randomized across $\pm 20\%$ jitter to protect downstream systems from thundering herds.
