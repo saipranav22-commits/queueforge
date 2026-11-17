@@ -31,6 +31,43 @@ public class ReportGenerationJobHandler implements JobHandler {
         String reportName = payload.path("reportName").asText("default-report");
         String format = payload.path("format").asText("PDF");
 
+        // Write running signal file if requested by test harness
+        String signalRunningFile = payload.path("signalRunningFile").asText(null);
+        if (signalRunningFile != null && !signalRunningFile.isBlank()) {
+            try {
+                java.io.File sFile = new java.io.File(signalRunningFile);
+                if (sFile.getParentFile() != null) {
+                    sFile.getParentFile().mkdirs();
+                }
+                java.nio.file.Files.writeString(sFile.toPath(), context.workerId() + ":" + context.jobId() + ":" + System.currentTimeMillis());
+                log.info("[Worker-{}] Emitted running signal to {} for jobId={}", context.workerId(), signalRunningFile, context.jobId());
+            } catch (Exception e) {
+                log.warn("[Worker-{}] Failed to write signalRunningFile: {}", context.workerId(), e.getMessage());
+            }
+        }
+
+        // Wait on test synchronization barrier if requested
+        String barrierFile = payload.path("barrierFile").asText(null);
+        int barrierAttempt = payload.path("barrierAttempt").asInt(1);
+        if (barrierFile != null && !barrierFile.isBlank() && context.attempt() == barrierAttempt) {
+            java.io.File bFile = new java.io.File(barrierFile);
+            long maxWaitMs = payload.path("barrierTimeoutMs").asLong(30000);
+            long startWait = System.currentTimeMillis();
+            log.info("[Worker-{}] Waiting on barrier file {} (attempt={}, maxWaitMs={}) for jobId={}",
+                    context.workerId(), barrierFile, context.attempt(), maxWaitMs, context.jobId());
+            while (bFile.exists() && (System.currentTimeMillis() - startWait < maxWaitMs)) {
+                Thread.sleep(100);
+            }
+            log.info("[Worker-{}] Barrier released or timed out for jobId={}", context.workerId(), context.jobId());
+        }
+
+        // Artificial execution delay for crash or slow-worker testing
+        long delayMs = payload.path("delayMs").asLong(0);
+        if (delayMs > 0) {
+            log.info("[Worker-{}] Simulating execution delay of {}ms for jobId={}", context.workerId(), delayMs, context.jobId());
+            Thread.sleep(delayMs);
+        }
+
         if (reportName.equalsIgnoreCase("TRIGGER_FAIL")) {
             throw new RuntimeException("Simulated failure for report generation test");
         }

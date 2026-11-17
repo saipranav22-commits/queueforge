@@ -50,3 +50,6 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# ChaosLab runtime generated reports
+chaoslab/reports/

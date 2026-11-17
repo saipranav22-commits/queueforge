@@ -180,21 +180,28 @@ public class WorkerCoordinator implements SmartLifecycle {
             // Periodic heartbeat extension for long-running executions
             int heartbeatInterval = properties.getHeartbeatIntervalSeconds();
             int leaseDuration = properties.getLeaseDurationSeconds();
-            ScheduledFuture<?> heartbeatTask = heartbeatExecutor.scheduleWithFixedDelay(
-                    () -> {
-                        try {
-                            boolean extended = claimService.extendLease(job.id(), job.claimToken(), leaseDuration, workerName);
-                            if (!extended) {
-                                log.warn("[{}] Heartbeat extension rejected for jobId={}. Fencing out.", workerName, job.id());
+            boolean disableHeartbeat = job.payload() != null && job.payload().path("disableHeartbeat").asBoolean(false);
+            ScheduledFuture<?> heartbeatTask = null;
+
+            if (!disableHeartbeat && heartbeatInterval > 0) {
+                heartbeatTask = heartbeatExecutor.scheduleWithFixedDelay(
+                        () -> {
+                            try {
+                                boolean extended = claimService.extendLease(job.id(), job.claimToken(), leaseDuration, workerName);
+                                if (!extended) {
+                                    log.warn("[{}] Heartbeat extension rejected for jobId={}. Fencing out.", workerName, job.id());
+                                }
+                            } catch (Exception ex) {
+                                log.warn("[{}] Heartbeat extension exception for jobId={}: {}", workerName, job.id(), ex.getMessage());
                             }
-                        } catch (Exception ex) {
-                            log.warn("[{}] Heartbeat extension exception for jobId={}: {}", workerName, job.id(), ex.getMessage());
-                        }
-                    },
-                    heartbeatInterval,
-                    heartbeatInterval,
-                    TimeUnit.SECONDS
-            );
+                        },
+                        heartbeatInterval,
+                        heartbeatInterval,
+                        TimeUnit.SECONDS
+                );
+            } else if (disableHeartbeat) {
+                log.info("[{}] Heartbeat intentionally disabled by payload for jobId={}", workerName, job.id());
+            }
 
             JobExecutionContext context = new JobExecutionContext(
                     job.id(),
