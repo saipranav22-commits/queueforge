@@ -32,6 +32,7 @@ public class WorkerCoordinator implements SmartLifecycle {
     private final JobClaimService claimService;
     private final JobHandlerRegistry handlerRegistry;
     private final WorkerProperties properties;
+    private final com.queueforge.config.QueueForgeProperties queueForgeProperties;
     private final String coordinatorId;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -40,17 +41,20 @@ public class WorkerCoordinator implements SmartLifecycle {
 
     public WorkerCoordinator(JobClaimService claimService,
                              JobHandlerRegistry handlerRegistry,
-                             WorkerProperties properties) {
+                             WorkerProperties properties,
+                             com.queueforge.config.QueueForgeProperties queueForgeProperties) {
         this.claimService = claimService;
         this.handlerRegistry = handlerRegistry;
         this.properties = properties;
-        this.coordinatorId = "coord-" + UUID.randomUUID().toString().substring(0, 8);
+        this.queueForgeProperties = queueForgeProperties;
+        this.coordinatorId = queueForgeProperties.getInstanceId();
     }
 
     @Override
     public synchronized void start() {
-        if (running.get() || !properties.isEnabled()) {
-            log.info("WorkerCoordinator is disabled or already running (enabled={})", properties.isEnabled());
+        if (running.get() || !queueForgeProperties.isWorkerActive() || !properties.isEnabled()) {
+            log.info("WorkerCoordinator is disabled or already running (enabled={}, mode={})",
+                    properties.isEnabled(), queueForgeProperties.getMode());
             return;
         }
 
@@ -132,10 +136,11 @@ public class WorkerCoordinator implements SmartLifecycle {
     }
 
     private void executeClaimedJob(ClaimedJob job) {
-        String workerName = Thread.currentThread().getName();
+        String workerName = coordinatorId + ":" + Thread.currentThread().getName();
         long startTime = System.currentTimeMillis();
 
         try {
+            MDC.put("instanceId", coordinatorId);
             MDC.put("jobId", job.id().toString());
             MDC.put("jobType", job.jobType());
             MDC.put("attempt", String.valueOf(job.attemptCount()));
@@ -306,5 +311,9 @@ public class WorkerCoordinator implements SmartLifecycle {
 
     public int getPoolCapacity() {
         return workerPool != null ? workerPool.getMaximumPoolSize() : 0;
+    }
+
+    public String getCoordinatorId() {
+        return coordinatorId;
     }
 }

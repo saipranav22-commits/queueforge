@@ -35,6 +35,6 @@ EXPOSE 8085
 
 # Built-in Alpine wget performs health probe against actuator liveness state
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=25s \
-    CMD wget -qO- http://127.0.0.1:8085/actuator/health/liveness || exit 1
+    CMD wget -qO- http://127.0.0.1:${SERVER_PORT:-8085}/actuator/health/liveness || exit 1
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

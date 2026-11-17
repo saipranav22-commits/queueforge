@@ -13,16 +13,28 @@ import org.springframework.stereotype.Component;
 public class QueueForgeWorkerHealthIndicator implements HealthIndicator {
 
     private final WorkerCoordinator workerCoordinator;
+    private final com.queueforge.config.QueueForgeProperties queueForgeProperties;
 
-    public QueueForgeWorkerHealthIndicator(WorkerCoordinator workerCoordinator) {
+    public QueueForgeWorkerHealthIndicator(WorkerCoordinator workerCoordinator,
+                                           com.queueforge.config.QueueForgeProperties queueForgeProperties) {
         this.workerCoordinator = workerCoordinator;
+        this.queueForgeProperties = queueForgeProperties;
     }
 
     @Override
     public Health health() {
+        if (!queueForgeProperties.isWorkerActive()) {
+            return Health.up()
+                    .withDetail("workerStatus", "DISABLED")
+                    .withDetail("mode", queueForgeProperties.getMode().name())
+                    .withDetail("message", "Worker coordinator disabled in API_ONLY mode (delegated to external workers)")
+                    .build();
+        }
+
         if (!workerCoordinator.isRunning()) {
             return Health.down()
                     .withDetail("workerStatus", "STOPPED")
+                    .withDetail("mode", queueForgeProperties.getMode().name())
                     .withDetail("message", "WorkerCoordinator background engine is not running")
                     .build();
         }
@@ -32,6 +44,8 @@ public class QueueForgeWorkerHealthIndicator implements HealthIndicator {
 
         Health.Builder builder = Health.up()
                 .withDetail("workerStatus", "RUNNING")
+                .withDetail("instanceId", queueForgeProperties.getInstanceId())
+                .withDetail("mode", queueForgeProperties.getMode().name())
                 .withDetail("activeWorkers", activeWorkers)
                 .withDetail("poolCapacity", poolCapacity);
 

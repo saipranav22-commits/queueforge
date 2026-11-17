@@ -26,17 +26,20 @@ public class DashboardService {
     private final QueueForgeMetrics metrics;
     private final WorkerCoordinator workerCoordinator;
     private final WorkerProperties workerProperties;
+    private final com.queueforge.config.QueueForgeProperties queueForgeProperties;
     private final JdbcTemplate jdbcTemplate;
     private final DataSource dataSource;
 
     public DashboardService(QueueForgeMetrics metrics,
                             @Lazy WorkerCoordinator workerCoordinator,
                             WorkerProperties workerProperties,
+                            com.queueforge.config.QueueForgeProperties queueForgeProperties,
                             JdbcTemplate jdbcTemplate,
                             DataSource dataSource) {
         this.metrics = metrics;
         this.workerCoordinator = workerCoordinator;
         this.workerProperties = workerProperties;
+        this.queueForgeProperties = queueForgeProperties;
         this.jdbcTemplate = jdbcTemplate;
         this.dataSource = dataSource;
     }
@@ -55,7 +58,14 @@ public class DashboardService {
             capacity = workerProperties.getConcurrency();
         }
 
-        String workerStatus = (workerCoordinator != null && workerCoordinator.isRunning()) ? "RUNNING" : "STOPPED";
+        String workerStatus;
+        if (workerCoordinator != null && workerCoordinator.isRunning()) {
+            workerStatus = "RUNNING";
+        } else if (!queueForgeProperties.isWorkerActive()) {
+            workerStatus = "EXTERNAL_WORKERS";
+        } else {
+            workerStatus = "STOPPED";
+        }
 
         double submitted = sumCounters("queueforge.jobs.submitted.total");
         double completedTotal = sumCounters("queueforge.jobs.completed.total");
@@ -90,8 +100,8 @@ public class DashboardService {
         }
 
         boolean workerRunning = workerCoordinator != null && workerCoordinator.isRunning();
-        String workerStatus = workerRunning ? "RUNNING" : "STOPPED";
-        String overallStatus = ("UP".equals(dbStatus) && (workerRunning || !workerProperties.isEnabled())) ? "UP" : "DEGRADED";
+        String workerStatus = workerRunning ? "RUNNING" : (!queueForgeProperties.isWorkerActive() ? "EXTERNAL_WORKERS" : "STOPPED");
+        String overallStatus = ("UP".equals(dbStatus) && (workerRunning || !queueForgeProperties.isWorkerActive() || !workerProperties.isEnabled())) ? "UP" : "DEGRADED";
 
         double activeWorkers = metrics.getActiveWorkerCount();
         int capacity = workerCoordinator != null ? workerCoordinator.getPoolCapacity() : workerProperties.getConcurrency();

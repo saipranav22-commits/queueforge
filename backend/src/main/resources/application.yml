@@ -81,6 +81,8 @@ logging:
     org.hibernate: WARN
 
 queueforge:
+  mode: ${QUEUEFORGE_MODE:COMBINED}
+  instance-id: ${QUEUEFORGE_INSTANCE_ID:}
   worker:
     enabled: ${WORKER_ENABLED:true}
     concurrency: ${WORKER_CONCURRENCY:4}

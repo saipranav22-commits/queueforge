@@ -39,6 +39,7 @@ public class QueueForgeMetrics implements SmartLifecycle {
     private final MeterRegistry registry;
     private final JdbcTemplate jdbcTemplate;
     private final WorkerCoordinator workerCoordinator;
+    private final com.queueforge.config.QueueForgeProperties queueForgeProperties;
 
     // Gauges backing values
     private final AtomicLong pendingJobs = new AtomicLong(0);
@@ -54,10 +55,12 @@ public class QueueForgeMetrics implements SmartLifecycle {
 
     public QueueForgeMetrics(MeterRegistry registry,
                              JdbcTemplate jdbcTemplate,
-                             @Lazy WorkerCoordinator workerCoordinator) {
+                             @Lazy WorkerCoordinator workerCoordinator,
+                             com.queueforge.config.QueueForgeProperties queueForgeProperties) {
         this.registry = registry;
         this.jdbcTemplate = jdbcTemplate;
         this.workerCoordinator = workerCoordinator;
+        this.queueForgeProperties = queueForgeProperties;
 
         registerGauges();
     }
@@ -80,7 +83,15 @@ public class QueueForgeMetrics implements SmartLifecycle {
                 .register(registry);
 
         Gauge.builder("queueforge.workers.active", this, QueueForgeMetrics::getActiveWorkerCount)
-                .description("Number of worker threads actively executing jobs in worker pool")
+                .description("Number of worker threads actively executing jobs in local instance worker pool")
+                .tag("instance_id", queueForgeProperties.getInstanceId())
+                .tag("mode", queueForgeProperties.getMode().name())
+                .register(registry);
+
+        Gauge.builder("queueforge.workers.capacity", this, QueueForgeMetrics::getWorkerCapacity)
+                .description("Maximum worker pool capacity of this local instance")
+                .tag("instance_id", queueForgeProperties.getInstanceId())
+                .tag("mode", queueForgeProperties.getMode().name())
                 .register(registry);
     }
 
@@ -153,6 +164,13 @@ public class QueueForgeMetrics implements SmartLifecycle {
             return 0.0;
         }
         return workerCoordinator.getActiveWorkerCount();
+    }
+
+    public double getWorkerCapacity() {
+        if (workerCoordinator == null) {
+            return 0.0;
+        }
+        return workerCoordinator.getPoolCapacity();
     }
 
     // =========================================================================
