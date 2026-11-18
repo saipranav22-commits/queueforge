@@ -371,4 +371,55 @@ public class TenantSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message", containsString("Invalid or inactive tenant credentials")));
     }
+
+    @Test
+    @DisplayName("Test 14: Tenant A cannot inspect execution logs for Tenant B's job (returns 404 Not Found)")
+    void testTenantCannotViewAnotherTenantsJobHistory() throws Exception {
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("data", "beta-history-data");
+
+        JobEntity jobB = new JobEntity(
+                "tenant-beta",
+                null,
+                null,
+                "GENERATE_REPORT",
+                payload,
+                50,
+                3,
+                Instant.now()
+        );
+        jobB.setStatus(JobStatus.COMPLETED);
+        jobRepository.save(jobB);
+
+        jdbcTemplate.update("""
+            INSERT INTO qf_job_execution_logs (job_id, worker_id, attempt, status, execution_time_ms, tenant_id, created_at)
+            VALUES (?, 'worker-b', 1, 'COMPLETED', 15, 'tenant-beta', CURRENT_TIMESTAMP)
+            """, jobB.getId());
+
+        // Tenant A attempting to inspect Tenant B's execution logs -> 404
+        mockMvc.perform(get("/api/v1/jobs/" + jobB.getId() + "/history")
+                        .header("X-Tenant-Key", TENANT_A_KEY))
+                .andExpect(status().isNotFound());
+
+        // Master Admin can view Tenant B's execution logs -> 200 OK
+        mockMvc.perform(get("/api/v1/jobs/" + jobB.getId() + "/history")
+                        .header("X-Admin-Key", adminProperties.getApiKey()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+    }
+
+    @Test
+    @DisplayName("Test 15: Production release gate rejects startup if default admin key is detected")
+    void testProductionReleaseGateRejectsDefaultAdminSecret() {
+        AdminProperties testProps = new AdminProperties();
+        testProps.setApiKey(AdminProperties.DEFAULT_DEV_SECRET);
+
+        TenantSecurityProperties secProps = new TenantSecurityProperties();
+        secProps.setEnforceStrongAdminKey(true);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(testProps, "tenantSecurityProperties", secProps);
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, testProps::validateSecurity,
+                "Expected validateSecurity to throw IllegalStateException when default dev secret is active in strict mode");
+    }
 }

@@ -39,14 +39,17 @@ public class HttpPaymentClient implements PaymentClient {
     private final ObjectMapper objectMapper;
     private final String paymentReceiverUrl;
     private final Duration requestTimeout;
+    private final String serviceKey;
 
     public HttpPaymentClient(ObjectMapper objectMapper,
                             @Value("${queueforge.outbox.payment.url:http://127.0.0.1:8098/api/v1/payments/charges}") String paymentReceiverUrl,
                             @Value("${queueforge.outbox.payment.connect-timeout-ms:2000}") long connectTimeoutMs,
-                            @Value("${queueforge.outbox.payment.read-timeout-ms:3000}") long readTimeoutMs) {
+                            @Value("${queueforge.outbox.payment.read-timeout-ms:3000}") long readTimeoutMs,
+                            @Value("${queueforge.outbox.payment.service-key:qf_internal_receiver_key_2026}") String serviceKey) {
         this.objectMapper = objectMapper;
         this.paymentReceiverUrl = paymentReceiverUrl;
         this.requestTimeout = Duration.ofMillis(readTimeoutMs);
+        this.serviceKey = serviceKey;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(connectTimeoutMs))
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -72,6 +75,7 @@ public class HttpPaymentClient implements PaymentClient {
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
                 .header("Idempotency-Key", idempotencyKey)
+                .header("X-Service-Key", serviceKey)
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
 

@@ -37,6 +37,8 @@ queueforge:
   receiver:
     test-endpoints-enabled: false
     test-secret: ${RECEIVER_TEST_SECRET:qf_test_secret_internal_2026}
+    service-auth-enabled: ${RECEIVER_SERVICE_AUTH_ENABLED:false}
+    service-key: ${RECEIVER_SERVICE_KEY:qf_internal_receiver_key_2026}
 
 logging:
   level:

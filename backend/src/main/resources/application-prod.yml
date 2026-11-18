@@ -1,0 +1,7 @@
+# Production configuration profile for QueueForge Backend
+queueforge:
+  security:
+    allow-anonymous-default: false
+    enforce-strong-admin-key: true
+  worker:
+    chaos-payloads-enabled: false

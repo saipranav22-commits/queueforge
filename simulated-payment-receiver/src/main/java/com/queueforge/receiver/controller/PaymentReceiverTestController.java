@@ -43,7 +43,13 @@ public class PaymentReceiverTestController {
     }
 
     private boolean isAuthorized(String headerSecret) {
-        return headerSecret != null && headerSecret.equals(testSecret);
+        if (headerSecret == null || testSecret == null) {
+            return false;
+        }
+        return java.security.MessageDigest.isEqual(
+                headerSecret.trim().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                testSecret.trim().getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
     }
 
     @PostMapping("/simulate/lost-ack")

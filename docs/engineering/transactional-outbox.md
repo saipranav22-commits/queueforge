@@ -82,6 +82,8 @@ In QueueForge V2 Phase 3B, the architecture was evolved from an in-process simul
 | **Flyway Migrations** | V1 through V5 (Queue + Outbox schema) | V1 (Receiver charges + inbox schema) |
 | **Client Implementation** | `HttpPaymentClient` (`@Primary`) | Exposed via REST controller |
 | **Network Protocol** | HTTP/1.1 over TCP sockets | HTTP/1.1 over TCP sockets |
+| **Service Authentication** | `X-Service-Key` header via `HttpPaymentClient` | Constant-time verification in `PaymentReceiverController` |
+| **Test Endpoint Protection** | N/A | `@ConditionalOnProperty` (disabled in prod) + `X-Test-Secret` |
 
 > [!NOTE]
 > The original Phase 3 `DirectPaymentClient` and in-process `PaymentReceiverService` are retained strictly as a fast in-memory test fixture (`@ConditionalOnProperty(name = "queueforge.outbox.payment.client-type", havingValue = "DIRECT")`) for unit and integration regression tests. In production and distributed verification, `HttpPaymentClient` connects across process and database boundaries over real HTTP.

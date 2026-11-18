@@ -5,32 +5,64 @@ import com.queueforge.receiver.dto.PaymentChargeResponse;
 import com.queueforge.receiver.service.PaymentReceiverService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 /**
  * Production Payment Receiver Controller.
- * Exposes exclusively the public payment charge ingestion endpoint.
+ * Exposes exclusively the payment charge ingestion endpoint with service-to-service controls.
  * Contains no destructive reset endpoints or test toggles.
  */
 @RestController
 @RequestMapping("/api/v1/payments")
 public class PaymentReceiverController {
 
-    private final PaymentReceiverService receiverService;
+    public static final String SERVICE_KEY_HEADER = "X-Service-Key";
 
-    public PaymentReceiverController(PaymentReceiverService receiverService) {
+    private final PaymentReceiverService receiverService;
+    private final boolean serviceAuthEnabled;
+    private final String serviceKey;
+
+    public PaymentReceiverController(PaymentReceiverService receiverService,
+                                     @Value("${queueforge.receiver.service-auth-enabled:false}") boolean serviceAuthEnabled,
+                                     @Value("${queueforge.receiver.service-key:qf_internal_receiver_key_2026}") String serviceKey) {
         this.receiverService = receiverService;
+        this.serviceAuthEnabled = serviceAuthEnabled;
+        this.serviceKey = serviceKey;
+    }
+
+    private boolean isAuthorized(String providedHeader) {
+        if (!serviceAuthEnabled) {
+            return true;
+        }
+        if (providedHeader == null || serviceKey == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                providedHeader.trim().getBytes(StandardCharsets.UTF_8),
+                serviceKey.trim().getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     @PostMapping("/charges")
-    public ResponseEntity<PaymentChargeResponse> processCharge(
+    public ResponseEntity<?> processCharge(
+            @RequestHeader(value = SERVICE_KEY_HEADER, required = false) String serviceKeyHeader,
             @Valid @RequestBody PaymentChargeRequest request,
             HttpServletResponse httpServletResponse) throws IOException {
+        if (!isAuthorized(serviceKeyHeader)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "UNAUTHORIZED",
+                    "message", "Missing or invalid service-to-service authorization key"
+            ));
+        }
+
         try {
             PaymentChargeResponse response = receiverService.processCharge(request);
             HttpStatus status = response.idempotentReplay() ? HttpStatus.OK : HttpStatus.CREATED;
