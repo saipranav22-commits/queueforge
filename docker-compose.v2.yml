@@ -132,8 +132,10 @@ services:
       WORKER_ENABLED: "false"
       JAVA_OPTS: "-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k -XX:TieredStopAtLevel=1"
     networks:
-      - qf-v2-backend-net
-      - qf-v2-frontend-net
+      qf-v2-backend-net:
+      qf-v2-frontend-net:
+        aliases:
+          - backend
     depends_on:
       sender-db:
         condition: service_healthy
@@ -171,6 +173,7 @@ services:
       WORKER_LEASE_DURATION_SECONDS: 10
       WORKER_HEARTBEAT_INTERVAL_SECONDS: 3
       WORKER_RECOVERY_POLL_INTERVAL_MS: 4000
+      QUEUEFORGE_OUTBOX_DISPATCHER_ENABLED: "true"
       QUEUEFORGE_OUTBOX_PAYMENT_URL: "http://payment-receiver:8098/api/v1/payments/charges"
       QUEUEFORGE_OUTBOX_PAYMENT_SERVICE_KEY: ${RECEIVER_SERVICE_KEY:-qf_v2_internal_service_key_2026}
       JAVA_OPTS: "-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k -XX:TieredStopAtLevel=1"
@@ -188,8 +191,8 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8086/actuator/health/liveness || exit 1"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 25s
+      retries: 15
+      start_period: 120s
     deploy:
       resources:
         limits:
@@ -218,6 +221,7 @@ services:
       WORKER_LEASE_DURATION_SECONDS: 10
       WORKER_HEARTBEAT_INTERVAL_SECONDS: 3
       WORKER_RECOVERY_POLL_INTERVAL_MS: 4000
+      QUEUEFORGE_OUTBOX_DISPATCHER_ENABLED: "true"
       QUEUEFORGE_OUTBOX_PAYMENT_URL: "http://payment-receiver:8098/api/v1/payments/charges"
       QUEUEFORGE_OUTBOX_PAYMENT_SERVICE_KEY: ${RECEIVER_SERVICE_KEY:-qf_v2_internal_service_key_2026}
       JAVA_OPTS: "-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k -XX:TieredStopAtLevel=1"
@@ -235,8 +239,8 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8087/actuator/health/liveness || exit 1"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 25s
+      retries: 15
+      start_period: 120s
     deploy:
       resources:
         limits:
