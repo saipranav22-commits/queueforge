@@ -60,7 +60,9 @@ public class FairShareBenchmarkRunner {
             int totalJobs,
             double throughputJobsPerSec,
             long durationMs,
-            double jainsFairnessIndex,
+            double jainsFairnessIndexCompletion,
+            double jainsFairnessIndexContention,
+            long maxTailStarvationMs,
             List<TenantMetrics> tenantMetrics
     ) {}
 
@@ -115,6 +117,23 @@ public class FairShareBenchmarkRunner {
         return (sumX * sumX) / (n * sumXSquared);
     }
 
+    private double calculateContentionJainsFairness(Map<String, Integer> claimsByTenant, Map<String, Integer> weights) {
+        if (claimsByTenant.isEmpty()) return 1.0;
+        double sumX = 0.0;
+        double sumXSquared = 0.0;
+        int n = claimsByTenant.size();
+
+        for (Map.Entry<String, Integer> e : claimsByTenant.entrySet()) {
+            int weight = weights.getOrDefault(e.getKey(), 1);
+            double normalizedShare = (double) e.getValue() / Math.max(1, weight);
+            sumX += normalizedShare;
+            sumXSquared += (normalizedShare * normalizedShare);
+        }
+
+        if (sumXSquared == 0.0) return 1.0;
+        return (sumX * sumX) / (n * sumXSquared);
+    }
+
     private static class TimestampUtil {
         static java.sql.Timestamp toTimestamp(Instant instant) {
             return java.sql.Timestamp.from(instant);
@@ -150,8 +169,11 @@ public class FairShareBenchmarkRunner {
 
         // Run simulation
         Map<String, List<Long>> waitTimesByTenant = new HashMap<>();
+        Map<String, Integer> remainingJobs = new HashMap<>(tenantJobCounts);
+        Map<String, Integer> contentionClaimsByTenant = new HashMap<>();
         for (String tid : tenantWeights.keySet()) {
             waitTimesByTenant.put(tid, new ArrayList<>());
+            contentionClaimsByTenant.put(tid, 0);
         }
 
         long startTime = System.currentTimeMillis();
@@ -159,6 +181,9 @@ public class FairShareBenchmarkRunner {
         int emptySweeps = 0;
 
         while (totalProcessed < totalExpectedJobs && emptySweeps < 5) {
+            long activeTenants = remainingJobs.values().stream().filter(c -> c > 0).count();
+            boolean underContention = activeTenants > 1;
+
             List<ClaimedJob> claimed = fairShareEnabled
                     ? claimService.claimJobsFairShare(batchSize, 30, "bench-worker")
                     : claimService.claimJobsLegacy(batchSize, 30, "bench-worker");
@@ -174,6 +199,11 @@ public class FairShareBenchmarkRunner {
                 totalProcessed++;
                 long waitMs = job.scheduledAt() != null ? Math.max(0, Duration.between(job.scheduledAt(), sweepNow).toMillis()) : 0;
                 waitTimesByTenant.computeIfAbsent(job.tenantId(), k -> new ArrayList<>()).add(waitMs);
+
+                if (underContention) {
+                    contentionClaimsByTenant.put(job.tenantId(), contentionClaimsByTenant.getOrDefault(job.tenantId(), 0) + 1);
+                }
+                remainingJobs.computeIfPresent(job.tenantId(), (k, v) -> Math.max(0, v - 1));
 
                 // Simulated worker processing delay if any
                 int simDelay = tenantSimulatedDelaysMs.getOrDefault(job.tenantId(), 0);
@@ -212,14 +242,23 @@ public class FairShareBenchmarkRunner {
             ));
         }
 
-        double jainIndex = calculateJainsFairness(tenantMetricsList);
+        double jainCompletion = calculateJainsFairness(tenantMetricsList);
+        double jainContention = calculateContentionJainsFairness(contentionClaimsByTenant, tenantWeights);
+        long maxTailStarvationMs = tenantMetricsList.stream()
+                .filter(tm -> tm.tenantId().contains("quiet") || tm.tenantId().contains("light") || tm.tenantId().contains("short"))
+                .mapToLong(TenantMetrics::maxWaitMs)
+                .max()
+                .orElse(tenantMetricsList.stream().mapToLong(TenantMetrics::maxWaitMs).max().orElse(0L));
+
         return new ProfileResult(
                 profileName,
                 fairShareEnabled ? "FairShare (DRR)" : "Baseline (FIFO/Priority)",
                 totalProcessed,
                 throughput,
                 elapsedMs,
-                jainIndex,
+                jainCompletion,
+                jainContention,
+                maxTailStarvationMs,
                 tenantMetricsList
         );
     }

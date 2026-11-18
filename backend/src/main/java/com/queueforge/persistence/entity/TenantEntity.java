@@ -1,5 +1,6 @@
 package com.queueforge.persistence.entity;
 
+import com.queueforge.api.security.ApiKeyHasher;
 import com.queueforge.core.domain.TenantStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -30,8 +31,18 @@ public class TenantEntity {
     @Column(name = "deficit_counter", precision = 12, scale = 2, nullable = false)
     private BigDecimal deficitCounter;
 
-    @Column(name = "api_key", length = 128, unique = true)
+    /**
+     * @deprecated Plaintext API keys are removed in V7. Use apiKeyHash instead.
+     */
+    @Deprecated
+    @Column(name = "api_key", length = 128)
     private String apiKey;
+
+    @Column(name = "api_key_hash", length = 64, nullable = false, unique = true)
+    private String apiKeyHash;
+
+    @Column(name = "api_key_prefix", length = 16)
+    private String apiKeyPrefix;
 
     @Column(name = "last_scheduled_at", nullable = false)
     private Instant lastScheduledAt;
@@ -45,17 +56,25 @@ public class TenantEntity {
     public TenantEntity() {
     }
 
-    public TenantEntity(String id, String name, int weight, int maxConcurrency, String apiKey) {
+    public TenantEntity(String id, String name, int weight, int maxConcurrency, String rawApiKey) {
         this.id = id;
         this.name = name;
         this.status = TenantStatus.ACTIVE;
         this.weight = weight;
         this.maxConcurrency = maxConcurrency;
         this.deficitCounter = BigDecimal.ZERO;
-        this.apiKey = apiKey;
+        setRawApiKey(rawApiKey);
         this.lastScheduledAt = Instant.now();
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
+    }
+
+    public void setRawApiKey(String rawApiKey) {
+        if (rawApiKey != null && !rawApiKey.isBlank()) {
+            this.apiKeyHash = ApiKeyHasher.hash(rawApiKey);
+            this.apiKeyPrefix = ApiKeyHasher.extractPrefix(rawApiKey);
+            this.apiKey = null; // Plaintext is never retained
+        }
     }
 
     @PrePersist
@@ -130,12 +149,27 @@ public class TenantEntity {
         this.deficitCounter = deficitCounter;
     }
 
+    /**
+     * Returns the safe prefix only (e.g. "qf_live_...") to prevent credential leakage.
+     */
     public String getApiKey() {
-        return apiKey;
+        return apiKeyPrefix != null ? apiKeyPrefix + "..." : null;
     }
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
+    public String getApiKeyHash() {
+        return apiKeyHash;
+    }
+
+    public void setApiKeyHash(String apiKeyHash) {
+        this.apiKeyHash = apiKeyHash;
+    }
+
+    public String getApiKeyPrefix() {
+        return apiKeyPrefix;
+    }
+
+    public void setApiKeyPrefix(String apiKeyPrefix) {
+        this.apiKeyPrefix = apiKeyPrefix;
     }
 
     public Instant getLastScheduledAt() {

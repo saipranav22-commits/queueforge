@@ -2,604 +2,620 @@
   "profileName" : "Profile 1: Balanced",
   "schedulerMode" : "Baseline (FIFO/Priority)",
   "totalJobs" : 1000,
-  "throughputJobsPerSec" : 64.56611570247934,
-  "durationMs" : 15488,
-  "jainsFairnessIndex" : 1.0,
+  "throughputJobsPerSec" : 84.64533604198408,
+  "durationMs" : 11814,
+  "jainsFairnessIndexCompletion" : 1.0,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 12167,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-1",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-2",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-3",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-4",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-5",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-6",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-7",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-8",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-9",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   }, {
     "tenantId" : "tenant-10",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 8949,
-    "p95WaitMs" : 15435,
-    "p99WaitMs" : 16020,
-    "maxWaitMs" : 16020
+    "p50WaitMs" : 7059,
+    "p95WaitMs" : 11770,
+    "p99WaitMs" : 12167,
+    "maxWaitMs" : 12167
   } ]
 }, {
   "profileName" : "Profile 1: Balanced",
   "schedulerMode" : "FairShare (DRR)",
   "totalJobs" : 1000,
-  "throughputJobsPerSec" : 38.1854284405071,
-  "durationMs" : 26188,
-  "jainsFairnessIndex" : 1.0,
+  "throughputJobsPerSec" : 63.15922440472431,
+  "durationMs" : 15833,
+  "jainsFairnessIndexCompletion" : 1.0,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 16060,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-1",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-2",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-3",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-4",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-5",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-6",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-7",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-8",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-9",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   }, {
     "tenantId" : "tenant-10",
     "weight" : 1,
     "jobsTotal" : 100,
     "jobsCompleted" : 100,
-    "p50WaitMs" : 14207,
-    "p95WaitMs" : 25569,
-    "p99WaitMs" : 26592,
-    "maxWaitMs" : 26592
+    "p50WaitMs" : 9047,
+    "p95WaitMs" : 15523,
+    "p99WaitMs" : 16060,
+    "maxWaitMs" : 16060
   } ]
 }, {
   "profileName" : "Profile 2: Skewed Weights",
   "schedulerMode" : "Baseline (FIFO/Priority)",
   "totalJobs" : 950,
-  "throughputJobsPerSec" : 70.32869410719573,
-  "durationMs" : 13508,
-  "jainsFairnessIndex" : 1.0,
+  "throughputJobsPerSec" : 85.46239654551997,
+  "durationMs" : 11116,
+  "jainsFairnessIndexCompletion" : 1.0,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 11376,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-heavy",
     "weight" : 10,
     "jobsTotal" : 500,
     "jobsCompleted" : 500,
-    "p50WaitMs" : 6346,
-    "p95WaitMs" : 10704,
-    "p99WaitMs" : 13251,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 5677,
+    "p95WaitMs" : 8486,
+    "p99WaitMs" : 10872,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-1",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-2",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-3",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-4",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-5",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-6",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-7",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-8",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   }, {
     "tenantId" : "tenant-light-9",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 10704,
-    "p95WaitMs" : 13531,
-    "p99WaitMs" : 13781,
-    "maxWaitMs" : 13781
+    "p50WaitMs" : 8486,
+    "p95WaitMs" : 11169,
+    "p99WaitMs" : 11376,
+    "maxWaitMs" : 11376
   } ]
 }, {
   "profileName" : "Profile 2: Skewed Weights",
   "schedulerMode" : "FairShare (DRR)",
   "totalJobs" : 950,
-  "throughputJobsPerSec" : 46.114266297752536,
-  "durationMs" : 20601,
-  "jainsFairnessIndex" : 1.0,
+  "throughputJobsPerSec" : 64.93062675141822,
+  "durationMs" : 14631,
+  "jainsFairnessIndexCompletion" : 1.0,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 15093,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-heavy",
     "weight" : 10,
     "jobsTotal" : 500,
     "jobsCompleted" : 500,
-    "p50WaitMs" : 12553,
-    "p95WaitMs" : 19322,
-    "p99WaitMs" : 20016,
-    "maxWaitMs" : 20056
+    "p50WaitMs" : 9730,
+    "p95WaitMs" : 14135,
+    "p99WaitMs" : 14525,
+    "maxWaitMs" : 14565
   }, {
     "tenantId" : "tenant-light-1",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20498,
-    "p99WaitMs" : 20722,
-    "maxWaitMs" : 20722
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14806,
+    "p99WaitMs" : 14935,
+    "maxWaitMs" : 14935
   }, {
     "tenantId" : "tenant-light-2",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20508,
-    "p99WaitMs" : 20732,
-    "maxWaitMs" : 20732
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14816,
+    "p99WaitMs" : 14945,
+    "maxWaitMs" : 14945
   }, {
     "tenantId" : "tenant-light-3",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20508,
-    "p99WaitMs" : 20943,
-    "maxWaitMs" : 20943
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14816,
+    "p99WaitMs" : 15083,
+    "maxWaitMs" : 15083
   }, {
     "tenantId" : "tenant-light-4",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20508,
-    "p99WaitMs" : 20943,
-    "maxWaitMs" : 20943
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14816,
+    "p99WaitMs" : 15083,
+    "maxWaitMs" : 15083
   }, {
     "tenantId" : "tenant-light-5",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20508,
-    "p99WaitMs" : 20943,
-    "maxWaitMs" : 20943
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14816,
+    "p99WaitMs" : 15083,
+    "maxWaitMs" : 15083
   }, {
     "tenantId" : "tenant-light-6",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20508,
-    "p99WaitMs" : 20943,
-    "maxWaitMs" : 20943
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14816,
+    "p99WaitMs" : 15083,
+    "maxWaitMs" : 15083
   }, {
     "tenantId" : "tenant-light-7",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20742,
-    "p99WaitMs" : 20953,
-    "maxWaitMs" : 20953
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14955,
+    "p99WaitMs" : 15093,
+    "maxWaitMs" : 15093
   }, {
     "tenantId" : "tenant-light-8",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20742,
-    "p99WaitMs" : 20953,
-    "maxWaitMs" : 20953
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14955,
+    "p99WaitMs" : 15093,
+    "maxWaitMs" : 15093
   }, {
     "tenantId" : "tenant-light-9",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 11973,
-    "p95WaitMs" : 20742,
-    "p99WaitMs" : 20953,
-    "maxWaitMs" : 20953
+    "p50WaitMs" : 8566,
+    "p95WaitMs" : 14955,
+    "p99WaitMs" : 15093,
+    "maxWaitMs" : 15093
   } ]
 }, {
   "profileName" : "Profile 3: Noisy Neighbor",
   "schedulerMode" : "Baseline (FIFO/Priority)",
   "totalJobs" : 1080,
-  "throughputJobsPerSec" : 70.92198581560284,
-  "durationMs" : 15228,
-  "jainsFairnessIndex" : 0.2329073482428115,
+  "throughputJobsPerSec" : 89.64887523864863,
+  "durationMs" : 12047,
+  "jainsFairnessIndexCompletion" : 0.2329073482428115,
+  "jainsFairnessIndexContention" : 0.2329073482428115,
+  "maxTailStarvationMs" : 12219,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-noisy-a",
     "weight" : 1,
     "jobsTotal" : 1000,
     "jobsCompleted" : 1000,
-    "p50WaitMs" : 12567,
-    "p95WaitMs" : 14342,
-    "p99WaitMs" : 15138,
-    "maxWaitMs" : 15622
+    "p50WaitMs" : 10898,
+    "p95WaitMs" : 11364,
+    "p99WaitMs" : 11868,
+    "maxWaitMs" : 12219
   }, {
     "tenantId" : "tenant-quiet-b",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 15138,
-    "p95WaitMs" : 15622,
-    "p99WaitMs" : 15622,
-    "maxWaitMs" : 15622
+    "p50WaitMs" : 11868,
+    "p95WaitMs" : 12219,
+    "p99WaitMs" : 12219,
+    "maxWaitMs" : 12219
   }, {
     "tenantId" : "tenant-quiet-c",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 15138,
-    "p95WaitMs" : 15622,
-    "p99WaitMs" : 15622,
-    "maxWaitMs" : 15622
+    "p50WaitMs" : 11868,
+    "p95WaitMs" : 12219,
+    "p99WaitMs" : 12219,
+    "maxWaitMs" : 12219
   }, {
     "tenantId" : "tenant-quiet-d",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 15138,
-    "p95WaitMs" : 15622,
-    "p99WaitMs" : 15622,
-    "maxWaitMs" : 15622
+    "p50WaitMs" : 11868,
+    "p95WaitMs" : 12219,
+    "p99WaitMs" : 12219,
+    "maxWaitMs" : 12219
   }, {
     "tenantId" : "tenant-quiet-e",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 15138,
-    "p95WaitMs" : 15622,
-    "p99WaitMs" : 15622,
-    "maxWaitMs" : 15622
+    "p50WaitMs" : 11868,
+    "p95WaitMs" : 12219,
+    "p99WaitMs" : 12219,
+    "maxWaitMs" : 12219
   } ]
 }, {
   "profileName" : "Profile 3: Noisy Neighbor",
   "schedulerMode" : "FairShare (DRR)",
   "totalJobs" : 1080,
-  "throughputJobsPerSec" : 42.15127624697526,
-  "durationMs" : 25622,
-  "jainsFairnessIndex" : 0.2329073482428115,
+  "throughputJobsPerSec" : 70.61592781482935,
+  "durationMs" : 15294,
+  "jainsFairnessIndexCompletion" : 0.2329073482428115,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 1990,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-noisy-a",
     "weight" : 1,
     "jobsTotal" : 1000,
     "jobsCompleted" : 1000,
-    "p50WaitMs" : 18597,
-    "p95WaitMs" : 25389,
-    "p99WaitMs" : 26045,
-    "maxWaitMs" : 26135
+    "p50WaitMs" : 13700,
+    "p95WaitMs" : 15479,
+    "p99WaitMs" : 15588,
+    "maxWaitMs" : 15643
   }, {
     "tenantId" : "tenant-quiet-b",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 2423,
-    "p95WaitMs" : 3346,
-    "p99WaitMs" : 3346,
-    "maxWaitMs" : 3346
+    "p50WaitMs" : 1210,
+    "p95WaitMs" : 1990,
+    "p99WaitMs" : 1990,
+    "maxWaitMs" : 1990
   }, {
     "tenantId" : "tenant-quiet-c",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 2423,
-    "p95WaitMs" : 3346,
-    "p99WaitMs" : 3346,
-    "maxWaitMs" : 3346
+    "p50WaitMs" : 1210,
+    "p95WaitMs" : 1990,
+    "p99WaitMs" : 1990,
+    "maxWaitMs" : 1990
   }, {
     "tenantId" : "tenant-quiet-d",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 2423,
-    "p95WaitMs" : 3346,
-    "p99WaitMs" : 3346,
-    "maxWaitMs" : 3346
+    "p50WaitMs" : 1210,
+    "p95WaitMs" : 1990,
+    "p99WaitMs" : 1990,
+    "maxWaitMs" : 1990
   }, {
     "tenantId" : "tenant-quiet-e",
     "weight" : 1,
     "jobsTotal" : 20,
     "jobsCompleted" : 20,
-    "p50WaitMs" : 2423,
-    "p95WaitMs" : 3346,
-    "p99WaitMs" : 3346,
-    "maxWaitMs" : 3346
+    "p50WaitMs" : 1210,
+    "p95WaitMs" : 1990,
+    "p99WaitMs" : 1990,
+    "maxWaitMs" : 1990
   } ]
 }, {
   "profileName" : "Profile 4: Variable Durations",
   "schedulerMode" : "Baseline (FIFO/Priority)",
   "totalJobs" : 250,
-  "throughputJobsPerSec" : 58.8235294117647,
-  "durationMs" : 4250,
-  "jainsFairnessIndex" : 1.0,
+  "throughputJobsPerSec" : 78.59163784973279,
+  "durationMs" : 3181,
+  "jainsFairnessIndexCompletion" : 1.0,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 3212,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-long-job",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 2579,
-    "p95WaitMs" : 4096,
-    "p99WaitMs" : 4256,
-    "maxWaitMs" : 4256
+    "p50WaitMs" : 1973,
+    "p95WaitMs" : 3048,
+    "p99WaitMs" : 3212,
+    "maxWaitMs" : 3212
   }, {
     "tenantId" : "tenant-short-b",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 2579,
-    "p95WaitMs" : 4096,
-    "p99WaitMs" : 4256,
-    "maxWaitMs" : 4256
+    "p50WaitMs" : 1973,
+    "p95WaitMs" : 3048,
+    "p99WaitMs" : 3212,
+    "maxWaitMs" : 3212
   }, {
     "tenantId" : "tenant-short-c",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 2579,
-    "p95WaitMs" : 4096,
-    "p99WaitMs" : 4256,
-    "maxWaitMs" : 4256
+    "p50WaitMs" : 1973,
+    "p95WaitMs" : 3048,
+    "p99WaitMs" : 3212,
+    "maxWaitMs" : 3212
   }, {
     "tenantId" : "tenant-short-d",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 2579,
-    "p95WaitMs" : 4096,
-    "p99WaitMs" : 4256,
-    "maxWaitMs" : 4256
+    "p50WaitMs" : 1973,
+    "p95WaitMs" : 3048,
+    "p99WaitMs" : 3212,
+    "maxWaitMs" : 3212
   }, {
     "tenantId" : "tenant-short-e",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 2579,
-    "p95WaitMs" : 4096,
-    "p99WaitMs" : 4256,
-    "maxWaitMs" : 4256
+    "p50WaitMs" : 1973,
+    "p95WaitMs" : 3048,
+    "p99WaitMs" : 3212,
+    "maxWaitMs" : 3212
   } ]
 }, {
   "profileName" : "Profile 4: Variable Durations",
   "schedulerMode" : "FairShare (DRR)",
   "totalJobs" : 250,
-  "throughputJobsPerSec" : 39.65736040609137,
-  "durationMs" : 6304,
-  "jainsFairnessIndex" : 1.0,
+  "throughputJobsPerSec" : 64.48284756254836,
+  "durationMs" : 3877,
+  "jainsFairnessIndexCompletion" : 1.0,
+  "jainsFairnessIndexContention" : 1.0,
+  "maxTailStarvationMs" : 3888,
   "tenantMetrics" : [ {
     "tenantId" : "tenant-long-job",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 3624,
-    "p95WaitMs" : 6118,
-    "p99WaitMs" : 6327,
-    "maxWaitMs" : 6327
+    "p50WaitMs" : 2153,
+    "p95WaitMs" : 3767,
+    "p99WaitMs" : 3888,
+    "maxWaitMs" : 3888
   }, {
     "tenantId" : "tenant-short-b",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 3624,
-    "p95WaitMs" : 6118,
-    "p99WaitMs" : 6327,
-    "maxWaitMs" : 6327
+    "p50WaitMs" : 2153,
+    "p95WaitMs" : 3767,
+    "p99WaitMs" : 3888,
+    "maxWaitMs" : 3888
   }, {
     "tenantId" : "tenant-short-c",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 3624,
-    "p95WaitMs" : 6118,
-    "p99WaitMs" : 6327,
-    "maxWaitMs" : 6327
+    "p50WaitMs" : 2153,
+    "p95WaitMs" : 3767,
+    "p99WaitMs" : 3888,
+    "maxWaitMs" : 3888
   }, {
     "tenantId" : "tenant-short-d",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 3624,
-    "p95WaitMs" : 6118,
-    "p99WaitMs" : 6327,
-    "maxWaitMs" : 6327
+    "p50WaitMs" : 2153,
+    "p95WaitMs" : 3767,
+    "p99WaitMs" : 3888,
+    "maxWaitMs" : 3888
   }, {
     "tenantId" : "tenant-short-e",
     "weight" : 1,
     "jobsTotal" : 50,
     "jobsCompleted" : 50,
-    "p50WaitMs" : 3624,
-    "p95WaitMs" : 6118,
-    "p99WaitMs" : 6327,
-    "maxWaitMs" : 6327
+    "p50WaitMs" : 2153,
+    "p95WaitMs" : 3767,
+    "p99WaitMs" : 3888,
+    "maxWaitMs" : 3888
   } ]
 } ]

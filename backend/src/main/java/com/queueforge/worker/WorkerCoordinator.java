@@ -128,7 +128,13 @@ public class WorkerCoordinator implements SmartLifecycle {
             );
 
             for (ClaimedJob job : claimedJobs) {
-                workerPool.submit(() -> executeClaimedJob(job));
+                workerPool.submit(() -> {
+                    try {
+                        executeClaimedJob(job);
+                    } catch (Throwable t) {
+                        log.error("[{}] Uncaught error executing job {}:", coordinatorId, job.id(), t);
+                    }
+                });
             }
         } catch (Exception e) {
             log.error("[{}] Error during job polling and dispatch:", coordinatorId, e);

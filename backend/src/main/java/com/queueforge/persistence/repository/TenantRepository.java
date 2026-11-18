@@ -11,6 +11,9 @@ import java.util.Optional;
 @Repository
 public interface TenantRepository extends JpaRepository<TenantEntity, String> {
 
+    Optional<TenantEntity> findByApiKeyHash(String apiKeyHash);
+
+    @Deprecated
     Optional<TenantEntity> findByApiKey(String apiKey);
 
     List<TenantEntity> findByStatus(TenantStatus status);

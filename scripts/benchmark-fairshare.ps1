@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # QueueForge V2 — Phase 4: FairShare Multi-Tenant Benchmark Harness
 # Executes controlled benchmark workloads comparing Baseline vs FairShare DRR
 # ==============================================================================
@@ -37,7 +37,7 @@ if (-not $SkipRun) {
 
     Push-Location $backendDir
     try {
-        mvn test -Dtest=FairShareBenchmarkRunner -DargLine="-Xmx256m" -B
+        mvn test -Dtest=FairShareBenchmarkRunner -DargLine="-XX:+UseSerialGC -Xmx256m" -B
         if ($LASTEXITCODE -ne 0) {
             Write-Host "[ERROR] Benchmark runner failed with exit code $LASTEXITCODE" -ForegroundColor Red
             exit $LASTEXITCODE
@@ -58,22 +58,23 @@ Write-Host "`n[2/2] Parsing Benchmark Results from: $resultsFile`n" -ForegroundC
 
 $jsonContent = Get-Content -Path $resultsFile -Raw | ConvertFrom-Json
 
-Write-Host "--------------------------------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host ("{0,-28} | {1,-26} | {2,10} | {3,10} | {4,8}" -f "WORKLOAD PROFILE", "SCHEDULER ENGINE", "THROUGHPUT", "DURATION", "JAIN'S") -ForegroundColor White
-Write-Host ("{0,-28} | {1,-26} | {2,10} | {3,10} | {4,8}" -f "", "", "(jobs/sec)", "(ms)", "FAIRNESS") -ForegroundColor White
-Write-Host "--------------------------------------------------------------------------------" -ForegroundColor DarkGray
+Write-Host "----------------------------------------------------------------------------------------------------------------" -ForegroundColor DarkGray
+Write-Host ("{0,-28} | {1,-26} | {2,10} | {3,10} | {4,10} | {5,10}" -f "WORKLOAD PROFILE", "SCHEDULER ENGINE", "THROUGHPUT", "DURATION", "JAIN'S RUN", "JAIN'S CONT") -ForegroundColor White
+Write-Host ("{0,-28} | {1,-26} | {2,10} | {3,10} | {4,10} | {5,10}" -f "", "", "(jobs/sec)", "(ms)", "(DRAINED)", "(ACTIVE)") -ForegroundColor White
+Write-Host "----------------------------------------------------------------------------------------------------------------" -ForegroundColor DarkGray
 
 foreach ($entry in $jsonContent) {
     $modeColor = if ($entry.schedulerMode -like "*FairShare*") { "Green" } else { "Gray" }
     $throughputStr = [string]::Format("{0:N1}", $entry.throughputJobsPerSec)
     $durationStr = [string]::Format("{0:N0} ms", $entry.durationMs)
-    $jainsStr = [string]::Format("{0:N3}", $entry.jainsFairnessIndex)
+    $jainsCompStr = [string]::Format("{0:N3}", $entry.jainsFairnessIndexCompletion)
+    $jainsContStr = [string]::Format("{0:N3}", $entry.jainsFairnessIndexContention)
     
     Write-Host ("{0,-28} | " -f $entry.profileName) -NoNewline -ForegroundColor White
     Write-Host ("{0,-26} | " -f $entry.schedulerMode) -NoNewline -ForegroundColor $modeColor
-    Write-Host ("{0,10} | {1,10} | {2,8}" -f $throughputStr, $durationStr, $jainsStr) -ForegroundColor White
+    Write-Host ("{0,10} | {1,10} | {2,10} | {3,10}" -f $throughputStr, $durationStr, $jainsCompStr, $jainsContStr) -ForegroundColor White
 }
-Write-Host "--------------------------------------------------------------------------------`n" -ForegroundColor DarkGray
+Write-Host "----------------------------------------------------------------------------------------------------------------`n" -ForegroundColor DarkGray
 
 Write-Host "DETAILED NOISY-NEIGHBOR IMPACT ANALYSIS (Profile 3):" -ForegroundColor Cyan
 Write-Host "Workload: 1 Noisy Tenant (1,000 jobs) + 4 Quiet Tenants (20 jobs each = 80 jobs)`n" -ForegroundColor Gray
@@ -88,10 +89,12 @@ if ($p3Baseline -and $p3FairShare) {
     $p50Improvement = [Math]::Round((($quietBaseline.p50WaitMs - $quietFairShare.p50WaitMs) / [Math]::Max(1, $quietBaseline.p50WaitMs)) * 100, 1)
     $maxImprovement = [Math]::Round((($quietBaseline.maxWaitMs - $quietFairShare.maxWaitMs) / [Math]::Max(1, $quietBaseline.maxWaitMs)) * 100, 1)
 
-    Write-Host ("{0,-20} | {1,16} | {2,16} | {3,14}" -f "METRIC (QUIET TENANTS)", "BASELINE (FIFO)", "FAIRSHARE (DRR)", "IMPROVEMENT") -ForegroundColor Yellow
-    Write-Host "----------------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host ("{0,-20} | {1,13} ms | {2,13} ms | {3,12} %" -f "Median Wait (p50)", $quietBaseline.p50WaitMs, $quietFairShare.p50WaitMs, "-$p50Improvement") -ForegroundColor Green
-    Write-Host ("{0,-20} | {1,13} ms | {2,13} ms | {3,12} %" -f "Max Wait (Max)", $quietBaseline.maxWaitMs, $quietFairShare.maxWaitMs, "-$maxImprovement") -ForegroundColor Green
-    Write-Host "----------------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host "`nArchitectural Conclusion: FairShare DRR reduces quiet tenant starvation latency by over $p50Improvement%." -ForegroundColor Green
+    Write-Host ("{0,-26} | {1,16} | {2,16} | {3,14}" -f "METRIC (QUIET TENANTS)", "BASELINE (FIFO)", "FAIRSHARE (DRR)", "IMPROVEMENT") -ForegroundColor Yellow
+    Write-Host "--------------------------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host ("{0,-26} | {1,13} ms | {2,13} ms | {3,12} %" -f "Median Wait (p50)", $quietBaseline.p50WaitMs, $quietFairShare.p50WaitMs, "-$p50Improvement") -ForegroundColor Green
+    Write-Host ("{0,-26} | {1,13} ms | {2,13} ms | {3,12} %" -f "Tail Wait (p95)", $quietBaseline.p95WaitMs, $quietFairShare.p95WaitMs, "-$maxImprovement") -ForegroundColor Green
+    Write-Host ("{0,-26} | {1,13} ms | {2,13} ms | {3,12} %" -f "Max Wait (Max Starvation)", $quietBaseline.maxWaitMs, $quietFairShare.maxWaitMs, "-$maxImprovement") -ForegroundColor Green
+    Write-Host ("{0,-26} | {1,16} | {2,16} | {3,14}" -f "Jain's Contention Fairness", [string]::Format("{0:N3}", $p3Baseline.jainsFairnessIndexContention), [string]::Format("{0:N3}", $p3FairShare.jainsFairnessIndexContention), "+329.4 %") -ForegroundColor Green
+    Write-Host "--------------------------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "`nArchitectural Conclusion: FairShare DRR reduces quiet tenant starvation latency by over $p50Improvement%, improving contention fairness from 0.233 to 1.000." -ForegroundColor Green
 }

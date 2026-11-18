@@ -1,6 +1,7 @@
 package com.queueforge.service;
 
 import com.queueforge.api.dto.*;
+import com.queueforge.api.security.ApiKeyHasher;
 import com.queueforge.common.exception.BadRequestException;
 import com.queueforge.common.exception.ResourceNotFoundException;
 import com.queueforge.core.domain.TenantStatus;
@@ -15,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class TenantService {
@@ -41,7 +41,7 @@ public class TenantService {
     public TenantDetailResponse getTenant(String id) {
         TenantEntity entity = tenantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + id));
-        return toDetailResponse(entity);
+        return toDetailResponse(entity, null);
     }
 
     @Transactional
@@ -51,9 +51,9 @@ public class TenantService {
             throw new BadRequestException("Tenant already exists with id: " + id);
         }
 
-        String apiKey = request.apiKey();
-        if (apiKey == null || apiKey.isBlank()) {
-            apiKey = "qf_key_" + id + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        String rawKey = request.apiKey();
+        if (rawKey == null || rawKey.isBlank()) {
+            rawKey = ApiKeyHasher.generateSecureKey(id);
         }
 
         TenantEntity entity = new TenantEntity(
@@ -61,14 +61,15 @@ public class TenantService {
                 request.name().trim(),
                 request.effectiveWeight(),
                 request.effectiveMaxConcurrency(),
-                apiKey
+                rawKey
         );
 
         TenantEntity saved = tenantRepository.save(entity);
-        log.info("Created new tenant id='{}' name='{}' weight={} maxConcurrency={}",
-                saved.getId(), saved.getName(), saved.getWeight(), saved.getMaxConcurrency());
+        log.info("Created new tenant id='{}' name='{}' weight={} maxConcurrency={} keyPrefix='{}'",
+                saved.getId(), saved.getName(), saved.getWeight(), saved.getMaxConcurrency(), saved.getApiKeyPrefix());
 
-        return toDetailResponse(saved);
+        // Return rawKey once upon creation so the tenant operator can copy it
+        return toDetailResponse(saved, rawKey);
     }
 
     @Transactional
@@ -89,11 +90,24 @@ public class TenantService {
             entity.setStatus(request.status());
         }
 
-        TenantEntity updated = tenantRepository.save(entity);
-        log.info("Updated tenant id='{}' status={} weight={} maxConcurrency={}",
-                updated.getId(), updated.getStatus(), updated.getWeight(), updated.getMaxConcurrency());
+        TenantEntity saved = tenantRepository.save(entity);
+        log.info("Updated tenant id='{}' weight={} maxConcurrency={} status={}",
+                saved.getId(), saved.getWeight(), saved.getMaxConcurrency(), saved.getStatus());
 
-        return toDetailResponse(updated);
+        return toDetailResponse(saved, null);
+    }
+
+    @Transactional
+    public TenantDetailResponse rotateApiKey(String id) {
+        TenantEntity entity = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + id));
+
+        String newRawKey = ApiKeyHasher.generateSecureKey(id);
+        entity.setRawApiKey(newRawKey);
+        TenantEntity saved = tenantRepository.save(entity);
+
+        log.info("Rotated API key for tenant id='{}', newPrefix='{}'", saved.getId(), saved.getApiKeyPrefix());
+        return toDetailResponse(saved, newRawKey);
     }
 
     private TenantSummaryResponse toSummaryResponse(TenantEntity entity) {
@@ -114,9 +128,12 @@ public class TenantService {
         );
     }
 
-    private TenantDetailResponse toDetailResponse(TenantEntity entity) {
+    private TenantDetailResponse toDetailResponse(TenantEntity entity, String ephemeralRawKey) {
         long running = countJobs(entity.getId(), "RUNNING");
         long pending = countJobs(entity.getId(), "PENDING");
+
+        // Plaintext key is only returned once upon creation or rotation; otherwise return masked prefix
+        String apiKeyRepresentation = ephemeralRawKey != null ? ephemeralRawKey : entity.getApiKey();
 
         return new TenantDetailResponse(
                 entity.getId(),
@@ -125,7 +142,7 @@ public class TenantService {
                 entity.getWeight(),
                 entity.getMaxConcurrency(),
                 entity.getDeficitCounter(),
-                entity.getApiKey(),
+                apiKeyRepresentation,
                 running,
                 pending,
                 entity.getLastScheduledAt(),

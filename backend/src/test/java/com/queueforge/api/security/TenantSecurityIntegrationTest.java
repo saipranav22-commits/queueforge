@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.queueforge.api.dto.CreateJobRequest;
 import com.queueforge.config.AdminProperties;
+import com.queueforge.config.TenantSecurityProperties;
 import com.queueforge.core.domain.FailureCategory;
 import com.queueforge.core.domain.JobStatus;
 import com.queueforge.core.domain.TenantStatus;
@@ -52,6 +53,9 @@ public class TenantSecurityIntegrationTest {
     @Autowired
     private AdminProperties adminProperties;
 
+    @Autowired
+    private TenantSecurityProperties tenantSecurityProperties;
+
     private static final String TENANT_A_KEY = "key_tenant_alpha";
     private static final String TENANT_B_KEY = "key_tenant_beta";
 
@@ -70,6 +74,8 @@ public class TenantSecurityIntegrationTest {
         TenantEntity beta = new TenantEntity("tenant-beta", "Tenant Beta", 1, 2, TENANT_B_KEY);
         beta.setStatus(TenantStatus.ACTIVE);
         tenantRepository.save(beta);
+
+        tenantSecurityProperties.setAllowAnonymousDefault(true);
     }
 
     @Test
@@ -113,19 +119,20 @@ public class TenantSecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status", is(403)));
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.error", is("Forbidden")));
     }
 
     @Test
-    @DisplayName("Test 3: Submission with valid X-Tenant-Key sets job tenant_id")
-    void testSubmissionWithValidTenantKeySetsJobTenant() throws Exception {
+    @DisplayName("Test 3: Authenticated Tenant Alpha submission succeeds and is scoped to tenant-alpha")
+    void testAuthenticatedTenantSubmissionSucceeds() throws Exception {
         ObjectNode payload = objectMapper.createObjectNode();
-        payload.put("action", "sync");
+        payload.put("reportName", "alpha-q3");
 
         CreateJobRequest request = new CreateJobRequest(
-                "SEND_EMAIL",
+                "GENERATE_REPORT",
                 payload,
-                50,
+                75,
                 3,
                 0
         );
@@ -135,17 +142,18 @@ public class TenantSecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.tenantId", is("tenant-alpha")));
+                .andExpect(jsonPath("$.tenantId", is("tenant-alpha")))
+                .andExpect(jsonPath("$.status", is("PENDING")));
     }
 
     @Test
-    @DisplayName("Test 4: Tenant A submitting with tenantId: 'tenant-beta' returns 403 Forbidden")
-    void testTenantCrossSpoofingReturns403() throws Exception {
+    @DisplayName("Test 4: Tenant Alpha attempting to spoof Tenant Beta in payload returns 403 Forbidden")
+    void testTenantCrossImpersonationRejectedWith403() throws Exception {
         ObjectNode payload = objectMapper.createObjectNode();
-        payload.put("action", "sync");
+        payload.put("action", "fraud-attempt");
 
         CreateJobRequest request = new CreateJobRequest(
-                "SEND_EMAIL",
+                "GENERATE_REPORT",
                 payload,
                 50,
                 3,
@@ -158,14 +166,15 @@ public class TenantSecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status", is(403)));
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.error", is("Forbidden")));
     }
 
     @Test
-    @DisplayName("Test 5: Tenant A attempting to read Tenant B's job detail returns 404 Not Found")
-    void testTenantCannotReadOtherTenantJob() throws Exception {
+    @DisplayName("Test 5: Tenant Alpha cannot view Tenant Beta's job details (returns 404 to avoid enumeration)")
+    void testTenantCannotViewOtherTenantsJob() throws Exception {
         ObjectNode payload = objectMapper.createObjectNode();
-        JobEntity jobB = new JobEntity(
+        JobEntity betaJob = new JobEntity(
                 "tenant-beta",
                 "key-b-" + UUID.randomUUID(),
                 "fp-b-" + UUID.randomUUID(),
@@ -175,18 +184,17 @@ public class TenantSecurityIntegrationTest {
                 3,
                 Instant.now()
         );
-        jobRepository.save(jobB);
+        jobRepository.save(betaJob);
 
-        // Tenant A attempts to read Tenant B's job
-        mockMvc.perform(get("/api/v1/jobs/" + jobB.getId())
+        mockMvc.perform(get("/api/v1/jobs/" + betaJob.getId())
                         .header("X-Tenant-Key", TENANT_A_KEY))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)));
     }
 
     @Test
-    @DisplayName("Test 6: Tenant A listJobs returns only Tenant A jobs (Tenant B jobs hidden)")
-    void testTenantListJobsIsScoped() throws Exception {
+    @DisplayName("Test 6: Tenant Alpha list jobs is strictly scoped to tenant-alpha")
+    void testTenantJobListingIsStrictlyIsolated() throws Exception {
         ObjectNode payload = objectMapper.createObjectNode();
         JobEntity jobA = new JobEntity(
                 "tenant-alpha",
@@ -318,5 +326,49 @@ public class TenantSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status", is(401)))
                 .andExpect(jsonPath("$.error", is("Unauthorized")));
+    }
+
+    @Test
+    @DisplayName("Test 10: Hardcoded default tenant key 'qf_tenant_default_key' is explicitly rejected with 401")
+    void testHardcodedDefaultTenantKeyIsExplicitlyRejected() throws Exception {
+        mockMvc.perform(get("/api/v1/jobs")
+                        .header("X-Tenant-Key", "qf_tenant_default_key"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status", is(401)))
+                .andExpect(jsonPath("$.message", containsString("Hardcoded default development keys are disabled")));
+    }
+
+    @Test
+    @DisplayName("Test 11: Tenant key cannot access administrative tenant management (/api/v1/admin/tenants)")
+    void testTenantKeyCannotAccessAdminTenantManagement() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/tenants")
+                        .header("X-Tenant-Key", TENANT_A_KEY))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Test 12: Anonymous requests rejected when allow-anonymous-default is disabled")
+    void testAnonymousRequestsRejectedWhenDisabled() throws Exception {
+        tenantSecurityProperties.setAllowAnonymousDefault(false);
+        try {
+            mockMvc.perform(get("/api/v1/jobs"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message", containsString("anonymous default access is disabled")));
+        } finally {
+            tenantSecurityProperties.setAllowAnonymousDefault(true);
+        }
+    }
+
+    @Test
+    @DisplayName("Test 13: Suspended tenant key returns 401 Unauthorized")
+    void testSuspendedTenantKeyReturns401() throws Exception {
+        TenantEntity beta = tenantRepository.findById("tenant-beta").orElseThrow();
+        beta.setStatus(TenantStatus.SUSPENDED);
+        tenantRepository.save(beta);
+
+        mockMvc.perform(get("/api/v1/jobs")
+                        .header("X-Tenant-Key", TENANT_B_KEY))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message", containsString("Invalid or inactive tenant credentials")));
     }
 }
