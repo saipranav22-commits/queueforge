@@ -6,9 +6,9 @@ Phase 9B has successfully published the completed QueueForge Obsidian Pulse Cont
 
 - **Pull Request #2 (Control Plane UI):** [https://github.com/saipranav22-commits/queueforge/pull/2](https://github.com/saipranav22-commits/queueforge/pull/2)
 - **Base Branch (PR #1 Backend Anchor):** `feature/multi-instance-workers` at commit `7125821`
-- **Head Branch (Current Commit):** `feature/v2-control-plane-ui` at commit `595f973`
-- **GitHub Actions Workflow Run (PR):** [https://github.com/saipranav22-commits/queueforge/actions/runs/44598077731](https://github.com/saipranav22-commits/queueforge/actions/runs/44598077731)
-- **GitHub Actions Workflow Run (Push):** [https://github.com/saipranav22-commits/queueforge/actions/runs/44598060892](https://github.com/saipranav22-commits/queueforge/actions/runs/44598060892)
+- **Head Branch (Current Commit):** `feature/v2-control-plane-ui` at commit `9f2adc7`
+- **GitHub Actions Workflow Run (PR):** [https://github.com/saipranav22-commits/queueforge/actions/runs/44599772787](https://github.com/saipranav22-commits/queueforge/actions/runs/44599772787)
+- **GitHub Actions Workflow Run (Push):** [https://github.com/saipranav22-commits/queueforge/actions/runs/44599755708](https://github.com/saipranav22-commits/queueforge/actions/runs/44599755708)
 - **Verification Matrix Status:** **6 / 6 JOBS PASSED (100% GREEN ON BOTH PR & PUSH)**
 - **Playwright Browser E2E Test Suite:** **20 / 20 TESTS PASSED (10 Desktop Chromium + 10 Mobile Safari Viewport; 0 failed, 0 skipped, 0 retried)**
 - **Full-Stack Multi-Container Smoke Test:** **8 / 8 STAGES PASSED**
@@ -28,7 +28,7 @@ feature/multi-instance-workers (Anchor Commit: 7125821)
   ▲
   │ Pull Request #2: https://github.com/saipranav22-commits/queueforge/pull/2
   │
-feature/v2-control-plane-ui (Head Commit: 595f973)
+feature/v2-control-plane-ui (Head Commit: 9f2adc7)
 ```
 
 - **Target PR #1:** Multi-instance worker orchestration, database-backed leasing, FairShare DRR scheduler, transactional outbox with idempotency, and chaos testing suite.
@@ -36,16 +36,16 @@ feature/v2-control-plane-ui (Head Commit: 595f973)
 
 ---
 
-## 2. GitHub Actions Cloud Verification Matrix (Run 44598077731)
+## 2. GitHub Actions Cloud Verification Matrix (Run 44599772787)
 
 | Job # | Job Name | Status | Conclusion | Duration | Key Verification Scope |
 |:---:|:---|:---:|:---:|:---:|:---|
-| **1** | `Frontend Quality & Build` | Completed | **SUCCESS** | 36s | Strict TypeScript (`tsc -b`), Oxlint / ESLint rules, 44 Vitest component tests, production Vite build |
-| **2** | `Simulated Payment Receiver Tests` | Completed | **SUCCESS** | 41s | 13 receiver tests: idempotent duplicate replays, SHA-256 fingerprint validations, payment failure recovery |
-| **3** | `Backend Build & Integration Tests` | Completed | **SUCCESS** | 1m 00s | 164 Maven tests: Flyway V8 against PostgreSQL 16, unit tests, transactional outbox relays, FairShare DRR logic, security filters |
-| **4** | `Docker Container Image Verification` | Completed | **SUCCESS** | 2m 07s | Multi-stage image builds for PostgreSQL (Flyway V8), backend app, worker instances, simulated receiver, and Nginx proxy |
-| **5** | `Full-Stack Docker Smoke Test` | Completed | **SUCCESS** | 1m 48s | 8 multi-container cluster stages on live Docker network (`smoke-test-v2.sh`) |
-| **6** | `Browser E2E Verification (Playwright)` | Completed | **SUCCESS** | 2m 17s | 10 end-to-end user flows across Desktop Chromium (1280x720) and Mobile Safari (390x664 viewport) — 20/20 passed |
+| **1** | `Frontend Quality & Build` | Completed | **SUCCESS** | 22s | Strict TypeScript (`tsc -b`), Oxlint / ESLint rules, 44 Vitest component tests, production Vite build |
+| **2** | `Simulated Payment Receiver Tests` | Completed | **SUCCESS** | 30s | 13 receiver tests: idempotent duplicate replays, SHA-256 fingerprint validations, payment failure recovery |
+| **3** | `Backend Build & Integration Tests` | Completed | **SUCCESS** | 55s | 164 Maven tests: Flyway V8 against PostgreSQL 16.8, unit tests, transactional outbox relays, FairShare DRR logic, security filters |
+| **4** | `Docker Container Image Verification` | Completed | **SUCCESS** | 1m 44s | Multi-stage image builds for PostgreSQL (Flyway V8), backend app, worker instances, simulated receiver, and Nginx proxy |
+| **5** | `Full-Stack Docker Smoke Test` | Completed | **SUCCESS** | 1m 55s | 8 multi-container cluster stages on live Docker network (`smoke-test-v2.sh`) |
+| **6** | `Browser E2E Verification (Playwright)` | Completed | **SUCCESS** | 2m 43s | 10 end-to-end user flows across Desktop Chromium (1280x720) and Mobile Safari (390x664 viewport) — 20/20 passed |
 
 ---
 
