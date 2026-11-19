@@ -83,14 +83,14 @@ When demonstrating against a running local or staging cluster:
 
 ### Step 1: Submit Test Jobs
 ```bash
-# Submit a normal report generation job
-curl -s -X POST http://127.0.0.1:8080/api/v1/jobs \
+# Submit a normal report generation job (via Nginx reverse proxy on port 8088)
+curl -s -X POST http://127.0.0.1:8088/api/v1/jobs \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Key: test-tenant-key-alpha" \
   -d '{"jobType":"GENERATE_REPORT","payload":{"reportId":"DEMO-001","format":"PDF"},"priority":85}'
 
 # Submit a deliberate DLQ poison job (permanent failure)
-curl -s -X POST http://127.0.0.1:8080/api/v1/jobs \
+curl -s -X POST http://127.0.0.1:8088/api/v1/jobs \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Key: test-tenant-key-alpha" \
   -d '{"jobType":"POISON_TASK","payload":{"trigger":"PERMANENT_FAILURE"},"priority":50,"maxRetries":1}'
@@ -98,15 +98,14 @@ curl -s -X POST http://127.0.0.1:8080/api/v1/jobs \
 
 ### Step 2: Trigger Outbox Order Event
 ```bash
-curl -s -X POST http://127.0.0.1:8080/api/v1/orders \
+curl -s -X POST http://127.0.0.1:8088/api/v1/orders \
   -H "Content-Type: application/json" \
-  -H "X-Tenant-Key: test-tenant-key-alpha" \
-  -d '{"customerEmail":"recruiter@example.com","amount":149.99,"idempotencyKey":"demo-key-2026"}'
+  -d '{"orderNumber":"ORD-DEMO-001","customerId":"CUST-RECRUITER","amountCents":14999,"currency":"USD"}'
 ```
 
 ### Step 3: Cleanup Demo Artifacts
 ```bash
-# Discard test poison job via Admin API
-curl -s -X POST http://127.0.0.1:8080/api/v1/admin/dlq/{jobId}/discard \
-  -H "X-Admin-Key: qf_admin_secret_key_2026"
+# Discard test poison job via Admin API (using QF_ADMIN_API_KEY)
+curl -s -X POST http://127.0.0.1:8088/api/v1/admin/dlq/{jobId}/discard \
+  -H "X-Admin-Key: qf_admin_dev_secret_2026"
 ```

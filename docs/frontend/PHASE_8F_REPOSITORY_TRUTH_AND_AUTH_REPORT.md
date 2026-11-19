@@ -162,12 +162,14 @@ ON qf_worker_heartbeats (status, last_heartbeat);
 
 ### B. Backend Quality Gates
 - **Compilation:** `mvn test-compile` passes with **BUILD SUCCESS** in 4.7s.
-- **Unit Tests:** `mvn test "-Dtest=InvariantVerifierTest,BackoffCalculatorTest,OutboxReadApiUnitTest,WorkerFleetAttributionTest"`
+- **Unit Tests:** `mvn test "-Dtest=InvariantVerifierTest,BackoffCalculatorTest,OutboxReadApiUnitTest,WorkerFleetAttributionTest,AdminSecurityConfigTest"`
   - `InvariantVerifierTest`: 10 passed, 0 failures.
   - `OutboxReadApiUnitTest`: 3 passed, 0 failures.
   - `BackoffCalculatorTest`: 6 passed, 0 failures.
   - `WorkerFleetAttributionTest`: 4 passed, 0 failures.
-  - Total: **23 passed, 0 failures, 0 errors, 0 skipped**.
+  - `AdminSecurityConfigTest`: 5 passed, 0 failures.
+  - Total: **28 passed, 0 failures, 0 errors, 0 skipped**.
+- **CI Readiness:** Automated Flyway V8 integration and Docker smoke tests documented in `docs/release/PHASE_9A_CI_VALIDATION_PLAN.md`.
 - **Payment Receiver:** `mvn -f simulated-payment-receiver/pom.xml test-compile` passes with **BUILD SUCCESS** in 3.6s.
 
 ---
