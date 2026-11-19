@@ -90,3 +90,20 @@ The light mode palette preserves semantic hierarchy while ensuring WCAG AAA read
 ### 6. `CommandPalette`
 - Spotlight-style command modal triggered via `Cmd+K` / `Ctrl+K`.
 - Instant keyboard navigation to any page or operational action.
+
+### 7. `ConfirmModal`
+- Two-step confirmation modal for high-impact mutations (replay, discard, manual outbox batch relay).
+- Supports semantic action variants (`danger` with Laser Crimson, `warning` with Amber Gold, `primary` with Electric Cyan).
+- Implements `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, and keyboard `Escape` dismissal.
+
+### 8. `JsonViewer`
+- Formatted JSON payload viewer with syntax legibility, monospace font, and border styling.
+- Safe clipboard integration with copy confirmation and safe fallback for non-clipboard browser environments.
+
+### 9. `Pagination`
+- Monospace server-side pagination bar displaying current range and total elements.
+- Accessible previous/next buttons with disabled styling at boundary pages.
+
+### 10. `AdminUnlockModal`
+- Cryptographic session authentication dialog for administrative operations.
+- Direct HTTPS session cookie integration with anti-CSRF token synchronization.

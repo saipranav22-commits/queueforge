@@ -114,7 +114,7 @@ export const DlqPage: React.FC = () => {
       case 'LEASE_EXPIRED':
         return 'bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)] border-[var(--color-amethyst-border)]';
       case 'HANDLER_NOT_FOUND':
-        return 'bg-[var(--color-rose-bg)] text-[var(--color-rose)] border-[var(--color-rose-border)]';
+        return 'bg-[var(--color-crimson-bg)] text-[var(--color-crimson)] border-[var(--color-crimson-border)]';
       default:
         return 'bg-[var(--color-bg-deep)] text-[var(--color-text-muted)] border-[var(--color-border-subtle)]';
     }

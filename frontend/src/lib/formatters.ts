@@ -50,52 +50,52 @@ export function getStatusBadgeStyle(status: JobStatus | string): {
   switch (status) {
     case 'PENDING':
       return {
-        bg: 'bg-amber-950/40',
-        text: 'text-amber-400',
-        border: 'border-amber-700/40',
-        dot: 'bg-amber-400',
+        bg: 'bg-[var(--color-warning-bg)]',
+        text: 'text-[var(--color-warning)]',
+        border: 'border-[var(--color-warning-border)]',
+        dot: 'bg-[var(--color-warning)]',
       };
     case 'CLAIMED':
       return {
-        bg: 'bg-cyan-950/40',
-        text: 'text-cyan-400',
-        border: 'border-cyan-700/40',
-        dot: 'bg-cyan-400',
+        bg: 'bg-[var(--color-cyan-bg)]',
+        text: 'text-[var(--color-cyan)]',
+        border: 'border-[var(--color-cyan-border)]',
+        dot: 'bg-[var(--color-cyan)]',
       };
     case 'RUNNING':
       return {
-        bg: 'bg-blue-950/50',
-        text: 'text-blue-400',
-        border: 'border-blue-700/40',
-        dot: 'bg-blue-400 animate-pulse',
+        bg: 'bg-[var(--color-amethyst-bg)]',
+        text: 'text-[var(--color-amethyst)]',
+        border: 'border-[var(--color-amethyst-border)]',
+        dot: 'bg-[var(--color-amethyst)] animate-pulse',
       };
     case 'COMPLETED':
       return {
-        bg: 'bg-emerald-950/40',
-        text: 'text-emerald-400',
-        border: 'border-emerald-700/40',
-        dot: 'bg-emerald-400',
+        bg: 'bg-[var(--color-success-bg)]',
+        text: 'text-[var(--color-success)]',
+        border: 'border-[var(--color-success-border)]',
+        dot: 'bg-[var(--color-success)]',
       };
     case 'FAILED':
       return {
-        bg: 'bg-rose-950/50',
-        text: 'text-rose-400',
-        border: 'border-rose-700/40',
-        dot: 'bg-rose-400',
+        bg: 'bg-[var(--color-crimson-bg)]',
+        text: 'text-[var(--color-crimson)]',
+        border: 'border-[var(--color-crimson-border)]',
+        dot: 'bg-[var(--color-crimson)]',
       };
     case 'DEAD_LETTER':
       return {
-        bg: 'bg-purple-950/50',
-        text: 'text-purple-300',
-        border: 'border-purple-600/50',
-        dot: 'bg-purple-400',
+        bg: 'bg-[var(--color-amethyst-bg)]',
+        text: 'text-[var(--color-amethyst)]',
+        border: 'border-[var(--color-amethyst-border)]',
+        dot: 'bg-[var(--color-amethyst)]',
       };
     default:
       return {
-        bg: 'bg-slate-800',
-        text: 'text-slate-300',
-        border: 'border-slate-700',
-        dot: 'bg-slate-400',
+        bg: 'bg-[var(--color-bg-deep)]',
+        text: 'text-[var(--color-text-secondary)]',
+        border: 'border-[var(--color-border-subtle)]',
+        dot: 'bg-[var(--color-text-muted)]',
       };
   }
 }

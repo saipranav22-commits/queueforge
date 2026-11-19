@@ -539,9 +539,11 @@ export const OverviewPage: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
                 Reliability & DLQ
               </span>
-              <Link to="/dlq" className="text-xs text-[var(--color-danger)] hover:underline flex items-center gap-1 font-mono">
-                Lab <ArrowRight className="w-3 h-3" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link to="/reliability" className="text-xs text-[var(--color-cyan)] hover:underline flex items-center gap-1 font-mono">
+                  Lab <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
             <p className="text-xs text-[var(--color-text-secondary)] mt-1">
               Dead-letter partition & failure classification
@@ -572,7 +574,7 @@ export const OverviewPage: React.FC = () => {
           <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)] text-right">
             <Link
               to="/dlq"
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[var(--color-danger)] hover:brightness-110 rounded-md transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[var(--color-crimson)] hover:brightness-110 rounded-md transition"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               Open DLQ Manager

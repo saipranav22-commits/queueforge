@@ -90,9 +90,17 @@
   --color-warning-bg: var(--qf-status-warning-subtle);
   --color-warning-border: var(--qf-status-warning-border);
 
+  --color-amber: var(--qf-status-warning);
+  --color-amber-bg: var(--qf-status-warning-subtle);
+  --color-amber-border: var(--qf-status-warning-border);
+
   --color-danger: var(--qf-status-critical);
   --color-danger-bg: var(--qf-status-critical-subtle);
   --color-danger-border: var(--qf-status-critical-border);
+
+  --color-crimson: var(--qf-status-critical);
+  --color-crimson-bg: var(--qf-status-critical-subtle);
+  --color-crimson-border: var(--qf-status-critical-border);
 
   /* Shadows */
   --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
@@ -187,9 +195,17 @@
   --color-warning-bg: rgba(217, 130, 24, 0.08);
   --color-warning-border: rgba(217, 130, 24, 0.25);
 
+  --color-amber: #D98218;
+  --color-amber-bg: rgba(217, 130, 24, 0.08);
+  --color-amber-border: rgba(217, 130, 24, 0.25);
+
   --color-danger: #E02B3D;
   --color-danger-bg: rgba(224, 43, 61, 0.08);
   --color-danger-border: rgba(224, 43, 61, 0.30);
+
+  --color-crimson: #E02B3D;
+  --color-crimson-bg: rgba(224, 43, 61, 0.08);
+  --color-crimson-border: rgba(224, 43, 61, 0.30);
 
   /* Shadows */
   --shadow-card: 0 2px 10px -2px rgba(15, 23, 42, 0.06);
