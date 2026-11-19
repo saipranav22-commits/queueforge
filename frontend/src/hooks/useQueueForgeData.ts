@@ -165,7 +165,75 @@ export function useManualOutboxDispatch() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['system-metrics-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-outbox-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-outbox-events'] });
     },
+  });
+}
+
+export function useSchedulerConfig(enabled = true) {
+  return useQuery<import('../types/tenant').FairShareSchedulerConfig>({
+    queryKey: ['admin-scheduler-config'],
+    queryFn: () => apiRequest<import('../types/tenant').FairShareSchedulerConfig>('/admin/tenants/scheduler-config'),
+    enabled,
+    refetchInterval: 10000,
+    retry: false,
+  });
+}
+
+export function useUpdateTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: import('../types/tenant').UpdateTenantRequest }) =>
+      apiRequest<import('../types/tenant').TenantDetail>(`/admin/tenants/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-scheduler-config'] });
+    },
+  });
+}
+
+export function useOutboxStats(enabled = true) {
+  return useQuery<import('../types/outbox').OutboxStats>({
+    queryKey: ['admin-outbox-stats'],
+    queryFn: () => apiRequest<import('../types/outbox').OutboxStats>('/admin/outbox/stats'),
+    enabled,
+    refetchInterval: 3000,
+    retry: false,
+  });
+}
+
+export function useOutboxEvents(filters: import('../types/outbox').OutboxQueryFilter, enabled = true) {
+  const queryParams = new URLSearchParams();
+  if (filters.page != null) queryParams.set('page', filters.page.toString());
+  if (filters.size != null) queryParams.set('size', filters.size.toString());
+  if (filters.status) queryParams.set('status', filters.status);
+  if (filters.eventType) queryParams.set('eventType', filters.eventType);
+  if (filters.search) queryParams.set('search', filters.search);
+  if (filters.sortBy) queryParams.set('sortBy', filters.sortBy);
+  if (filters.sortDirection) queryParams.set('sortDirection', filters.sortDirection);
+
+  const queryString = queryParams.toString();
+  const endpoint = `/admin/outbox/events${queryString ? `?${queryString}` : ''}`;
+
+  return useQuery<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>({
+    queryKey: ['admin-outbox-events', filters],
+    queryFn: () => apiRequest<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>(endpoint),
+    enabled,
+    refetchInterval: 3000,
+    retry: false,
+  });
+}
+
+export function useOutboxEventDetail(id?: string) {
+  return useQuery<import('../types/outbox').OutboxEventDetail>({
+    queryKey: ['admin-outbox-event-detail', id],
+    queryFn: () => apiRequest<import('../types/outbox').OutboxEventDetail>(`/admin/outbox/events/${id}`),
+    enabled: Boolean(id),
+    retry: false,
   });
 }
 

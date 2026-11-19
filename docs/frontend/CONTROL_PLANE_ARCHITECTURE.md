@@ -91,7 +91,34 @@ for active leases, and similarly for historical worker logs:
 
 ---
 
-## 5. Performance Optimization & Bundle Code-Splitting
+## 5. FairShare Multi-Tenant Scheduling Intelligence
+
+### A. Deficit Round-Robin (DRR) Formulation
+QueueForge prevents noisy-neighbor starvation through Weighted Deficit Round Robin scheduling across active tenant queues:
+- **Quantum Allocation:** At the beginning of each sweep cycle, active tenant $t_i$ receives credit quantum:
+  $$Q_i = w_i \times Q_\text{base}$$
+- **Concurrency Quota Headroom:** Claim limit is strictly bounded by available concurrency headroom:
+  $$H_i = \max(0, \text{max\_concurrency}_i - R_i)$$
+- **Batch Bounding:** Maximum claimed jobs per turn is bounded:
+  $$K_i = \min(B_\text{remaining}, D_i, H_i)$$
+- **Anti-Hoarding Invariant:** If tenant $t_i$'s queue is empty, its deficit counter is immediately reset to 0 ($D_i \leftarrow 0$) to prevent idle tenants from accumulating unbounded deficits.
+
+---
+
+## 6. Transactional Outbox Event Pipeline Architecture
+
+### A. Dual-Write Anomaly Elimination
+Business domain operations (e.g. order creation) and outbound integration events are persisted in the same ACID database commit. This guarantees that an event is never created for a rolled-back order, nor is an order created without an associated event.
+
+### B. Reliable Dispatch & Receiver Deduplication
+1. **Durable Claiming:** The dispatcher acquires leases using PostgreSQL `SELECT FOR UPDATE SKIP LOCKED` with explicit claim tokens.
+2. **At-Least-Once Transport:** Events are dispatched via HTTP to downstream receivers with `X-Service-Key` authentication and `Idempotency-Key` headers.
+3. **Receiver Deduplication:** The receiver enforces a database `UNIQUE(idempotency_key)` constraint. Repeated deliveries return the original committed result without duplicate financial charges.
+4. **Acknowledgement:** The outbox status updates to `DELIVERED` only upon receiving HTTP 200/201 response.
+
+---
+
+## 7. Performance Optimization & Bundle Code-Splitting
 
 ### A. Route-Based Lazy Loading
 Monolithic bundle generation was eliminated by wrapping all major page views in `React.lazy()` and `Suspense`:

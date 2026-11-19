@@ -65,7 +65,26 @@ The QueueForge frontend engineering strategy is structured into disciplined, ver
 
 ---
 
-### Phase 8C: Reliability Lab, ChaosLab Visualizer & Observability (Planned)
-- [ ] **Interactive ChaosLab Visualizer:** Real-time visualization of simulated worker partition, lease expiry, and network fault injection.
-- [ ] **Advanced DLQ Operations:** Batch replay, selective discard by failure category, and stacktrace search.
-- [ ] **Grafana / Prometheus Embeds:** Live latency histogram and throughput gauges embedded with zero authentication friction.
+### Phase 8C: FairShare Intelligence & Transactional Event Pipeline (Completed)
+- [x] **FairShare Scheduling Analytics & Intelligence:**
+  - Integrated real `/api/v1/admin/tenants/scheduler-config` endpoint providing base quantum, max sweep size, and active partition totals.
+  - Live tenant concurrency quota and deficit tracking with real `runningCount` and `pendingCount` tallies.
+  - Interactive Educational Simulator ("Deficit Round-Robin Mechanics") allowing operators to step through quantum addition ($Q_i = w_i \times Q_\text{base}$), quota bounding, and anti-hoarding deficit reset on empty queues.
+  - Empirical Benchmark Evidence panel documenting verified local measurements from Profile 3 (Noisy Neighbor experiment: 11,868 ms quiet-tenant wait under FIFO reduced to 1,210 ms under FairShare DRR, with explicit ~21% throughput trade-off documentation).
+  - Tenant editing modal supporting weight, maxConcurrency, and status updates via `PUT /api/v1/admin/tenants/{id}`.
+- [x] **Transactional Event Pipeline Workspace:**
+  - Implemented real backend read APIs: `GET /api/v1/admin/outbox/stats`, `GET /api/v1/admin/outbox/events` (paginated, filtered, searchable), and `GET /api/v1/admin/outbox/events/{id}`.
+  - Real Outbox KPI counters: Pending, In-Flight Dispatching, Acknowledged Delivered, and Dead Letter.
+  - 7-Stage End-to-End Business Flow Visualizer with active stage highlighting linked to selected database records.
+  - Server-paginated Outbox Event Explorer table with debounced search across aggregate IDs, idempotency keys, and UUIDs.
+  - Slide-over Event Detail Inspector drawer with delivery timeline, last error diagnostic box, and JSONB payload viewer.
+  - Deep-link cross-page navigation between events and related jobs in Job Explorer.
+  - Audited manual outbox dispatch bounded strictly to `[5, 10, 25, 50]` with admin confirmation modal.
+
+---
+
+### Phase 8D: ChaosLab Reliability Console & Distributed Fault Injection (Upcoming)
+- [ ] Visual ChaosLab experiment runner and fault injection controls.
+- [ ] Real-time invariant verification monitors (9 distributed invariants).
+- [ ] Split-brain and worker crash simulation controls with lease recovery observability.
+- [ ] Live Docker Compose multi-instance smoke test and browser E2E verification gate.

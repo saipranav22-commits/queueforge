@@ -24,6 +24,11 @@ public class AdminTenantController {
         return ResponseEntity.ok(tenantService.listTenants());
     }
 
+    @GetMapping("/scheduler-config")
+    public ResponseEntity<FairShareConfigResponse> getSchedulerConfig() {
+        return ResponseEntity.ok(tenantService.getSchedulerConfig());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TenantDetailResponse> getTenant(@PathVariable String id) {
         return ResponseEntity.ok(tenantService.getTenant(id));

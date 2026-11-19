@@ -18,8 +18,13 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 | **Execution History Logs** | `/api/v1/jobs/{jobId}/history` | `GET` | No (Masked) / Yes (Raw) | No | Path: `jobId` | `JobExecutionLog[]` |
 | **Submit Test Job** | `/api/v1/jobs` | `POST` | No | No | `jobType, payload, priority, maxRetries, tenantId` | `{ jobId, status, createdAt }` |
 | **FairShare Tenant Registry** | `/api/v1/admin/tenants` | `GET` | Yes (Admin) | No | None | `TenantSummary[]` |
+| **Scheduler Configuration** | `/api/v1/admin/tenants/scheduler-config` | `GET` | Yes (Admin) | No | None | `FairShareConfigResponse` |
 | **Provision Tenant Modal** | `/api/v1/admin/tenants` | `POST` | Yes (Admin) | Yes | `id, name, weight, maxConcurrency` | `{ tenant, apiKey }` |
-| **Manual Outbox Dispatch** | `/api/v1/admin/outbox/dispatch`| `POST` | Yes (Admin) | Yes | `batchSize, leaseDurationSeconds` | `OutboxDispatchResult` |
+| **Update Tenant Modal** | `/api/v1/admin/tenants/{id}` | `PUT` | Yes (Admin) | Yes | Path: `id`, Body: `name, weight, maxConcurrency, status` | `TenantDetail` |
+| **Outbox Stats Counters** | `/api/v1/admin/outbox/stats` | `GET` | Yes (Admin) | No | None | `OutboxStats` |
+| **Outbox Event Explorer** | `/api/v1/admin/outbox/events` | `GET` | Yes (Admin) | No | `page, size, status, eventType, search, sortBy, sortDirection` | `PageResponse<OutboxEventSummary>` |
+| **Outbox Event Detail** | `/api/v1/admin/outbox/events/{id}` | `GET` | Yes (Admin) | No | Path: `id` | `OutboxEventDetail` |
+| **Manual Outbox Dispatch** | `/api/v1/admin/outbox/dispatch`| `POST` | Yes (Admin) | Yes | `batchSize (1-50), leaseDurationSeconds (1-60)` | `OutboxDispatchResult` |
 | **DLQ Job Replay** | `/api/v1/admin/dlq/{jobId}/replay` | `POST` | Yes (Admin) | Yes | Path: `jobId` | `ApiMessageResponse` |
 | **DLQ Job Discard** | `/api/v1/admin/dlq/{jobId}/discard` | `DELETE`| Yes (Admin) | Yes | Path: `jobId` | `ApiMessageResponse` |
 | **Admin Session Unlock** | `/api/v1/auth/unlock` | `POST` | No | Yes | `password` | `{ authenticated: true }` |

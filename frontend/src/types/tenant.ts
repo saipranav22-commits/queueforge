@@ -7,15 +7,26 @@ export interface TenantSummary {
   weight: number;
   maxConcurrency: number;
   deficitCounter: number;
-  apiKeyPrefix: string | null;
-  activeRunningJobs?: number;
+  runningCount: number;
+  pendingCount: number;
+  lastScheduledAt: string | null;
+  createdAt: string;
+  apiKeyPrefix?: string | null;
+  activeRunningJobs?: number; // Backward-compatible alias
 }
 
 export interface TenantDetail extends TenantSummary {
-  apiKey?: string; // Only returned on creation or key rotation
-  lastScheduledAt: string;
-  createdAt: string;
+  apiKey?: string; // Only returned once on creation or key rotation
   updatedAt: string;
+}
+
+export interface FairShareSchedulerConfig {
+  enabled: boolean;
+  baseQuantum: number;
+  maxTenantsPerSweep: number;
+  activeTenantsCount: number;
+  totalConfiguredWeight: number;
+  totalMaxConcurrency: number;
 }
 
 export interface CreateTenantRequest {
