@@ -1,0 +1,5 @@
+# Production configuration profile for Simulated Payment Receiver
+queueforge:
+  receiver:
+    test-endpoints-enabled: false
+    service-auth-enabled: true

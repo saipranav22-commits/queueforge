@@ -58,10 +58,11 @@ public class JobController {
             @RequestParam(required = false) String jobType,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDirection) {
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            @RequestParam(required = false) String tenantId) {
 
         PageResponse<JobSummaryResponse> response = jobService.listJobs(
-                page, size, status, jobType, search, sortBy, sortDirection);
+                page, size, status, jobType, search, sortBy, sortDirection, tenantId);
         return ResponseEntity.ok(response);
     }
 

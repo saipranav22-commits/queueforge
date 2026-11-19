@@ -3,12 +3,17 @@ package com.queueforge.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.queueforge.api.dto.*;
+import com.queueforge.api.security.TenantContext;
+import com.queueforge.common.exception.AccessDeniedException;
+import com.queueforge.common.exception.BadRequestException;
 import com.queueforge.common.exception.IdempotencyConflictException;
 import com.queueforge.common.exception.JobNotFoundException;
 import com.queueforge.core.domain.JobStatus;
+import com.queueforge.core.domain.TenantStatus;
 import com.queueforge.metrics.QueueForgeMetrics;
 import com.queueforge.persistence.entity.JobEntity;
 import com.queueforge.persistence.repository.JobRepository;
+import com.queueforge.persistence.repository.TenantRepository;
 import com.queueforge.service.idempotency.IdempotencyFingerprintService;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
@@ -35,17 +40,20 @@ public class JobService {
     private static final Logger log = LoggerFactory.getLogger(JobService.class);
 
     private final JobRepository jobRepository;
+    private final TenantRepository tenantRepository;
     private final IdempotencyFingerprintService fingerprintService;
     private final QueueForgeMetrics metrics;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
 
     public JobService(JobRepository jobRepository,
+                      TenantRepository tenantRepository,
                       IdempotencyFingerprintService fingerprintService,
                       QueueForgeMetrics metrics,
                       JdbcTemplate jdbcTemplate,
                       ObjectMapper objectMapper) {
         this.jobRepository = jobRepository;
+        this.tenantRepository = tenantRepository;
         this.fingerprintService = fingerprintService;
         this.metrics = metrics;
         this.jdbcTemplate = jdbcTemplate;
@@ -58,6 +66,31 @@ public class JobService {
     public CreateJobResponse submitJob(CreateJobRequest request, String rawIdempotencyKey) {
         String idempotencyKey = normalizeIdempotencyKey(rawIdempotencyKey);
         String fingerprint = null;
+
+        // 0. Resolve and authorize tenant identity
+        String tenantId;
+        String requestedTenant = request.tenantId();
+        if (TenantContext.isMasterAdmin()) {
+            tenantId = (requestedTenant != null && !requestedTenant.isBlank()) ? requestedTenant.trim().toLowerCase() : "default";
+        } else if (!TenantContext.isLegacyDefault()) {
+            String authTenant = TenantContext.getTenantId();
+            if (requestedTenant != null && !requestedTenant.isBlank() && !requestedTenant.trim().equalsIgnoreCase(authTenant)) {
+                throw new AccessDeniedException(
+                        "Tenant '" + authTenant + "' is not authorized to submit jobs on behalf of tenant '" + requestedTenant + "'");
+            }
+            tenantId = authTenant;
+        } else {
+            // Legacy / anonymous default submission
+            if (requestedTenant != null && !requestedTenant.isBlank() && !requestedTenant.trim().equalsIgnoreCase("default")) {
+                throw new AccessDeniedException(
+                        "Anonymous submissions cannot specify non-default tenant '" + requestedTenant + "'. Provide valid X-Tenant-Key or X-Admin-Key.");
+            }
+            tenantId = "default";
+        }
+
+        if (!tenantRepository.existsByIdAndStatus(tenantId, TenantStatus.ACTIVE)) {
+            throw new BadRequestException("Tenant '" + tenantId + "' does not exist or is suspended");
+        }
 
         if (idempotencyKey != null) {
             fingerprint = fingerprintService.computeFingerprint(request);
@@ -78,6 +111,7 @@ public class JobService {
         Instant scheduledAt = now.plusSeconds(request.effectiveDelaySeconds());
 
         JobEntity jobEntity = new JobEntity(
+                tenantId,
                 idempotencyKey,
                 fingerprint,
                 request.jobType().trim().toUpperCase(),
@@ -89,8 +123,8 @@ public class JobService {
 
         try {
             JobEntity saved = jobRepository.save(jobEntity);
-            log.info("Persisted job id={} type={} priority={} status={} scheduledAt={}",
-                    saved.getId(), saved.getJobType(), saved.getPriority(), saved.getStatus(), saved.getScheduledAt());
+            log.info("Persisted job id={} tenant={} type={} priority={} status={} scheduledAt={}",
+                    saved.getId(), saved.getTenantId(), saved.getJobType(), saved.getPriority(), saved.getStatus(), saved.getScheduledAt());
 
             metrics.incrementJobsSubmitted(saved.getJobType());
 
@@ -98,7 +132,8 @@ public class JobService {
                     saved.getId(),
                     saved.getStatus().name(),
                     saved.getCreatedAt(),
-                    saved.getScheduledAt()
+                    saved.getScheduledAt(),
+                    saved.getTenantId()
             );
         } catch (DataIntegrityViolationException e) {
             // 3. Handle concurrent submission race conditions safely via DB unique constraint
@@ -121,6 +156,13 @@ public class JobService {
         JobEntity job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new JobNotFoundException(jobId));
 
+        if (!TenantContext.isMasterAdmin()) {
+            String callerTenant = TenantContext.getTenantId();
+            if (!callerTenant.equalsIgnoreCase(job.getTenantId())) {
+                throw new JobNotFoundException(jobId);
+            }
+        }
+
         return new JobStatusResponse(
                 job.getId(),
                 job.getJobType(),
@@ -132,7 +174,8 @@ public class JobService {
                 job.getFailureCategory() != null ? job.getFailureCategory().name() : null,
                 job.getScheduledAt(),
                 job.getCreatedAt(),
-                job.getCompletedAt()
+                job.getCompletedAt(),
+                job.getTenantId()
         );
     }
 
@@ -148,6 +191,22 @@ public class JobService {
             String search,
             String sortBy,
             String sortDirection) {
+        return listJobs(page, size, status, jobType, search, sortBy, sortDirection, null);
+    }
+
+    /**
+     * Lists jobs with tenant isolation and optional tenant filtering for master admin.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<JobSummaryResponse> listJobs(
+            int page,
+            int size,
+            JobStatus status,
+            String jobType,
+            String search,
+            String sortBy,
+            String sortDirection,
+            String filterTenantId) {
 
         int boundedPage = Math.max(0, page);
         int boundedSize = Math.min(100, Math.max(1, size));
@@ -166,6 +225,13 @@ public class JobService {
 
         Specification<JobEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            // Enforce tenant isolation
+            if (!TenantContext.isMasterAdmin()) {
+                predicates.add(cb.equal(root.get("tenantId"), TenantContext.getTenantId()));
+            } else if (filterTenantId != null && !filterTenantId.isBlank()) {
+                predicates.add(cb.equal(root.get("tenantId"), filterTenantId.trim().toLowerCase()));
+            }
 
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
@@ -224,6 +290,13 @@ public class JobService {
         JobEntity job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new JobNotFoundException(jobId));
 
+        if (!TenantContext.isMasterAdmin()) {
+            String callerTenant = TenantContext.getTenantId();
+            if (!callerTenant.equalsIgnoreCase(job.getTenantId())) {
+                throw new JobNotFoundException(jobId);
+            }
+        }
+
         List<JobExecutionLogResponse> logs = getJobHistory(jobId, authorized);
 
         JsonNode payloadToReturn = authorized
@@ -268,8 +341,14 @@ public class JobService {
      */
     @Transactional(readOnly = true)
     public List<JobExecutionLogResponse> getJobHistory(UUID jobId, boolean authorized) {
-        if (!jobRepository.existsById(jobId)) {
-            throw new JobNotFoundException(jobId);
+        JobEntity job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+
+        if (!TenantContext.isMasterAdmin()) {
+            String callerTenant = TenantContext.getTenantId();
+            if (!callerTenant.equalsIgnoreCase(job.getTenantId())) {
+                throw new JobNotFoundException(jobId);
+            }
         }
 
         String sql = """
@@ -312,7 +391,8 @@ public class JobService {
                 job.getScheduledAt(),
                 job.getCreatedAt(),
                 job.getCompletedAt(),
-                job.getIdempotencyKey()
+                job.getIdempotencyKey(),
+                job.getTenantId()
         );
     }
 
@@ -330,7 +410,8 @@ public class JobService {
                 existing.getId(),
                 existing.getStatus().name(),
                 existing.getCreatedAt(),
-                existing.getScheduledAt()
+                existing.getScheduledAt(),
+                existing.getTenantId()
         );
     }
 

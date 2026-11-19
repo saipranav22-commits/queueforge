@@ -17,6 +17,13 @@ public record JobStatusResponse(
         String failureCategory,
         Instant scheduledAt,
         Instant createdAt,
-        Instant completedAt
+        Instant completedAt,
+        String tenantId
 ) {
+    public JobStatusResponse(UUID jobId, String jobType, String status, int priority,
+                             int attemptCount, int retryCount, int maxRetries,
+                             String failureCategory, Instant scheduledAt,
+                             Instant createdAt, Instant completedAt) {
+        this(jobId, jobType, status, priority, attemptCount, retryCount, maxRetries, failureCategory, scheduledAt, createdAt, completedAt, "default");
+    }
 }

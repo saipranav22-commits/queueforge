@@ -1,0 +1,30 @@
+{
+  "composeProject": "queueforge-chaos",
+  "composeFile": "docker-compose.chaos.yml",
+  "network": "qf-chaos-net",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 5440,
+    "name": "queueforge_chaos",
+    "user": "qf_chaos_user",
+    "password": "qf_chaos_pass"
+  },
+  "api": {
+    "url": "http://127.0.0.1:8094",
+    "apiKey": "qf_admin_dev_secret_2026"
+  },
+  "workers": {
+    "worker1": {
+      "container": "qf-chaos-worker-1",
+      "port": 8095,
+      "instanceId": "chaos-worker-1"
+    },
+    "worker2": {
+      "container": "qf-chaos-worker-2",
+      "port": 8096,
+      "instanceId": "chaos-worker-2"
+    }
+  },
+  "signalDir": "data/chaos-signals",
+  "reportsDir": "chaoslab/reports"
+}

@@ -39,6 +39,7 @@ public class QueueForgeMetrics implements SmartLifecycle {
     private final MeterRegistry registry;
     private final JdbcTemplate jdbcTemplate;
     private final WorkerCoordinator workerCoordinator;
+    private final com.queueforge.config.QueueForgeProperties queueForgeProperties;
 
     // Gauges backing values
     private final AtomicLong pendingJobs = new AtomicLong(0);
@@ -46,6 +47,7 @@ public class QueueForgeMetrics implements SmartLifecycle {
     private final AtomicLong completedJobs = new AtomicLong(0);
     private final AtomicLong deadLetterJobs = new AtomicLong(0);
     private final AtomicLong archivedJobs = new AtomicLong(0);
+    private final AtomicLong pendingOutboxEvents = new AtomicLong(0);
 
     // Refresh synchronization
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -54,10 +56,12 @@ public class QueueForgeMetrics implements SmartLifecycle {
 
     public QueueForgeMetrics(MeterRegistry registry,
                              JdbcTemplate jdbcTemplate,
-                             @Lazy WorkerCoordinator workerCoordinator) {
+                             @Lazy WorkerCoordinator workerCoordinator,
+                             com.queueforge.config.QueueForgeProperties queueForgeProperties) {
         this.registry = registry;
         this.jdbcTemplate = jdbcTemplate;
         this.workerCoordinator = workerCoordinator;
+        this.queueForgeProperties = queueForgeProperties;
 
         registerGauges();
     }
@@ -79,8 +83,20 @@ public class QueueForgeMetrics implements SmartLifecycle {
                 .description("Current number of jobs in dead-letter queue requiring administrative attention")
                 .register(registry);
 
+        Gauge.builder("queueforge.outbox.pending", pendingOutboxEvents, AtomicLong::get)
+                .description("Current number of pending outbox events awaiting delivery")
+                .register(registry);
+
         Gauge.builder("queueforge.workers.active", this, QueueForgeMetrics::getActiveWorkerCount)
-                .description("Number of worker threads actively executing jobs in worker pool")
+                .description("Number of worker threads actively executing jobs in local instance worker pool")
+                .tag("instance_id", queueForgeProperties.getInstanceId())
+                .tag("mode", queueForgeProperties.getMode().name())
+                .register(registry);
+
+        Gauge.builder("queueforge.workers.capacity", this, QueueForgeMetrics::getWorkerCapacity)
+                .description("Maximum worker pool capacity of this local instance")
+                .tag("instance_id", queueForgeProperties.getInstanceId())
+                .tag("mode", queueForgeProperties.getMode().name())
                 .register(registry);
     }
 
@@ -142,6 +158,14 @@ public class QueueForgeMetrics implements SmartLifecycle {
             deadLetterJobs.set(counts.getOrDefault(JobStatus.DEAD_LETTER.name(), 0L));
             archivedJobs.set(counts.getOrDefault(JobStatus.ARCHIVED.name(), 0L));
 
+            try {
+                Long outboxPending = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM outbox_events WHERE status = 'PENDING'", Long.class);
+                pendingOutboxEvents.set(outboxPending != null ? outboxPending : 0L);
+            } catch (Exception ignored) {
+                // Table might not be created during early migration stages
+            }
+
             lastRefreshTimestamp = System.currentTimeMillis();
         } catch (Exception e) {
             log.debug("Failed to refresh queue metrics (database may be busy or initializing): {}", e.getMessage());
@@ -153,6 +177,13 @@ public class QueueForgeMetrics implements SmartLifecycle {
             return 0.0;
         }
         return workerCoordinator.getActiveWorkerCount();
+    }
+
+    public double getWorkerCapacity() {
+        if (workerCoordinator == null) {
+            return 0.0;
+        }
+        return workerCoordinator.getPoolCapacity();
     }
 
     // =========================================================================
@@ -222,6 +253,66 @@ public class QueueForgeMetrics implements SmartLifecycle {
                 .tag("job_type", normalizeTag(jobType))
                 .register(registry)
                 .record(duration);
+    }
+
+    // =========================================================================
+    // Outbox Metrics
+    // =========================================================================
+
+    public void incrementOutboxCreated(String eventType) {
+        Counter.builder("queueforge.outbox.events.created.total")
+                .description("Total number of transactional outbox events written with order transaction")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxDelivered(String eventType) {
+        Counter.builder("queueforge.outbox.events.delivered.total")
+                .description("Total number of outbox events successfully delivered and acknowledged")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxFailed(String eventType, String errorCategory) {
+        Counter.builder("queueforge.outbox.events.failed.total")
+                .description("Total number of outbox event dispatch attempts that resulted in failure")
+                .tag("event_type", normalizeTag(eventType))
+                .tag("error_category", normalizeTag(errorCategory))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxDeadLetter(String eventType) {
+        Counter.builder("queueforge.outbox.events.dead_letter.total")
+                .description("Total number of outbox events moved to dead-letter state after retry exhaustion")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void incrementOutboxAttempt(String eventType) {
+        Counter.builder("queueforge.outbox.delivery.attempts.total")
+                .description("Total number of outbox event dispatch attempts initiated")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .increment();
+    }
+
+    public void recordOutboxDeliveryDuration(String eventType, Duration duration) {
+        if (duration.isNegative()) {
+            duration = Duration.ZERO;
+        }
+        Timer.builder("queueforge.outbox.delivery.duration")
+                .description("Latency of outbox delivery from dispatch claim to receiver acknowledgement")
+                .tag("event_type", normalizeTag(eventType))
+                .register(registry)
+                .record(duration);
+    }
+
+    public long getPendingOutboxCount() {
+        return pendingOutboxEvents.get();
     }
 
     // =========================================================================

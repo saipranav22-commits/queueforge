@@ -14,6 +14,7 @@ public class WorkerProperties {
     private int heartbeatIntervalSeconds = 10;
     private long recoveryPollIntervalMs = 5000;
     private int shutdownTimeoutSeconds = 10;
+    private boolean chaosPayloadsEnabled = false;
 
     public boolean isEnabled() {
         return enabled;
@@ -69,5 +70,13 @@ public class WorkerProperties {
 
     public void setShutdownTimeoutSeconds(int shutdownTimeoutSeconds) {
         this.shutdownTimeoutSeconds = shutdownTimeoutSeconds;
+    }
+
+    public boolean isChaosPayloadsEnabled() {
+        return chaosPayloadsEnabled;
+    }
+
+    public void setChaosPayloadsEnabled(boolean chaosPayloadsEnabled) {
+        this.chaosPayloadsEnabled = chaosPayloadsEnabled;
     }
 }

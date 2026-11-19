@@ -1,55 +1,63 @@
 package com.queueforge.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.queueforge.config.FairShareProperties;
 import com.queueforge.core.domain.ClaimedJob;
 import com.queueforge.core.domain.FailureCategory;
 import com.queueforge.core.domain.JobStatus;
+import com.queueforge.metrics.QueueForgeMetrics;
 import com.queueforge.service.retry.BackoffCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+/**
+ * High-throughput transactional claiming service.
+ * Implements:
+ * 1. Legacy global priority queue claim via PostgreSQL SELECT FOR UPDATE SKIP LOCKED
+ * 2. FairShare Multi-Tenant Deficit Round Robin (DRR) scheduler with cluster-wide concurrency quotas
+ * 3. Fenced completion and lease recovery
+ */
 @Service
 public class JobClaimService {
 
     private static final Logger log = LoggerFactory.getLogger(JobClaimService.class);
 
     private final JdbcTemplate jdbcTemplate;
-    private final ObjectMapper objectMapper;
+    private final QueueForgeMetrics metrics;
+    private final FairShareProperties fairShareProperties;
     private final BackoffCalculator backoffCalculator;
-    private final ClaimedJobRowMapper rowMapper;
-    private final com.queueforge.metrics.QueueForgeMetrics metrics;
+    private final ClaimedJobRowMapper rowMapper = new ClaimedJobRowMapper();
 
     public JobClaimService(JdbcTemplate jdbcTemplate,
-                           ObjectMapper objectMapper,
-                           BackoffCalculator backoffCalculator,
-                           com.queueforge.metrics.QueueForgeMetrics metrics) {
+                           QueueForgeMetrics metrics,
+                           FairShareProperties fairShareProperties,
+                           @Autowired(required = false) BackoffCalculator backoffCalculator) {
         this.jdbcTemplate = jdbcTemplate;
-        this.objectMapper = objectMapper;
-        this.backoffCalculator = backoffCalculator;
         this.metrics = metrics;
-        this.rowMapper = new ClaimedJobRowMapper(objectMapper);
+        this.fairShareProperties = fairShareProperties;
+        this.backoffCalculator = backoffCalculator;
     }
 
+    private record TenantCandidate(
+            String id,
+            int weight,
+            int maxConcurrency,
+            BigDecimal deficitCounter
+    ) {}
+
     /**
-     * Atomically claims a batch of jobs using PostgreSQL SELECT FOR UPDATE SKIP LOCKED.
-     * The database transaction is committed immediately upon return, releasing row locks.
-     * Semantics:
-     * - attempt_count is incremented on every claim (1 for initial, 2 for first retry, etc.)
-     * - retry_count is 0 on initial claim, incremented on subsequent retries
+     * Claims a batch of jobs according to configured scheduling mode (FairShare DRR vs Legacy).
      */
     @Transactional
     public List<ClaimedJob> claimJobs(int batchSize, int leaseDurationSeconds, String workerId) {
@@ -57,8 +65,33 @@ public class JobClaimService {
             return Collections.emptyList();
         }
 
+        if (fairShareProperties.isEnabled()) {
+            return claimJobsFairShare(batchSize, leaseDurationSeconds, workerId);
+        } else {
+            return claimJobsLegacy(batchSize, leaseDurationSeconds, workerId);
+        }
+    }
+
+    /**
+     * Legacy global priority claim without tenant partitioning.
+     */
+    @Transactional
+    public List<ClaimedJob> claimJobsLegacy(int batchSize, int leaseDurationSeconds, String workerId) {
+        if (batchSize <= 0) {
+            return Collections.emptyList();
+        }
+
         String sql = """
-            UPDATE qf_jobs
+            WITH candidate_jobs AS (
+                SELECT id
+                FROM qf_jobs
+                WHERE status = 'PENDING'
+                  AND scheduled_at <= CURRENT_TIMESTAMP
+                ORDER BY priority DESC, scheduled_at ASC, id ASC
+                LIMIT ?
+                FOR UPDATE SKIP LOCKED
+            )
+            UPDATE qf_jobs j
             SET status = 'RUNNING',
                 claim_token = gen_random_uuid(),
                 claim_version = claim_version + 1,
@@ -67,32 +100,244 @@ public class JobClaimService {
                 attempt_count = attempt_count + 1,
                 retry_count = CASE WHEN attempt_count = 0 THEN 0 ELSE retry_count + 1 END,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id IN (
-                SELECT id
-                FROM qf_jobs
-                WHERE status = 'PENDING'
-                  AND scheduled_at <= CURRENT_TIMESTAMP
-                ORDER BY priority DESC, scheduled_at ASC
-                LIMIT ?
-                FOR UPDATE SKIP LOCKED
-            )
-            RETURNING id, claim_token, claim_version, job_type, payload, priority,
-                      attempt_count, retry_count, max_retries, scheduled_at, lease_until, locked_by
+            FROM candidate_jobs c
+            WHERE j.id = c.id
+            RETURNING j.id, j.claim_token, j.claim_version, j.job_type, j.payload, j.priority,
+                      j.attempt_count, j.retry_count, j.max_retries, j.scheduled_at, j.lease_until, j.locked_by, j.tenant_id
             """;
 
-        List<ClaimedJob> claimed = jdbcTemplate.query(sql, rowMapper, workerId, leaseDurationSeconds, batchSize);
+        List<ClaimedJob> claimed = jdbcTemplate.query(sql, rowMapper, batchSize, workerId, leaseDurationSeconds);
 
         if (!claimed.isEmpty()) {
             for (ClaimedJob job : claimed) {
                 if (job.scheduledAt() != null) {
-                    java.time.Duration wait = java.time.Duration.between(job.scheduledAt(), Instant.now());
+                    Duration wait = Duration.between(job.scheduledAt(), Instant.now());
                     metrics.recordQueueWaitDuration(job.jobType(), wait);
                 }
             }
-            log.debug("[{}] Successfully claimed {} jobs with leaseDuration={}s", workerId, claimed.size(), leaseDurationSeconds);
+            log.debug("[{}] Legacy claimed {} jobs with leaseDuration={}s", workerId, claimed.size(), leaseDurationSeconds);
         }
 
         return claimed;
+    }
+
+    /**
+     * FairShare Multi-Tenant Deficit Round Robin claim engine with cluster-wide concurrency quotas.
+     * Uses row-level lock on qf_tenants to serialize concurrent quota checks without oversubscription,
+     * while claiming jobs via non-blocking SKIP LOCKED and batching updates.
+     */
+    @Transactional
+    public List<ClaimedJob> claimJobsFairShare(int batchSize, int leaseDurationSeconds, String workerId) {
+        if (batchSize <= 0) {
+            return Collections.emptyList();
+        }
+
+        // 1. Select candidate active tenants with pending jobs and available capacity
+        // Locked with FOR UPDATE OF t to serialize concurrent multi-worker quota evaluations without race conditions
+        String selectTenantsSql = """
+            SELECT t.id, t.weight, t.max_concurrency, t.deficit_counter
+            FROM qf_tenants t
+            WHERE t.status = 'ACTIVE'
+              AND (
+                  SELECT COUNT(*)
+                  FROM qf_jobs
+                  WHERE tenant_id = t.id AND status = 'RUNNING'
+              ) < t.max_concurrency
+              AND EXISTS (
+                  SELECT 1
+                  FROM qf_jobs
+                  WHERE tenant_id = t.id
+                    AND status = 'PENDING'
+                    AND scheduled_at <= CURRENT_TIMESTAMP
+              )
+            ORDER BY t.last_scheduled_at ASC NULLS FIRST, t.id ASC
+            LIMIT ?
+            FOR UPDATE OF t
+            """;
+
+        List<TenantCandidate> candidates = jdbcTemplate.query(
+                selectTenantsSql,
+                (rs, rowNum) -> new TenantCandidate(
+                        rs.getString("id"),
+                        rs.getInt("weight"),
+                        rs.getInt("max_concurrency"),
+                        rs.getBigDecimal("deficit_counter")
+                ),
+                fairShareProperties.getMaxTenantsPerSweep()
+        );
+
+        if (candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ClaimedJob> allClaimed = new ArrayList<>();
+        int remainingBatch = batchSize;
+
+        class TenantScheduleState {
+            final String id;
+            final int weight;
+            final int maxConcurrency;
+            BigDecimal deficit;
+            int running;
+            int claimedCount;
+            boolean hasPending;
+
+            TenantScheduleState(TenantCandidate c, int running) {
+                this.id = c.id();
+                this.weight = c.weight();
+                this.maxConcurrency = c.maxConcurrency();
+                this.deficit = c.deficitCounter() != null ? c.deficitCounter() : BigDecimal.ZERO;
+                this.running = running;
+                this.claimedCount = 0;
+                this.hasPending = true;
+            }
+        }
+
+        List<TenantScheduleState> states = new ArrayList<>(candidates.size());
+        for (TenantCandidate c : candidates) {
+            // Evaluated under tenant row lock to see latest committed count from concurrent workers
+            states.add(new TenantScheduleState(c, countRunningJobs(c.id())));
+        }
+
+        int maxRounds = batchSize;
+        int round = 0;
+        while (remainingBatch > 0 && round < maxRounds) {
+            boolean claimedAny = false;
+            for (TenantScheduleState state : states) {
+                if (remainingBatch <= 0) {
+                    break;
+                }
+                if (!state.hasPending) {
+                    continue;
+                }
+
+                // 2. Concurrency quota check under row lock
+                int availableQuota = state.maxConcurrency - state.running;
+                if (availableQuota <= 0) {
+                    continue;
+                }
+
+                // 3. Deficit Round Robin (DRR) calculation
+                BigDecimal quantum = BigDecimal.valueOf((long) state.weight * fairShareProperties.getBaseQuantum());
+                state.deficit = state.deficit.add(quantum);
+
+                int claimLimit = Math.min(state.deficit.intValue(), availableQuota);
+                claimLimit = Math.min(claimLimit, remainingBatch);
+
+                if (claimLimit <= 0) {
+                    continue;
+                }
+
+                // 4. Claim pending jobs for this tenant
+                List<ClaimedJob> claimed = claimTenantJobs(state.id, claimLimit, leaseDurationSeconds, workerId);
+                
+                // If returned fewer than requested limit, queue is drained for this tenant
+                if (claimed.size() < claimLimit) {
+                    state.hasPending = false;
+                }
+
+                if (!claimed.isEmpty()) {
+                    allClaimed.addAll(claimed);
+                    remainingBatch -= claimed.size();
+                    state.running += claimed.size();
+                    state.claimedCount += claimed.size();
+                    state.deficit = state.deficit.subtract(BigDecimal.valueOf(claimed.size()));
+                    claimedAny = true;
+                }
+
+                // Reset deficit to zero when tenant queue is empty to prevent hoarding while idle
+                if (!state.hasPending || state.deficit.compareTo(BigDecimal.ZERO) < 0) {
+                    state.deficit = BigDecimal.ZERO;
+                }
+            }
+
+            if (!claimedAny) {
+                break;
+            }
+            round++;
+        }
+
+        // 5. Batch update tenant deficits in a single database round trip
+        List<Object[]> batchUpdateArgs = new ArrayList<>();
+        for (TenantScheduleState state : states) {
+            if (state.claimedCount > 0 || !state.hasPending) {
+                batchUpdateArgs.add(new Object[]{ state.deficit, state.id });
+            }
+        }
+
+        if (!batchUpdateArgs.isEmpty()) {
+            String batchUpdateSql = """
+                UPDATE qf_tenants
+                SET deficit_counter = ?,
+                    last_scheduled_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """;
+            jdbcTemplate.batchUpdate(batchUpdateSql, batchUpdateArgs);
+        }
+
+        if (!allClaimed.isEmpty()) {
+            for (ClaimedJob job : allClaimed) {
+                if (job.scheduledAt() != null) {
+                    Duration wait = Duration.between(job.scheduledAt(), Instant.now());
+                    metrics.recordQueueWaitDuration(job.jobType(), wait);
+                }
+            }
+            log.debug("[{}] FairShare claimed {} jobs across tenants (leaseDuration={}s)",
+                    workerId, allClaimed.size(), leaseDurationSeconds);
+        }
+
+        return allClaimed;
+    }
+
+    /**
+     * Claims jobs for a specific tenant within quota using CTE optimization fence and SKIP LOCKED.
+     */
+    @Transactional
+    public List<ClaimedJob> claimTenantJobs(String tenantId, int limit, int leaseDurationSeconds, String workerId) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+
+        String sql = """
+            WITH candidate_jobs AS (
+                SELECT id
+                FROM qf_jobs
+                WHERE tenant_id = ?
+                  AND status = 'PENDING'
+                  AND scheduled_at <= CURRENT_TIMESTAMP
+                ORDER BY priority DESC, scheduled_at ASC, id ASC
+                LIMIT ?
+                FOR UPDATE SKIP LOCKED
+            )
+            UPDATE qf_jobs j
+            SET status = 'RUNNING',
+                claim_token = gen_random_uuid(),
+                claim_version = claim_version + 1,
+                locked_by = ?,
+                lease_until = CURRENT_TIMESTAMP + (? * INTERVAL '1 second'),
+                attempt_count = attempt_count + 1,
+                retry_count = CASE WHEN attempt_count = 0 THEN 0 ELSE retry_count + 1 END,
+                updated_at = CURRENT_TIMESTAMP
+            FROM candidate_jobs c
+            WHERE j.id = c.id
+            RETURNING j.id, j.claim_token, j.claim_version, j.job_type, j.payload, j.priority,
+                      j.attempt_count, j.retry_count, j.max_retries, j.scheduled_at, j.lease_until, j.locked_by, j.tenant_id
+            """;
+
+        List<ClaimedJob> claimed = jdbcTemplate.query(sql, rowMapper, tenantId, limit, workerId, leaseDurationSeconds);
+        if (claimed.size() > 1) {
+            claimed = new ArrayList<>(claimed);
+            claimed.sort(Comparator.comparingInt(ClaimedJob::priority).reversed()
+                    .thenComparing(ClaimedJob::scheduledAt, Comparator.nullsLast(Comparator.naturalOrder())));
+        }
+        return claimed;
+    }
+
+    private int countRunningJobs(String tenantId) {
+        String sql = "SELECT COUNT(*) FROM qf_jobs WHERE tenant_id = ? AND status = 'RUNNING'";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, tenantId);
+        return count != null ? count : 0;
     }
 
     /**
@@ -129,8 +374,8 @@ public class JobClaimService {
 
         if (rows == 1) {
             recordExecutionLog(jobId, workerId, attempt, "COMPLETED", executionTimeMs, null);
-            metrics.incrementJobsCompleted(jobType);
-            metrics.recordExecutionDuration(jobType, "COMPLETED", java.time.Duration.ofMillis(executionTimeMs));
+            metrics.incrementJobsCompleted(jobType != null ? jobType : "GENERATE_REPORT");
+            metrics.recordExecutionDuration(jobType != null ? jobType : "GENERATE_REPORT", "COMPLETED", Duration.ofMillis(executionTimeMs));
             log.info("[{}] Job {} completed successfully in {}ms (claimToken={})", workerId, jobId, executionTimeMs, claimToken);
             return true;
         } else {
@@ -178,8 +423,7 @@ public class JobClaimService {
         String nextStatus = retryable ? JobStatus.PENDING.name() : JobStatus.DEAD_LETTER.name();
 
         int backoffSeconds = 0;
-        if (retryable) {
-            // Next retry attempt will be retryCount + 1
+        if (retryable && backoffCalculator != null) {
             backoffSeconds = backoffCalculator.calculateBackoffSeconds(retryCount + 1);
         }
 
@@ -218,7 +462,7 @@ public class JobClaimService {
                 metrics.incrementJobsRetried(jobType);
             }
             metrics.incrementJobsFailed(jobType, failureCategory);
-            metrics.recordExecutionDuration(jobType, failureCategory.name(), java.time.Duration.ofMillis(executionTimeMs));
+            metrics.recordExecutionDuration(jobType, failureCategory.name(), Duration.ofMillis(executionTimeMs));
             log.warn("[{}] Job {} failed (attempt {}, retry {}/{}, category={}). Transitioned to {} (backoff={}s) in {}ms: {}",
                     workerId, jobId, attemptCount, retryCount, maxRetries, failureCategory, nextStatus, backoffSeconds, executionTimeMs, errorMessage);
             return true;
@@ -256,6 +500,11 @@ public class JobClaimService {
         }
     }
 
+    @Transactional
+    public boolean renewLease(UUID jobId, UUID claimToken, int extensionSeconds, String workerId) {
+        return extendLease(jobId, claimToken, extensionSeconds, workerId);
+    }
+
     /**
      * Sweeps and reclaims expired worker leases safely.
      * Jobs with retries remaining return to PENDING with a short delay.
@@ -263,6 +512,11 @@ public class JobClaimService {
      */
     @Transactional
     public int recoverExpiredLeases() {
+        return recoverExpiredLeases("lease-recovery-sweeper");
+    }
+
+    @Transactional
+    public int recoverExpiredLeases(String recoveryWorkerId) {
         String sql = """
             UPDATE qf_jobs
             SET status = CASE WHEN retry_count >= max_retries THEN 'DEAD_LETTER' ELSE 'PENDING' END,
@@ -287,62 +541,42 @@ public class JobClaimService {
         return recovered;
     }
 
-    private void recordExecutionLog(UUID jobId, String workerId, int attempt, String status, long durationMs, String error) {
-        String logSql = """
-            INSERT INTO qf_job_execution_logs (job_id, worker_id, attempt, status, execution_time_ms, error_message, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    private void recordExecutionLog(UUID jobId, String workerId, int attempt, String status, long durationMs, String errorMessage) {
+        String sql = """
+            INSERT INTO qf_job_execution_logs (job_id, worker_id, attempt, status, execution_time_ms, error_message, tenant_id, created_at)
+            SELECT ?, ?, ?, ?, ?, ?, tenant_id, CURRENT_TIMESTAMP
+            FROM qf_jobs WHERE id = ?
             """;
-        jdbcTemplate.update(logSql, jobId, workerId, attempt, status, durationMs, error);
+        jdbcTemplate.update(sql, jobId, workerId, attempt, status, durationMs, errorMessage, jobId);
     }
 
     private static class ClaimedJobRowMapper implements RowMapper<ClaimedJob> {
-        private final ObjectMapper objectMapper;
-
-        public ClaimedJobRowMapper(ObjectMapper objectMapper) {
-            this.objectMapper = objectMapper;
-        }
-
         @Override
         public ClaimedJob mapRow(ResultSet rs, int rowNum) throws SQLException {
-            UUID id = (UUID) rs.getObject("id");
-            UUID claimToken = (UUID) rs.getObject("claim_token");
-            long claimVersion = rs.getLong("claim_version");
-            String jobType = rs.getString("job_type");
-            String payloadJson = rs.getString("payload");
-            int priority = rs.getInt("priority");
-            int attemptCount = rs.getInt("attempt_count");
-            int retryCount = rs.getInt("retry_count");
-            int maxRetries = rs.getInt("max_retries");
-
-            Timestamp scheduledTs = rs.getTimestamp("scheduled_at");
-            Instant scheduledAt = scheduledTs != null ? scheduledTs.toInstant() : null;
-
-            Timestamp leaseTs = rs.getTimestamp("lease_until");
-            Instant leaseUntil = leaseTs != null ? leaseTs.toInstant() : null;
-
-            String lockedBy = rs.getString("locked_by");
-
-            JsonNode payloadNode;
-            try {
-                payloadNode = objectMapper.readTree(payloadJson);
-            } catch (JsonProcessingException e) {
-                throw new SQLException("Failed to parse JSON payload for job " + id, e);
-            }
-
             return new ClaimedJob(
-                    id,
-                    claimToken,
-                    claimVersion,
-                    jobType,
-                    payloadNode,
-                    priority,
-                    attemptCount,
-                    retryCount,
-                    maxRetries,
-                    scheduledAt,
-                    leaseUntil,
-                    lockedBy
+                    (UUID) rs.getObject("id"),
+                    (UUID) rs.getObject("claim_token"),
+                    rs.getLong("claim_version"),
+                    rs.getString("job_type"),
+                    rs.getString("payload"),
+                    rs.getInt("priority"),
+                    rs.getInt("attempt_count"),
+                    rs.getInt("retry_count"),
+                    rs.getInt("max_retries"),
+                    rs.getTimestamp("scheduled_at") != null ? rs.getTimestamp("scheduled_at").toInstant() : null,
+                    rs.getTimestamp("lease_until") != null ? rs.getTimestamp("lease_until").toInstant() : null,
+                    rs.getString("locked_by"),
+                    rs.getString("tenant_id")
             );
         }
     }
+
+    private record ExpiredLeaseCandidate(
+            UUID id,
+            UUID claimToken,
+            int attemptCount,
+            int maxRetries,
+            String tenantId,
+            String jobType
+    ) {}
 }

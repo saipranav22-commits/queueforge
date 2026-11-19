@@ -81,6 +81,8 @@ logging:
     org.hibernate: WARN
 
 queueforge:
+  mode: ${QUEUEFORGE_MODE:COMBINED}
+  instance-id: ${QUEUEFORGE_INSTANCE_ID:}
   worker:
     enabled: ${WORKER_ENABLED:true}
     concurrency: ${WORKER_CONCURRENCY:4}
@@ -89,6 +91,7 @@ queueforge:
     heartbeat-interval-seconds: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:10}
     recovery-poll-interval-ms: ${WORKER_RECOVERY_POLL_INTERVAL_MS:5000}
     shutdown-timeout-seconds: ${WORKER_SHUTDOWN_TIMEOUT_SECONDS:10}
+    chaos-payloads-enabled: ${QUEUEFORGE_WORKER_CHAOS_PAYLOADS_ENABLED:false}
   retry:
     initial-delay-seconds: ${RETRY_INITIAL_DELAY_SECONDS:5}
     multiplier: ${RETRY_MULTIPLIER:3.0}

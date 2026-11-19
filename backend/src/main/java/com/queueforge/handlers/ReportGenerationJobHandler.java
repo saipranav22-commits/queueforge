@@ -11,6 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 
+/**
+ * Production handler for report generation tasks.
+ * Pure business logic with no fault-injection or test-control capabilities.
+ */
 @Component
 public class ReportGenerationJobHandler implements JobHandler {
 

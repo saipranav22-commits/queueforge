@@ -1,0 +1,129 @@
+services:
+  chaos-db:
+    image: postgres:16.8-alpine
+    container_name: qf-chaos-db
+    environment:
+      POSTGRES_DB: queueforge_chaos
+      POSTGRES_USER: qf_chaos_user
+      POSTGRES_PASSWORD: qf_chaos_pass
+    ports:
+      - "127.0.0.1:5440:5432"
+    volumes:
+      - ./data/chaos-db:/var/lib/postgresql/data
+    networks:
+      - qf-chaos-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qf_chaos_user -d queueforge_chaos"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+
+  chaos-api:
+    image: queueforge-backend:chaos
+    container_name: qf-chaos-api
+    environment:
+      QUEUEFORGE_MODE: API_ONLY
+      QUEUEFORGE_INSTANCE_ID: chaos-api-1
+      DB_HOST: chaos-db
+      DB_PORT: 5432
+      DB_NAME: queueforge_chaos
+      DB_USERNAME: qf_chaos_user
+      DB_PASSWORD: qf_chaos_pass
+      SERVER_PORT: 8094
+      ADMIN_API_KEY: qf_admin_dev_secret_2026
+      JAVA_OPTS: "-XX:+UseContainerSupport -Xmx256m -Xms128m"
+    ports:
+      - "127.0.0.1:8094:8094"
+    volumes:
+      - ./data/chaos-signals:/chaos-signals
+    networks:
+      - qf-chaos-net
+    depends_on:
+      chaos-db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  chaos-worker-1:
+    image: queueforge-backend:chaos
+    container_name: qf-chaos-worker-1
+    environment:
+      QUEUEFORGE_MODE: WORKER_ONLY
+      QUEUEFORGE_INSTANCE_ID: chaos-worker-1
+      DB_HOST: chaos-db
+      DB_PORT: 5432
+      DB_NAME: queueforge_chaos
+      DB_USERNAME: qf_chaos_user
+      DB_PASSWORD: qf_chaos_pass
+      SERVER_PORT: 8095
+      WORKER_CONCURRENCY: 2
+      WORKER_POLL_INTERVAL_MS: 100
+      WORKER_LEASE_DURATION_SECONDS: 6
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: 2
+      WORKER_RECOVERY_POLL_INTERVAL_MS: 2000
+      QUEUEFORGE_WORKER_CHAOS_PAYLOADS_ENABLED: "true"
+      ADMIN_API_KEY: qf_admin_dev_secret_2026
+      JAVA_OPTS: "-XX:+UseContainerSupport -Xmx256m -Xms128m"
+    ports:
+      - "127.0.0.1:8095:8095"
+    volumes:
+      - ./data/chaos-signals:/chaos-signals
+    networks:
+      - qf-chaos-net
+    depends_on:
+      chaos-db:
+        condition: service_healthy
+      chaos-api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  chaos-worker-2:
+    image: queueforge-backend:chaos
+    container_name: qf-chaos-worker-2
+    environment:
+      QUEUEFORGE_MODE: WORKER_ONLY
+      QUEUEFORGE_INSTANCE_ID: chaos-worker-2
+      DB_HOST: chaos-db
+      DB_PORT: 5432
+      DB_NAME: queueforge_chaos
+      DB_USERNAME: qf_chaos_user
+      DB_PASSWORD: qf_chaos_pass
+      SERVER_PORT: 8096
+      WORKER_CONCURRENCY: 2
+      WORKER_POLL_INTERVAL_MS: 100
+      WORKER_LEASE_DURATION_SECONDS: 6
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: 2
+      WORKER_RECOVERY_POLL_INTERVAL_MS: 2000
+      QUEUEFORGE_WORKER_CHAOS_PAYLOADS_ENABLED: "true"
+      ADMIN_API_KEY: qf_admin_dev_secret_2026
+      JAVA_OPTS: "-XX:+UseContainerSupport -Xmx256m -Xms128m"
+    ports:
+      - "127.0.0.1:8096:8096"
+    volumes:
+      - ./data/chaos-signals:/chaos-signals
+    networks:
+      - qf-chaos-net
+    depends_on:
+      chaos-db:
+        condition: service_healthy
+      chaos-api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+networks:
+  qf-chaos-net:
+    name: qf-chaos-net
+    driver: bridge

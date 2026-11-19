@@ -22,7 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "queueforge.worker.enabled=false"
+})
 class JobClaimServiceIntegrationTest {
 
     @Autowired

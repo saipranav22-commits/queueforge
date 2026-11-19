@@ -1,0 +1,15 @@
+package com.queueforge.chaoslab.model;
+
+public enum ChaosEventType {
+    JOB_SUBMITTED,
+    JOB_CLAIMED,
+    TOKEN_ASSIGNED,
+    HEARTBEAT_EXTENDED,
+    FAULT_INJECTED,
+    LEASE_EXPIRED,
+    JOB_RECOVERED,
+    JOB_RETRIED,
+    JOB_COMPLETED,
+    JOB_DEAD_LETTERED,
+    STALE_COMMIT_REJECTED
+}

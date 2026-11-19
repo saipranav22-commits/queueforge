@@ -1,15 +1,24 @@
-name: QueueForge CI
+name: QueueForge V2 CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, feature/multi-instance-workers ]
   pull_request:
-    branches: [ master, main ]
+    branches: [ master, main, feature/multi-instance-workers ]
+  workflow_dispatch:
+    inputs:
+      run_destructive_chaos:
+        description: 'Run destructive cross-process fault-injection tests'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
 
 jobs:
+  # ----------------------------------------------------------------------------
+  # 1. Primary Backend Tests (ACID Queue, SKIP LOCKED, FairShare DRR, Security)
+  # ----------------------------------------------------------------------------
   backend-test:
     name: Backend Build & Integration Tests
     runs-on: ubuntu-latest
@@ -24,7 +33,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U queueforge_app"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -40,7 +49,7 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compile and Run Tests
+      - name: Compile and Run Backend Tests
         working-directory: ./backend
         env:
           DB_HOST: 127.0.0.1
@@ -50,8 +59,55 @@ jobs:
           DB_PASSWORD: ci_test_password
           ADMIN_API_KEY: ci_admin_secret_key_testing_only
         run: |
-          mvn clean test -B
+          mvn clean test -DargLine="-XX:+UseSerialGC -Xmx384m" -B
 
+  # ----------------------------------------------------------------------------
+  # 2. Simulated Payment Receiver Tests (Durable Inbox, Idempotent Processing)
+  # ----------------------------------------------------------------------------
+  receiver-test:
+    name: Simulated Payment Receiver Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres-receiver:
+        image: postgres:16.8-alpine
+        env:
+          POSTGRES_DB: queueforge_payment_receiver
+          POSTGRES_USER: queueforge_app
+          POSTGRES_PASSWORD: ci_test_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U queueforge_app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Compile and Run Receiver Tests
+        working-directory: ./simulated-payment-receiver
+        env:
+          RECEIVER_DB_HOST: 127.0.0.1
+          RECEIVER_DB_PORT: 5433
+          RECEIVER_DB_NAME: queueforge_payment_receiver
+          DB_USERNAME: queueforge_app
+          DB_PASSWORD: ci_test_password
+        run: |
+          mvn clean test -DargLine="-XX:+UseSerialGC -Xmx256m" -B
+
+  # ----------------------------------------------------------------------------
+  # 3. Frontend Quality, Type Checking & Build
+  # ----------------------------------------------------------------------------
   frontend-test:
     name: Frontend Quality & Build
     runs-on: ubuntu-latest
@@ -91,10 +147,13 @@ jobs:
         working-directory: ./frontend
         run: npm audit --audit-level=high || true
 
+  # ----------------------------------------------------------------------------
+  # 4. Docker Container Image Verification for All Application Modules
+  # ----------------------------------------------------------------------------
   docker-build-verification:
     name: Docker Container Image Verification
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
+    needs: [backend-test, receiver-test, frontend-test]
 
     steps:
       - name: Checkout Source Code
@@ -110,6 +169,14 @@ jobs:
           file: ./backend/Dockerfile
           push: false
           tags: queueforge-backend:ci
+
+      - name: Build Simulated Payment Receiver Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./simulated-payment-receiver
+          file: ./simulated-payment-receiver/Dockerfile
+          push: false
+          tags: queueforge-payment-receiver:ci
 
       - name: Build Frontend Docker Image
         uses: docker/build-push-action@v5

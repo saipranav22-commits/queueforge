@@ -23,6 +23,14 @@ public record DlqJobDetailResponse(
         Instant createdAt,
         Instant scheduledAt,
         Instant completedAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String tenantId
 ) {
+    public DlqJobDetailResponse(UUID jobId, String idempotencyKey, String jobType, JsonNode payload,
+                                int priority, String status, int attemptCount, int retryCount,
+                                int maxRetries, String failureCategory, String lastErrorMessage,
+                                String lastErrorStack, Instant createdAt, Instant scheduledAt,
+                                Instant completedAt, Instant updatedAt) {
+        this(jobId, idempotencyKey, jobType, payload, priority, status, attemptCount, retryCount, maxRetries, failureCategory, lastErrorMessage, lastErrorStack, createdAt, scheduledAt, completedAt, updatedAt, "default");
+    }
 }

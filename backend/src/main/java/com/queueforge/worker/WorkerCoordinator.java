@@ -32,6 +32,7 @@ public class WorkerCoordinator implements SmartLifecycle {
     private final JobClaimService claimService;
     private final JobHandlerRegistry handlerRegistry;
     private final WorkerProperties properties;
+    private final com.queueforge.config.QueueForgeProperties queueForgeProperties;
     private final String coordinatorId;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -40,17 +41,20 @@ public class WorkerCoordinator implements SmartLifecycle {
 
     public WorkerCoordinator(JobClaimService claimService,
                              JobHandlerRegistry handlerRegistry,
-                             WorkerProperties properties) {
+                             WorkerProperties properties,
+                             com.queueforge.config.QueueForgeProperties queueForgeProperties) {
         this.claimService = claimService;
         this.handlerRegistry = handlerRegistry;
         this.properties = properties;
-        this.coordinatorId = "coord-" + UUID.randomUUID().toString().substring(0, 8);
+        this.queueForgeProperties = queueForgeProperties;
+        this.coordinatorId = queueForgeProperties.getInstanceId();
     }
 
     @Override
     public synchronized void start() {
-        if (running.get() || !properties.isEnabled()) {
-            log.info("WorkerCoordinator is disabled or already running (enabled={})", properties.isEnabled());
+        if (running.get() || !queueForgeProperties.isWorkerActive() || !properties.isEnabled()) {
+            log.info("WorkerCoordinator is disabled or already running (enabled={}, mode={})",
+                    properties.isEnabled(), queueForgeProperties.getMode());
             return;
         }
 
@@ -124,7 +128,13 @@ public class WorkerCoordinator implements SmartLifecycle {
             );
 
             for (ClaimedJob job : claimedJobs) {
-                workerPool.submit(() -> executeClaimedJob(job));
+                workerPool.submit(() -> {
+                    try {
+                        executeClaimedJob(job);
+                    } catch (Throwable t) {
+                        log.error("[{}] Uncaught error executing job {}:", coordinatorId, job.id(), t);
+                    }
+                });
             }
         } catch (Exception e) {
             log.error("[{}] Error during job polling and dispatch:", coordinatorId, e);
@@ -132,10 +142,11 @@ public class WorkerCoordinator implements SmartLifecycle {
     }
 
     private void executeClaimedJob(ClaimedJob job) {
-        String workerName = Thread.currentThread().getName();
+        String workerName = coordinatorId + ":" + Thread.currentThread().getName();
         long startTime = System.currentTimeMillis();
 
         try {
+            MDC.put("instanceId", coordinatorId);
             MDC.put("jobId", job.id().toString());
             MDC.put("jobType", job.jobType());
             MDC.put("attempt", String.valueOf(job.attemptCount()));
@@ -175,21 +186,31 @@ public class WorkerCoordinator implements SmartLifecycle {
             // Periodic heartbeat extension for long-running executions
             int heartbeatInterval = properties.getHeartbeatIntervalSeconds();
             int leaseDuration = properties.getLeaseDurationSeconds();
-            ScheduledFuture<?> heartbeatTask = heartbeatExecutor.scheduleWithFixedDelay(
-                    () -> {
-                        try {
-                            boolean extended = claimService.extendLease(job.id(), job.claimToken(), leaseDuration, workerName);
-                            if (!extended) {
-                                log.warn("[{}] Heartbeat extension rejected for jobId={}. Fencing out.", workerName, job.id());
+            boolean disableHeartbeat = properties.isChaosPayloadsEnabled()
+                    && "CHAOS_TEST".equalsIgnoreCase(job.jobType())
+                    && job.payload() != null
+                    && job.payload().path("disableHeartbeat").asBoolean(false);
+            ScheduledFuture<?> heartbeatTask = null;
+
+            if (!disableHeartbeat && heartbeatInterval > 0) {
+                heartbeatTask = heartbeatExecutor.scheduleWithFixedDelay(
+                        () -> {
+                            try {
+                                boolean extended = claimService.extendLease(job.id(), job.claimToken(), leaseDuration, workerName);
+                                if (!extended) {
+                                    log.warn("[{}] Heartbeat extension rejected for jobId={}. Fencing out.", workerName, job.id());
+                                }
+                            } catch (Exception ex) {
+                                log.warn("[{}] Heartbeat extension exception for jobId={}: {}", workerName, job.id(), ex.getMessage());
                             }
-                        } catch (Exception ex) {
-                            log.warn("[{}] Heartbeat extension exception for jobId={}: {}", workerName, job.id(), ex.getMessage());
-                        }
-                    },
-                    heartbeatInterval,
-                    heartbeatInterval,
-                    TimeUnit.SECONDS
-            );
+                        },
+                        heartbeatInterval,
+                        heartbeatInterval,
+                        TimeUnit.SECONDS
+                );
+            } else if (disableHeartbeat) {
+                log.info("[{}] Heartbeat intentionally disabled by payload for jobId={}", workerName, job.id());
+            }
 
             JobExecutionContext context = new JobExecutionContext(
                     job.id(),
@@ -306,5 +327,9 @@ public class WorkerCoordinator implements SmartLifecycle {
 
     public int getPoolCapacity() {
         return workerPool != null ? workerPool.getMaximumPoolSize() : 0;
+    }
+
+    public String getCoordinatorId() {
+        return coordinatorId;
     }
 }

@@ -10,15 +10,27 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AdminAuthInterceptor adminAuthInterceptor;
+    private final com.queueforge.api.security.AppModeGuardInterceptor appModeGuardInterceptor;
+    private final com.queueforge.api.security.TenantAuthInterceptor tenantAuthInterceptor;
 
-    public WebMvcConfig(AdminAuthInterceptor adminAuthInterceptor) {
+    public WebMvcConfig(AdminAuthInterceptor adminAuthInterceptor,
+                        com.queueforge.api.security.AppModeGuardInterceptor appModeGuardInterceptor,
+                        com.queueforge.api.security.TenantAuthInterceptor tenantAuthInterceptor) {
         this.adminAuthInterceptor = adminAuthInterceptor;
+        this.appModeGuardInterceptor = appModeGuardInterceptor;
+        this.tenantAuthInterceptor = tenantAuthInterceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(appModeGuardInterceptor)
+                .addPathPatterns("/api/**");
+
         registry.addInterceptor(adminAuthInterceptor)
                 .addPathPatterns("/api/v1/admin/**");
+
+        registry.addInterceptor(tenantAuthInterceptor)
+                .addPathPatterns("/api/v1/jobs/**", "/api/v1/admin/dlq/**");
     }
 
     @Override
