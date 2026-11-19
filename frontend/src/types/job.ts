@@ -8,6 +8,7 @@ export type JobStatus =
 
 export interface JobSummary {
   jobId: string;
+  tenantId?: string;
   jobType: string;
   status: JobStatus;
   priority: number;
@@ -24,6 +25,7 @@ export interface JobSummary {
 
 export interface JobDetail {
   jobId: string;
+  tenantId?: string;
   jobType: string;
   status: JobStatus;
   payload: any;
@@ -45,6 +47,7 @@ export interface JobDetail {
 export interface JobExecutionLog {
   id: number;
   jobId: string;
+  tenantId?: string;
   workerId: string;
   attempt: number;
   status: string;

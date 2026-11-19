@@ -27,6 +27,7 @@ export interface JobsQueryFilter {
   search?: string;
   sortBy?: string;
   sortDirection?: 'ASC' | 'DESC';
+  tenantId?: string;
 }
 
 export function useJobs(filters: JobsQueryFilter) {
@@ -38,6 +39,7 @@ export function useJobs(filters: JobsQueryFilter) {
   if (filters.search) queryParams.set('search', filters.search);
   if (filters.sortBy) queryParams.set('sortBy', filters.sortBy);
   if (filters.sortDirection) queryParams.set('sortDirection', filters.sortDirection);
+  if (filters.tenantId) queryParams.set('tenantId', filters.tenantId);
 
   const queryString = queryParams.toString();
   const endpoint = `/jobs${queryString ? `?${queryString}` : ''}`;
@@ -121,4 +123,70 @@ export function useDlqActions() {
     discardJob: discardMutation.mutateAsync,
     isDiscarding: discardMutation.isPending,
   };
+}
+
+export function useTenants(enabled = true) {
+  return useQuery<import('../types/tenant').TenantSummary[]>({
+    queryKey: ['admin-tenants'],
+    queryFn: () => apiRequest<import('../types/tenant').TenantSummary[]>('/admin/tenants'),
+    enabled,
+    refetchInterval: 5000,
+    retry: false, // Don't spam if 401 unauthenticated
+  });
+}
+
+export function useManualOutboxDispatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params?: { batchSize?: number; leaseDurationSeconds?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.batchSize) q.set('batchSize', params.batchSize.toString());
+      if (params?.leaseDurationSeconds) q.set('leaseDurationSeconds', params.leaseDurationSeconds.toString());
+      const queryStr = q.toString();
+      return apiRequest<import('../types/outbox').OutboxDispatchResult>(
+        `/admin/outbox/dispatch${queryStr ? `?${queryStr}` : ''}`,
+        { method: 'POST' }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['system-metrics-summary'] });
+    },
+  });
+}
+
+export function useCreateJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      jobType: string;
+      payload: any;
+      priority?: number;
+      maxRetries?: number;
+      delaySeconds?: number;
+      tenantId?: string;
+      idempotencyKey?: string;
+    }) => {
+      const headers: Record<string, string> = {};
+      if (data.idempotencyKey) {
+        headers['Idempotency-Key'] = data.idempotencyKey;
+      }
+      return apiRequest<{ jobId: string; tenantId: string; status: string; createdAt: string }>('/jobs', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          jobType: data.jobType,
+          payload: data.payload,
+          priority: data.priority ?? 50,
+          maxRetries: data.maxRetries ?? 3,
+          delaySeconds: data.delaySeconds ?? 0,
+          tenantId: data.tenantId,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
 }

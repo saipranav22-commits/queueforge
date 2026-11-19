@@ -1,0 +1,199 @@
+/* ==============================================================================
+   QUEUEFORGE — OBSIDIAN PULSE DESIGN SYSTEM TOKENS
+   Official Theme Specification: Dark (Signature) & Light Modes
+   ============================================================================== */
+
+:root {
+  /* Foundations */
+  --qf-obsidian: #08090E;
+  --qf-graphite: #11131B;
+  --qf-surface-elevated: #171922;
+  --qf-surface-interactive: #202330;
+  --qf-surface-hover: #262A3B;
+  --qf-border-subtle: #2A2D3B;
+  --qf-border-strong: #3B4054;
+
+  /* Typography */
+  --qf-text-frost: #F2F4FA;
+  --qf-text-chrome: #BBC3D1;
+  --qf-text-muted: #9099AC;
+
+  /* Brand Colors */
+  --qf-amethyst: #9B70F5;
+  --qf-amethyst-hover: #AE8AFF;
+  --qf-amethyst-subtle: rgba(155, 112, 245, 0.12);
+  --qf-amethyst-border: rgba(155, 112, 245, 0.32);
+
+  /* Operational Accent */
+  --qf-cyan: #35D8F5;
+  --qf-cyan-subtle: rgba(53, 216, 245, 0.12);
+  --qf-cyan-border: rgba(53, 216, 245, 0.32);
+
+  /* Semantic Colors */
+  --qf-status-success: #47D6AD;
+  --qf-status-success-subtle: rgba(71, 214, 173, 0.12);
+  --qf-status-success-border: rgba(71, 214, 173, 0.32);
+
+  --qf-status-active: #35D8F5;
+  --qf-status-active-subtle: rgba(53, 216, 245, 0.12);
+  --qf-status-active-border: rgba(53, 216, 245, 0.32);
+
+  --qf-status-warning: #F4B860;
+  --qf-status-warning-subtle: rgba(244, 184, 96, 0.12);
+  --qf-status-warning-border: rgba(244, 184, 96, 0.32);
+
+  /* Laser Crimson: Strictly reserved for failures, incidents, and destructive actions */
+  --qf-status-critical: #F04455;
+  --qf-status-critical-subtle: rgba(240, 68, 85, 0.12);
+  --qf-status-critical-border: rgba(240, 68, 85, 0.35);
+
+  /* Surface Mappings (Dark Mode Signature) */
+  --bg-app: var(--qf-obsidian);
+  --bg-sidebar: var(--qf-graphite);
+  --bg-header: rgba(17, 19, 27, 0.85);
+  --bg-card: var(--qf-surface-elevated);
+  --bg-card-hover: var(--qf-surface-interactive);
+  --bg-input: #0D0E15;
+  --border-color: var(--qf-border-subtle);
+  --border-color-focus: var(--qf-amethyst);
+  
+  --text-primary: var(--qf-text-frost);
+  --text-secondary: var(--qf-text-chrome);
+  --text-tertiary: var(--qf-text-muted);
+
+  /* Standardized Color Aliases */
+  --color-bg-base: var(--qf-obsidian);
+  --color-bg-deep: var(--qf-graphite);
+  --color-bg-elevated: var(--qf-surface-elevated);
+  --color-bg-interactive: var(--qf-surface-interactive);
+  --color-bg-hover: var(--qf-surface-hover);
+  --color-border-subtle: var(--qf-border-subtle);
+  --color-border-interactive: var(--qf-border-strong);
+
+  --color-text-primary: var(--qf-text-frost);
+  --color-text-secondary: var(--qf-text-chrome);
+  --color-text-muted: var(--qf-text-muted);
+
+  --color-amethyst: var(--qf-amethyst);
+  --color-amethyst-bg: var(--qf-amethyst-subtle);
+  --color-amethyst-border: var(--qf-amethyst-border);
+
+  --color-cyan: var(--qf-cyan);
+  --color-cyan-bg: var(--qf-cyan-subtle);
+  --color-cyan-border: var(--qf-cyan-border);
+
+  --color-success: var(--qf-status-success);
+  --color-success-bg: var(--qf-status-success-subtle);
+  --color-success-border: var(--qf-status-success-border);
+
+  --color-warning: var(--qf-status-warning);
+  --color-warning-bg: var(--qf-status-warning-subtle);
+  --color-warning-border: var(--qf-status-warning-border);
+
+  --color-danger: var(--qf-status-critical);
+  --color-danger-bg: var(--qf-status-critical-subtle);
+  --color-danger-border: var(--qf-status-critical-border);
+
+  /* Shadows */
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+  --shadow-elevated: 0 10px 30px -4px rgba(0, 0, 0, 0.65);
+  --shadow-amethyst: 0 0 16px -2px rgba(155, 112, 245, 0.25);
+  --shadow-cyan: 0 0 16px -2px rgba(53, 216, 245, 0.25);
+}
+
+[data-theme="light"] {
+  /* Foundations (Professionally Tailored Light Mode) */
+  --qf-obsidian: #F5F7FB;
+  --qf-graphite: #FFFFFF;
+  --qf-surface-elevated: #FFFFFF;
+  --qf-surface-interactive: #F0F2F8;
+  --qf-surface-hover: #E8EBF4;
+  --qf-border-subtle: #D8DEEC;
+  --qf-border-strong: #B8C2D8;
+
+  /* Typography */
+  --qf-text-frost: #0B0E17;
+  --qf-text-chrome: #364052;
+  --qf-text-muted: #64748B;
+
+  /* Brand Colors (Adjusted Contrast for Light Mode) */
+  --qf-amethyst: #7E4EE6;
+  --qf-amethyst-hover: #6C3BD4;
+  --qf-amethyst-subtle: rgba(126, 78, 230, 0.08);
+  --qf-amethyst-border: rgba(126, 78, 230, 0.28);
+
+  /* Operational Accent */
+  --qf-cyan: #0796B4;
+  --qf-cyan-subtle: rgba(7, 150, 180, 0.08);
+  --qf-cyan-border: rgba(7, 150, 180, 0.28);
+
+  /* Semantic Colors */
+  --qf-status-success: #16A374;
+  --qf-status-success-subtle: rgba(22, 163, 116, 0.08);
+  --qf-status-success-border: rgba(22, 163, 116, 0.25);
+
+  --qf-status-active: #0796B4;
+  --qf-status-active-subtle: rgba(7, 150, 180, 0.08);
+  --qf-status-active-border: rgba(7, 150, 180, 0.28);
+
+  --qf-status-warning: #D98218;
+  --qf-status-warning-subtle: rgba(217, 130, 24, 0.08);
+  --qf-status-warning-border: rgba(217, 130, 24, 0.25);
+
+  --qf-status-critical: #E02B3D;
+  --qf-status-critical-subtle: rgba(224, 43, 61, 0.08);
+  --qf-status-critical-border: rgba(224, 43, 61, 0.30);
+
+  /* Surface Mappings */
+  --bg-app: #F5F7FB;
+  --bg-sidebar: #FFFFFF;
+  --bg-header: rgba(255, 255, 255, 0.90);
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFD;
+  --bg-input: #FFFFFF;
+  --border-color: #D8DEEC;
+  --border-color-focus: #7E4EE6;
+  
+  --text-primary: #0B0E17;
+  --text-secondary: #364052;
+  --text-tertiary: #64748B;
+
+  /* Standardized Color Aliases (Light) */
+  --color-bg-base: #F5F7FB;
+  --color-bg-deep: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-interactive: #F0F2F8;
+  --color-bg-hover: #E8EBF4;
+  --color-border-subtle: #D8DEEC;
+  --color-border-interactive: #B8C2D8;
+
+  --color-text-primary: #0B0E17;
+  --color-text-secondary: #364052;
+  --color-text-muted: #64748B;
+
+  --color-amethyst: #7E4EE6;
+  --color-amethyst-bg: rgba(126, 78, 230, 0.08);
+  --color-amethyst-border: rgba(126, 78, 230, 0.28);
+
+  --color-cyan: #0796B4;
+  --color-cyan-bg: rgba(7, 150, 180, 0.08);
+  --color-cyan-border: rgba(7, 150, 180, 0.28);
+
+  --color-success: #16A374;
+  --color-success-bg: rgba(22, 163, 116, 0.08);
+  --color-success-border: rgba(22, 163, 116, 0.25);
+
+  --color-warning: #D98218;
+  --color-warning-bg: rgba(217, 130, 24, 0.08);
+  --color-warning-border: rgba(217, 130, 24, 0.25);
+
+  --color-danger: #E02B3D;
+  --color-danger-bg: rgba(224, 43, 61, 0.08);
+  --color-danger-border: rgba(224, 43, 61, 0.30);
+
+  /* Shadows */
+  --shadow-card: 0 2px 10px -2px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 10px 25px -4px rgba(15, 23, 42, 0.10);
+  --shadow-amethyst: 0 0 12px -2px rgba(126, 78, 230, 0.20);
+  --shadow-cyan: 0 0 12px -2px rgba(7, 150, 180, 0.20);
+}
