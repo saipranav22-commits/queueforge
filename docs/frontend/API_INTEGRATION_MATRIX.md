@@ -12,10 +12,11 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 | **Mission Control & KPIs** | `/api/v1/dashboard/stats` | `GET` | No | No | None | `DashboardStats` |
 | **Health Header Pills** | `/api/v1/system/health` | `GET` | No | No | None | `SystemHealth` |
 | **Telemetry & Latency P95** | `/api/v1/system/metrics-summary` | `GET` | No | No | None | `SystemMetricsSummary` |
-| **Job Activity Table** | `/api/v1/jobs` | `GET` | No | No | `page, size, status, tenantId, sortBy` | `PageResponse<JobSummary>` |
-| **Job Slide-Over Drawer** | `/api/v1/jobs/{jobId}/detail` | `GET` | No | No | Path: `jobId` | `JobDetail` |
-| **Execution History Logs** | `/api/v1/jobs/{jobId}/history` | `GET` | No | No | Path: `jobId` | `JobExecutionLog[]` |
-| **Submit Test Job** | `/api/v1/jobs` | `POST` | No | No | `jobType, payload, priority, maxRetries` | `{ jobId, status, createdAt }` |
+| **Worker Fleet Discovery** | `/api/v1/system/workers` | `GET` | No | No | None | `WorkerInstance[]` |
+| **Job Explorer Table** | `/api/v1/jobs` | `GET` | No | No | `page, size, status, tenantId, jobType, search, priority, sortBy, sortDirection` | `PageResponse<JobSummary>` |
+| **Job Slide-Over Drawer** | `/api/v1/jobs/{jobId}/detail` | `GET` | No (Masked) / Yes (Raw) | No | Path: `jobId` | `JobDetail` |
+| **Execution History Logs** | `/api/v1/jobs/{jobId}/history` | `GET` | No (Masked) / Yes (Raw) | No | Path: `jobId` | `JobExecutionLog[]` |
+| **Submit Test Job** | `/api/v1/jobs` | `POST` | No | No | `jobType, payload, priority, maxRetries, tenantId` | `{ jobId, status, createdAt }` |
 | **FairShare Tenant Registry** | `/api/v1/admin/tenants` | `GET` | Yes (Admin) | No | None | `TenantSummary[]` |
 | **Provision Tenant Modal** | `/api/v1/admin/tenants` | `POST` | Yes (Admin) | Yes | `id, name, weight, maxConcurrency` | `{ tenant, apiKey }` |
 | **Manual Outbox Dispatch** | `/api/v1/admin/outbox/dispatch`| `POST` | Yes (Admin) | Yes | `batchSize, leaseDurationSeconds` | `OutboxDispatchResult` |
@@ -27,7 +28,34 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 
 ---
 
-## 3. Request Header Standards
+## 3. Worker Fleet API Contract (`/api/v1/system/workers`)
+
+```json
+[
+  {
+    "instanceId": "worker-v2-node-1",
+    "mode": "WORKER_ONLY",
+    "status": "ONLINE",
+    "concurrency": 2,
+    "activeJobs": 1,
+    "heldLeasesCount": 1,
+    "completedJobsCount": 42,
+    "failedJobsCount": 1,
+    "lastHeartbeat": "2026-11-19T11:45:00Z",
+    "startedAt": "2026-11-19T11:00:00Z",
+    "heartbeatAgeSeconds": 3
+  }
+]
+```
+
+### Status Definitions:
+- `ONLINE`: `heartbeatAgeSeconds <= 15`
+- `STALE`: `heartbeatAgeSeconds > 15 && heartbeatAgeSeconds <= 45`
+- `OFFLINE`: `heartbeatAgeSeconds > 45` or explicitly reported as `STOPPED`
+
+---
+
+## 4. Request Header Standards
 
 ### A. Consumer Idempotency
 - When submitting jobs via `POST /api/v1/jobs`, the client attaches an `Idempotency-Key: <unique-key>` header.
@@ -39,10 +67,3 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 
 ### C. Tenant Header Isolation
 - Optional `X-Tenant-ID` header routes job claims and queries into isolated tenant partitions.
-
----
-
-## 4. Error Handling & Graceful Degradation
-1. **401 Unauthorized / 403 Forbidden:** The UI does not crash or throw unhandled exceptions; instead, it renders an elegant "Admin Mode Required" card and triggers `openUnlockModal()`.
-2. **503 Service Unavailable (Database Down):** Header health indicator turns Laser Crimson (`DB: DOWN`), and metric cards display clear degradation indicators rather than fabricated data.
-3. **Empty Data States:** When tables or queues are empty, dedicated `EmptyState` components provide actionable buttons (e.g., "Submit Job" or "Provision Tenant") rather than empty white space.

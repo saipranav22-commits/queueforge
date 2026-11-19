@@ -42,8 +42,6 @@ describe('Mission Control (OverviewPage)', () => {
     expect(screen.getByText('Completed Total')).toBeInTheDocument();
     expect(screen.getByText('Dead-Letter Queue')).toBeInTheDocument();
     expect(screen.getByText('Distributed Worker Fleet')).toBeInTheDocument();
-    expect(screen.getByText('worker-v2-node-1')).toBeInTheDocument();
-    expect(screen.getByText('worker-v2-node-2')).toBeInTheDocument();
     expect(screen.getByText('Reliability & DLQ')).toBeInTheDocument();
     expect(screen.getByText('FairShare Scheduler')).toBeInTheDocument();
     expect(screen.getByText('Transactional Outbox')).toBeInTheDocument();

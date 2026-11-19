@@ -4,11 +4,12 @@
 The **QueueForge Control Plane** provides an enterprise-grade operational interface for managing, inspecting, and governing a high-throughput, lease-fenced distributed queue cluster. 
 
 Rather than serving as a passive metrics dashboard, the Control Plane acts as a **Mission Control Console** where operators can:
-- Observe cluster-wide queue lifecycle transitions in real-time.
-- Monitor multi-worker fleet attribution across independent nodes (`worker-v2-node-1`, `worker-v2-node-2`).
+- Observe cluster-wide queue lifecycle transitions in real-time with server-side pagination and filters.
+- Monitor multi-worker fleet attribution across independent nodes with dynamic heartbeat freshness discovery.
 - Inspect and adjust FairShare multi-tenant quotas and Deficit Round-Robin (DRR) weights.
 - Trigger and observe Transactional Outbox event relays to downstream payment services.
 - Audit dead-letter queue (DLQ) incidents and initiate idempotent replays.
+- Trace verified execution attempt histories through chronological vertical audit timelines.
 
 ---
 
@@ -18,7 +19,7 @@ Rather than serving as a passive metrics dashboard, the Control Plane acts as a 
    ┌────────────────────────────────────────────────────────┐
    │                   Browser / Client                     │
    │  ┌───────────────────────┐  ┌───────────────────────┐  │
-   │  │  Mission Control UI   │  │ FairShare / Pipeline  │  │
+   │  │  Mission Control UI   │  │ Job Explorer / Fleet  │  │
    │  └───────────┬───────────┘  └───────────┬───────────┘  │
    │              │                          │              │
    │              ▼                          ▼              │
@@ -28,62 +29,77 @@ Rather than serving as a passive metrics dashboard, the Control Plane acts as a 
                                   ▼
    ┌────────────────────────────────────────────────────────┐
    │                 QueueForge API Gateway                 │
-   │       (/api/v1/dashboard/stats, /system/health, etc)   │
+   │   (/api/v1/jobs, /system/workers, /dashboard/stats)    │
    └──────────────┬──────────────────────────┬──────────────┘
                   │                          │
                   ▼                          ▼
    ┌──────────────────────────────┐  ┌──────────────────────┐
    │     PostgreSQL Database      │  │ Simulated Receiver   │
-   │   (SKIP LOCKED Lease Queue)  │  │   (Durable Port 8085)│
-   └──────────────────────────────┘  └──────────────────────┘
+   │   - qf_jobs (SKIP LOCKED)    │  │   (Durable Port 8085)│
+   │   - qf_worker_heartbeats     │  └──────────────────────┘
+   │   - qf_job_execution_logs    │
+   └──────────────────────────────┘
 ```
 
 ### A. Reactive Polling & Cache Invalidation
-- **Live Metric Synchronization:** Primary stats (`/dashboard/stats`), system health (`/system/health`), and metrics summaries (`/system/metrics-summary`) poll at optimized intervals (3–5 seconds).
+- **Live Metric Synchronization:** Primary stats (`/dashboard/stats`), system health (`/system/health`), metrics summaries (`/system/metrics-summary`), and worker fleet (`/system/workers`) poll at optimized intervals (3–5 seconds).
 - **Targeted Cache Invalidation:** Mutation actions (e.g., job creation, tenant provisioning, outbox manual relay, DLQ replay) selectively invalidate only affected cache keys using `useQueryClient().invalidateQueries(...)`, preventing full-page re-renders.
 - **Backoff & Idle Optimization:** When browser tabs are out of focus or jobs reach terminal states (`COMPLETED`, `DEAD_LETTER`), polling frequency is dynamically attenuated to conserve CPU and network resources.
 
 ---
 
-## 3. Layout Architecture & Component Hierarchy
+## 3. Distributed Worker Fleet Discovery Architecture
 
-### A. Persistent Navigation Shell
-- **AppLayout:** Coordinates the responsive viewports, managing persistent desktop sidebars and mobile sliding overlays.
-- **Sidebar:** Houses the 8 core operational navigation destinations:
-  1. Mission Control (`/`)
-  2. Job Explorer (`/jobs`)
-  3. Worker Fleet (`/workers`)
-  4. FairShare Multi-Tenant (`/fairshare`)
-  5. Event Pipeline (`/pipeline`)
-  6. Reliability Lab (`/dlq`)
-  7. Observability (`/monitoring`)
-  8. Administration (`/admin`)
-- **Header:** Features dynamic breadcrumbs, cluster topology badges (`V2 CLUSTER • DISTRIBUTED`), live database/worker health pills, global theme toggle, and the `Ctrl+K` Command Palette activator.
+### A. Real Heartbeat Registry (`qf_worker_heartbeats`)
+To avoid fragile client assumptions or hardcoded node lists, QueueForge V2 implements a minimal, bounded PostgreSQL heartbeat table:
+- `instance_id VARCHAR(64) PRIMARY KEY`
+- `mode VARCHAR(32)` (`WORKER_ONLY`, `COMBINED`, `API_ONLY`)
+- `status VARCHAR(32)` (`RUNNING`, `STOPPED`)
+- `concurrency INT`
+- `active_jobs INT`
+- `last_heartbeat TIMESTAMPTZ`
+- `started_at TIMESTAMPTZ`
 
-### B. Slide-Over Detail Drawer
-- The `DetailDrawer` component enables deep inspection of job payloads, failure stacktraces, tenant affiliations, and execution logs directly within the context of the active page, avoiding disruptive page navigations.
-- Keyboard accessible with `Escape` dismiss and full focus trapping.
+### B. Freshness & Truthful Status Evaluation
+The backend calculates heartbeat freshness (`heartbeatAgeSeconds`) on each request:
+- **`ONLINE`:** Heartbeat received within the last 15 seconds (gentle green pulse).
+- **`STALE`:** Heartbeat between 15 and 45 seconds old (amber warning indicator).
+- **`OFFLINE`:** Heartbeat older than 45 seconds or explicitly marked `STOPPED` during graceful shutdown.
 
-### C. Global Command Palette (`Ctrl+K` / `⌘K`)
-- Accessible anywhere in the application.
-- Allows operators to instantly search commands, jump to sub-consoles, trigger admin unlock, or filter by operational domain.
+### C. Attribution & Held Lease Scanning
+Each worker card and inspector drawer joins the worker's instance prefix against active rows in `qf_jobs` (`locked_by LIKE instanceId% AND status = 'RUNNING'`) and historical execution logs in `qf_job_execution_logs`.
 
 ---
 
-## 4. Security & Administrative Boundaries
+## 4. Job Explorer & Verified Execution Timeline
 
-### A. Separation of Concerns
-1. **Read-Only Telemetry:** Open endpoints (`/dashboard/stats`, `/system/health`, `/jobs`) allow unauthenticated observers and monitoring systems to inspect cluster health safely.
-2. **State-Changing Mutations:** All administrative endpoints (`/admin/*`) require:
-   - Authenticated session cookie (`JSESSIONID`).
-   - Anti-CSRF protection via custom `X-CSRF-Token` headers.
-   - Non-interactive operations (e.g., Worker-to-Receiver payment relays) require internal cryptographic `X-Service-Key` verification.
+### A. Server-Side Query Toolbar
+- Multi-dimensional filters: Search (UUID / Idempotency Key), Job Type, Status, Tenant partition, Priority (80+ / 50 / 20), Sorting (Created, Updated, Priority, Retries, Scheduled).
+- Server-side bounded pagination (`page`, `size`) with total element tallies.
+- Selection checkboxes with bulk counter and clear-selection shortcuts.
 
-### B. Admin Unlock Modal
-- When an operator initiates an administrative action in read-only mode, the `AdminUnlockModal` is seamlessly summoned to prompt for credentials without losing page state.
+### B. Verified Execution Timeline
+- The `ExecutionTimeline` component presents only authentic, backend-recorded milestones:
+  1. **Job Enqueued:** Submitted timestamp, priority, max retries, tenant partition.
+  2. **Scheduled Delay:** Target dispatch timestamp if scheduled > 1s from creation.
+  3. **Execution Attempts:** Chronologically ordered attempt records displaying worker actor, duration in milliseconds, status outcome, and specific error messages.
+  4. **Active Leases:** Real-time pulse indicator identifying the worker currently holding the lease token.
+  5. **Terminal State:** Success confirmation or dead-letter failure classification.
 
 ---
 
-## 5. Architectural Invariants
-- **Zero Mock Telemetry:** No synthetic random numbers or artificial mock timers. All displayed statistics directly bind to PostgreSQL cluster state.
-- **Strict D:/E: Workspace Policy:** All build caches, logs, and compiled assets strictly reside on local fast storage, preserving operating system isolation.
+## 5. Performance Optimization & Bundle Code-Splitting
+
+### A. Route-Based Lazy Loading
+Monolithic bundle generation was eliminated by wrapping all major page views in `React.lazy()` and `Suspense`:
+- Core entry chunk: **32.52 kB** (gzip: 9.07 kB)
+- Job Explorer chunk: **21.35 kB** (gzip: 4.48 kB)
+- Workers Fleet chunk: **16.09 kB** (gzip: 3.30 kB)
+- Job Detail chunk: **10.17 kB** (gzip: 2.87 kB)
+
+### B. Manual Vendor Chunks
+Third-party libraries are isolated into dedicated, cached vendor files:
+- `vendor-react`: React, React-DOM, React-Router (`245 kB`)
+- `vendor-charts`: Recharts, D3 (`369 kB`, loaded only on chart-heavy routes)
+- `vendor-query`: TanStack React Query (`35 kB`)
+- `vendor-icons`: Lucide React (`15 kB`)

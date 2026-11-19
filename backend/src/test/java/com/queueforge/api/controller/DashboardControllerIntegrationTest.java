@@ -121,6 +121,19 @@ class DashboardControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements", is(1)))
                 .andExpect(jsonPath("$.content[0].jobId", is(j2.getId().toString())));
+
+        // Filter by priority
+        mockMvc.perform(get("/api/v1/jobs?priority=90"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements", is(1)))
+                .andExpect(jsonPath("$.content[0].jobId", is(j1.getId().toString())));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/system/workers returns real worker fleet list")
+    void getWorkerFleet_returnsWorkerList() throws Exception {
+        mockMvc.perform(get("/api/v1/system/workers"))
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -11,19 +11,18 @@ import {
 } from 'lucide-react';
 import {
   useJobDetail,
-  useJobHistory,
   useDlqActions,
 } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { ExecutionTimeline } from '../components/ui/ExecutionTimeline';
 import { JsonViewer } from '../components/common/JsonViewer';
 import { ConfirmModal } from '../components/common/ConfirmModal';
-import { formatDate, formatDurationMs } from '../lib/formatters';
+import { formatDate } from '../lib/formatters';
 
 export const JobDetailPage: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const { data: job, isLoading, error } = useJobDetail(jobId);
-  const { data: history } = useJobHistory(jobId);
   const { isAuthenticated, openUnlockModal } = useAuth();
   const { replayJob, discardJob, isReplaying, isDiscarding } = useDlqActions();
 
@@ -31,22 +30,22 @@ export const JobDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-500 font-mono text-xs">
-        Loading job details...
+      <div className="flex items-center justify-center py-24 text-[var(--color-text-muted)] font-mono text-xs">
+        Loading job details from PostgreSQL cluster...
       </div>
     );
   }
 
   if (error || !job) {
     return (
-      <div className="p-8 text-center space-y-4">
-        <div className="text-rose-400 font-semibold text-sm">Job Not Found</div>
-        <p className="text-xs text-slate-400">
-          The requested job identifier could not be located in the database.
+      <div className="p-8 text-center space-y-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)]">
+        <div className="text-[var(--color-danger)] font-semibold text-sm">Job Not Located</div>
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          The requested job identifier could not be found or belongs to another tenant partition.
         </p>
         <Link
           to="/jobs"
-          className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--color-amethyst)] hover:underline"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Job Explorer
         </Link>
@@ -90,20 +89,27 @@ export const JobDetailPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Top Navigation & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--color-border-subtle)]">
         <div className="flex items-center gap-3">
           <Link
             to="/jobs"
-            className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-2 rounded-lg bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-subtle)] transition"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-white font-mono">{job.jobId}</h2>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-lg font-bold text-[var(--color-text-primary)] font-mono">{job.jobId}</h2>
               <StatusBadge status={job.status} />
+              {job.tenantId && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[var(--color-cyan)]">
+                  {job.tenantId}
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Type: {job.jobType}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 font-mono">
+              Type: {job.jobType} • Priority: P{job.priority}
+            </p>
           </div>
         </div>
 
@@ -113,7 +119,7 @@ export const JobDetailPage: React.FC = () => {
             <button
               onClick={() => handleActionClick('replay')}
               disabled={isReplaying}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition shadow-lg shadow-blue-600/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-amethyst)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/20 disabled:opacity-50"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Replay Job
@@ -121,7 +127,7 @@ export const JobDetailPage: React.FC = () => {
             <button
               onClick={() => handleActionClick('discard')}
               disabled={isDiscarding}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-rose-300 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/80 rounded-lg transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[var(--color-danger)] bg-[var(--color-danger-bg)] hover:brightness-110 border border-[var(--color-danger-border)] rounded-lg transition disabled:opacity-50"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Discard Job
@@ -132,72 +138,63 @@ export const JobDetailPage: React.FC = () => {
 
       {/* Grid: Metadata Properties */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
+        <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] space-y-1">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] font-mono">
             Retries Exhausted
           </span>
-          <div className="text-base font-bold font-mono text-white">
+          <div className="text-base font-bold font-mono text-[var(--color-text-primary)]">
             {job.retryCount} / {job.maxRetries} retries
           </div>
-          <div className="text-xs text-slate-500">
-            Attempts: {job.attemptCount} | Priority: {job.priority}
+          <div className="text-xs text-[var(--color-text-muted)] font-mono">
+            Attempts: {job.attemptCount} | Priority: P{job.priority}
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-            Locked By / Worker
+        <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] space-y-1">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] font-mono">
+            Assigned Worker Lease
           </span>
-          <div className="text-xs font-mono text-slate-300 truncate">
+          <div className="text-xs font-mono text-[var(--color-cyan)] truncate font-semibold">
             {job.lockedBy || 'None (Unassigned)'}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-[var(--color-text-muted)] font-mono">
             Status: {job.status}
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
+        <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] space-y-1">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] font-mono">
             Idempotency Key
           </span>
-          <div className="text-xs font-mono text-slate-300 truncate">
-            {job.idempotencyKey || 'None'}
+          <div className="text-xs font-mono text-[var(--color-text-secondary)] truncate">
+            {job.idempotencyKey || '—'}
           </div>
-          <div className="text-[11px] text-slate-500">
-            Scheduled: {formatDate(job.scheduledAt)}
+          <div className="text-[11px] text-[var(--color-text-muted)] font-mono">
+            Created: {formatDate(job.createdAt)}
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-            Timestamps
+        <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] space-y-1">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] font-mono">
+            Lifecycle Completion
           </span>
-          <div className="text-xs font-mono text-slate-300">
-            Created: {formatDate(job.createdAt)}
+          <div className="text-xs font-mono text-[var(--color-success)] font-semibold truncate">
+            {job.completedAt ? formatDate(job.completedAt) : 'Pending / Active'}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-[var(--color-text-muted)] font-mono">
             Updated: {formatDate(job.updatedAt)}
           </div>
         </div>
       </div>
 
-      {/* Error Diagnostics (if failed/dead-letter) */}
-      {(job.lastErrorMessage || job.failureCategory) && (
-        <div className="rounded-xl bg-rose-950/20 border border-rose-900/50 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-300">
-                Failure Diagnostics
-              </span>
-            </div>
-            {job.failureCategory && (
-              <span className="px-2 py-0.5 text-xs font-mono rounded bg-rose-950/60 text-rose-300 border border-rose-800">
-                {job.failureCategory}
-              </span>
-            )}
+      {/* Error Callout if Failed */}
+      {job.lastErrorMessage && (
+        <div className="p-5 rounded-xl border border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] space-y-2">
+          <div className="flex items-center gap-2 text-[var(--color-danger)] font-semibold text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Failure Description: {job.failureCategory ? `[${job.failureCategory}]` : ''}</span>
           </div>
-          <p className="text-xs font-mono text-rose-200/90 leading-relaxed bg-rose-950/40 p-3 rounded-lg border border-rose-900/40">
+          <p className="text-xs font-mono text-[var(--color-danger)] leading-relaxed bg-[var(--color-bg-deep)] p-3 rounded-lg border border-[var(--color-danger-border)] select-all break-all">
             {job.lastErrorMessage}
           </p>
         </div>
@@ -205,21 +202,21 @@ export const JobDetailPage: React.FC = () => {
 
       {/* Payload Viewer / Protection */}
       {isPayloadMasked ? (
-        <div className="rounded-xl border border-amber-900/40 bg-amber-950/10 p-5 flex items-center justify-between">
+        <div className="rounded-xl border border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2.5 rounded-lg bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]">
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-slate-200">Sensitive Job Payload Protected</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">Sensitive Job Payload Protected</h4>
+              <p className="text-xs text-[var(--color-text-secondary)]">
                 Authentication is required to inspect raw payload arguments and operational details.
               </p>
             </div>
           </div>
           <button
             onClick={() => openUnlockModal()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition shadow-md shadow-blue-600/20"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--color-amethyst)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/20"
           >
             <Unlock className="w-3.5 h-3.5" />
             Unlock to View
@@ -230,53 +227,13 @@ export const JobDetailPage: React.FC = () => {
       )}
 
       {/* Execution Attempt History / Timeline */}
-      <div className="rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg space-y-4">
+      <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-6 shadow-lg space-y-4">
         <div className="flex items-center gap-2">
-          <History className="w-4 h-4 text-blue-400" />
-          <h3 className="text-sm font-semibold text-white">Execution Attempt History</h3>
+          <History className="w-4 h-4 text-[var(--color-amethyst)]" />
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Verified Execution Timeline</h3>
         </div>
 
-        {history && history.length > 0 ? (
-          <div className="space-y-3 font-mono">
-            {history.map((item) => (
-              <div
-                key={item.id}
-                className="p-3.5 rounded-lg bg-slate-950/70 border border-slate-800/80 flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-blue-400">
-                      Attempt #{item.attempt}
-                    </span>
-                    <span className="text-slate-500">|</span>
-                    <span className="text-slate-300">Worker: {item.workerId}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-slate-400 text-[11px]">
-                      Duration: {formatDurationMs(item.executionTimeMs)}
-                    </span>
-                    <StatusBadge status={item.status} size="sm" />
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-500 font-sans flex items-center justify-between">
-                  <span>Logged: {formatDate(item.createdAt)}</span>
-                </div>
-
-                {item.errorMessage && (
-                  <div className="mt-1 text-xs text-rose-300 bg-rose-950/40 p-2 rounded border border-rose-900/30">
-                    <span className="font-semibold text-rose-400">[ERROR]: </span>
-                    {item.errorMessage}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-6 text-center text-xs text-slate-500 font-sans">
-            No historical worker execution attempts logged yet for this job.
-          </div>
-        )}
+        <ExecutionTimeline job={job} />
       </div>
 
       {/* Confirm Modal */}

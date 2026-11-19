@@ -207,6 +207,20 @@ public class JobService {
             String sortBy,
             String sortDirection,
             String filterTenantId) {
+        return listJobs(page, size, status, jobType, search, sortBy, sortDirection, filterTenantId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<JobSummaryResponse> listJobs(
+            int page,
+            int size,
+            JobStatus status,
+            String jobType,
+            String search,
+            String sortBy,
+            String sortDirection,
+            String filterTenantId,
+            Integer priority) {
 
         int boundedPage = Math.max(0, page);
         int boundedSize = Math.min(100, Math.max(1, size));
@@ -235,6 +249,9 @@ public class JobService {
 
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (priority != null) {
+                predicates.add(cb.equal(root.get("priority"), priority));
             }
             if (jobType != null && !jobType.isBlank()) {
                 predicates.add(cb.equal(root.get("jobType"), jobType.trim().toUpperCase()));
@@ -392,7 +409,8 @@ public class JobService {
                 job.getCreatedAt(),
                 job.getCompletedAt(),
                 job.getIdempotencyKey(),
-                job.getTenantId()
+                job.getTenantId(),
+                job.getLockedBy()
         );
     }
 

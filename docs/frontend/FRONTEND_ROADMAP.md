@@ -22,7 +22,7 @@ The QueueForge frontend engineering strategy is structured into disciplined, ver
   - Section A: System Status Banner (DB, Coordinator, V2 cluster architecture).
   - Section B: Primary KPIs (Pending, Running, Completed, DLQ, Throughput).
   - Section C: Cluster Execution Activity AreaChart with time range selector (1h, 6h, 24h).
-  - Section D: Distributed Worker Fleet Snapshot (`worker-v2-node-1`, `worker-v2-node-2`).
+  - Section D: Distributed Worker Fleet Snapshot connected to real `/system/workers` discovery.
   - Section E: Recent Jobs Audit Table with filter dropdowns and slide-over Detail Drawer integration.
   - Section F: Reliability Lab Snapshot (DLQ counts, retries, failure breakdown).
   - Section G: FairShare Multi-Tenant Snapshot (weights, quotas, deficit counters).
@@ -31,23 +31,41 @@ The QueueForge frontend engineering strategy is structured into disciplined, ver
   - `/fairshare`: Multi-tenant registry, quota monitor, and tenant provisioning modal.
   - `/pipeline`: Transactional outbox event pipeline visualizer and relay controls.
   - `/admin`: Security administration, session lifecycle, and authentication boundaries.
+
+---
+
+### Phase 8B: Advanced Job Explorer, Worker Fleet & Live Experience (Completed)
+- [x] **Real Distributed Worker Registry Backend:**
+  - Flyway migration `V8__create_worker_heartbeats_schema.sql` creating `qf_worker_heartbeats`.
+  - Background coordinator heartbeat publisher loop updating instance status and active jobs.
+  - Safe, read-only endpoint `GET /api/v1/system/workers` returning instance status (`ONLINE`, `STALE`, `OFFLINE`), held lease count, and completion totals.
+  - Backwards-compatible `JobSummaryResponse` with `lockedBy` worker attribution and optional `priority` query parameter.
+- [x] **Advanced Job Explorer Console:**
+  - Search by UUID or idempotency key with instant input debounce.
+  - Job type text filter, global vs isolated tenant selector, status filter pills (`PENDING`, `CLAIMED`, `RUNNING`, `COMPLETED`, `FAILED`, `DEAD_LETTER`).
+  - Priority filter pills (`High 80+`, `Med 50`, `Low 20`, `All`).
+  - Server-side sorting across 5 database columns (`createdAt`, `updatedAt`, `priority`, `retryCount`, `scheduledAt`) with ASC/DESC direction toggle.
+  - Multi-row selection checkboxes with bulk action clear toolbar.
+  - In-page slide-over Job Inspector drawer with tabs: Overview, Timeline, Payload (with redaction toggle), and Failures.
+- [x] **Verified Execution Timeline:**
+  - Dedicated `ExecutionTimeline` component strictly displaying authentic recorded milestones: Enqueued, Scheduled Delay, Execution Attempt records (worker actor, duration, status, error), In-Flight Active Leases, and Terminal States.
+- [x] **Distributed Worker Fleet Page (`/workers`):**
+  - Full node discovery cards displaying instance ID, mode, concurrency, held leases, total completed, and total failures.
+  - Real-time heartbeat freshness indicator (`Heartbeat 3s ago (fresh)`, `Stale (25s)`, `Unresponsive`).
+  - Worker node inspector drawer with direct drill-down link to Job Explorer.
+- [x] **Performance Optimization & Code-Splitting:**
+  - Route-based `React.lazy()` and `Suspense` implementation across all routes.
+  - Vite `manualChunks` vendor splitting (`vendor-react`, `vendor-charts`, `vendor-query`, `vendor-icons`).
+  - Production bundle size reduced from monolithic 787 kB to individual page chunks (entry: 32.5 kB, charts: 369 kB lazy-loaded).
 - [x] **Quality Verification:**
-  - 100% clean TypeScript build (`npx tsc -b`).
-  - 100% passing test suite (16/16 Vitest tests).
+  - 100% passing test suite across 20 Vitest unit/component tests.
+  - Clean TypeScript build (`tsc -b`), 0 compilation errors.
   - Clean linting (`oxlint`).
-  - High-performance Vite production build bundle.
+  - Optimized production Vite build in 2.30s.
 
 ---
 
-### Phase 8B: Advanced Explorer, Live Event Streaming & Chaos Controls (Planned)
-- [ ] **Job Explorer Advanced Filtering:** Multi-column sorting, pagination controls, date range pickers, and JSON payload query filter.
-- [ ] **Live Execution Log Streaming:** WebSocket or Server-Sent Events (SSE) log tailing for active worker execution attempts.
-- [ ] **ChaosLab Visualizer:** Interactive failure simulation controls (simulate worker partition, DB disconnection, and lease expiry).
-- [ ] **Worker Fleet Deep Dive:** Node thread threadpool visualization and per-worker task affinity charts.
-
----
-
-### Phase 9: Telemetry Dashboards & Multi-Cluster Federation (Future)
-- [ ] **Embedded Grafana Dashboards:** Zero-authentication telemetry embeds for high-frequency Prometheus metrics.
-- [ ] **Multi-Cluster Tenant Management:** Federated multi-region cluster status view.
-- [ ] **Export & Audit Logging:** CSV/JSON export capabilities for compliance and audit reporting.
+### Phase 8C: Reliability Lab, ChaosLab Visualizer & Observability (Planned)
+- [ ] **Interactive ChaosLab Visualizer:** Real-time visualization of simulated worker partition, lease expiry, and network fault injection.
+- [ ] **Advanced DLQ Operations:** Batch replay, selective discard by failure category, and stacktrace search.
+- [ ] **Grafana / Prometheus Embeds:** Live latency histogram and throughput gauges embedded with zero authentication friction.

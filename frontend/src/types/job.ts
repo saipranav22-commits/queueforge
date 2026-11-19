@@ -21,6 +21,8 @@ export interface JobSummary {
   createdAt: string;
   completedAt?: string | null;
   idempotencyKey?: string | null;
+  lockedBy?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface JobDetail {

@@ -24,6 +24,7 @@ import {
   useManualOutboxDispatch,
   useCreateJob,
   useJobDetail,
+  useWorkerFleet,
 } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
 import { MetricCard } from '../components/common/MetricCard';
@@ -47,6 +48,7 @@ export const OverviewPage: React.FC = () => {
   const { data: health } = useSystemHealth();
   const { data: metrics } = useSystemMetricsSummary();
   const { data: tenants } = useTenants();
+  const { data: workerFleet, isLoading: fleetLoading } = useWorkerFleet();
   const { isAuthenticated, openUnlockModal } = useAuth();
   const outboxMutation = useManualOutboxDispatch();
   const createJobMutation = useCreateJob();
@@ -351,53 +353,65 @@ export const OverviewPage: React.FC = () => {
             </div>
 
             <div className="mt-4 space-y-3">
-              {/* Worker Node 1 */}
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-md bg-[var(--color-cyan-bg)] text-[var(--color-cyan)]">
-                    <Server className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold font-mono text-[var(--color-text-primary)]">
-                      worker-v2-node-1
-                    </div>
-                    <div className="text-[10px] text-[var(--color-text-secondary)] font-mono">
-                      Partition A • Port 8082
-                    </div>
-                  </div>
+              {fleetLoading ? (
+                <div className="py-6 text-center text-xs font-mono text-[var(--color-text-muted)]">
+                  Discovering worker nodes...
                 </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
-                    ONLINE
-                  </span>
-                  <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5 font-mono">Heartbeat OK</div>
-                </div>
-              </div>
-
-              {/* Worker Node 2 */}
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-md bg-[var(--color-cyan-bg)] text-[var(--color-cyan)]">
-                    <Server className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold font-mono text-[var(--color-text-primary)]">
-                      worker-v2-node-2
+              ) : workerFleet && workerFleet.length > 0 ? (
+                workerFleet.map((w) => (
+                  <div
+                    key={w.instanceId}
+                    className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-md bg-[var(--color-cyan-bg)] text-[var(--color-cyan)]">
+                        <Server className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold font-mono text-[var(--color-text-primary)]">
+                          {w.instanceId}
+                        </div>
+                        <div className="text-[10px] text-[var(--color-text-secondary)] font-mono">
+                          {w.mode} • {w.concurrency} slots ({w.heldLeasesCount} held)
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[10px] text-[var(--color-text-secondary)] font-mono">
-                      Partition B • Port 8083
+                    <div className="text-right">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
+                          w.status === 'ONLINE'
+                            ? 'bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]'
+                            : w.status === 'STALE'
+                            ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]'
+                            : 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border border-[var(--color-danger-border)]'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            w.status === 'ONLINE'
+                              ? 'bg-[var(--color-success)]'
+                              : w.status === 'STALE'
+                              ? 'bg-[var(--color-warning)]'
+                              : 'bg-[var(--color-danger)]'
+                          }`}
+                        />
+                        {w.status}
+                      </span>
+                      <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5 font-mono">
+                        {w.status === 'ONLINE'
+                          ? `Heartbeat ${w.heartbeatAgeSeconds}s ago`
+                          : w.status === 'STALE'
+                          ? `Stale (${w.heartbeatAgeSeconds}s)`
+                          : 'Unresponsive'}
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="py-6 text-center text-xs text-[var(--color-text-muted)] font-sans">
+                  No independent worker processes currently registered.
                 </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
-                    ONLINE
-                  </span>
-                  <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5 font-mono">Heartbeat OK</div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 

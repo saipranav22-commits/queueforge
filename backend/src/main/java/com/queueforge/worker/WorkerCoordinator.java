@@ -86,6 +86,16 @@ public class WorkerCoordinator implements SmartLifecycle {
         log.info("[{}] WorkerCoordinator started with concurrency={} leaseDuration={}s pollInterval={}ms",
                 coordinatorId, concurrency, properties.getLeaseDurationSeconds(), properties.getPollIntervalMs());
 
+        claimService.registerWorkerHeartbeat(coordinatorId, queueForgeProperties.getMode().name(), "RUNNING", concurrency, 0);
+
+        // Heartbeat publisher loop: periodically updates node heartbeat in cluster registry
+        schedulerService.scheduleWithFixedDelay(
+                () -> claimService.updateWorkerHeartbeat(coordinatorId, workerPool != null ? workerPool.getActiveCount() : 0),
+                2,
+                Math.max(1, properties.getHeartbeatIntervalSeconds()),
+                TimeUnit.SECONDS
+        );
+
         // Polling loop: runs periodically to claim pending jobs
         schedulerService.scheduleWithFixedDelay(
                 this::pollAndDispatch,
@@ -289,6 +299,7 @@ public class WorkerCoordinator implements SmartLifecycle {
         }
 
         log.info("[{}] Initiating graceful shutdown of WorkerCoordinator...", coordinatorId);
+        claimService.markWorkerStopped(coordinatorId);
 
         if (schedulerService != null) {
             schedulerService.shutdown();

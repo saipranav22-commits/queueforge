@@ -28,6 +28,7 @@ export interface JobsQueryFilter {
   sortBy?: string;
   sortDirection?: 'ASC' | 'DESC';
   tenantId?: string;
+  priority?: number;
 }
 
 export function useJobs(filters: JobsQueryFilter) {
@@ -40,6 +41,7 @@ export function useJobs(filters: JobsQueryFilter) {
   if (filters.sortBy) queryParams.set('sortBy', filters.sortBy);
   if (filters.sortDirection) queryParams.set('sortDirection', filters.sortDirection);
   if (filters.tenantId) queryParams.set('tenantId', filters.tenantId);
+  if (filters.priority != null) queryParams.set('priority', filters.priority.toString());
 
   const queryString = queryParams.toString();
   const endpoint = `/jobs${queryString ? `?${queryString}` : ''}`;
@@ -91,6 +93,14 @@ export function useSystemMetricsSummary() {
     queryKey: ['system-metrics-summary'],
     queryFn: () => apiRequest<SystemMetricsSummary>('/system/metrics-summary'),
     refetchInterval: 5000,
+  });
+}
+
+export function useWorkerFleet() {
+  return useQuery<import('../types/worker').WorkerInstance[]>({
+    queryKey: ['system-workers'],
+    queryFn: () => apiRequest<import('../types/worker').WorkerInstance[]>('/system/workers'),
+    refetchInterval: 3000,
   });
 }
 
