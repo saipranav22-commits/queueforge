@@ -55,7 +55,7 @@ To ensure complete engineering integrity and eliminate misleading "mock operatio
 | **29** | `DlqPage` | DLQ Poison Tally | `/admin/dlq` / `/jobs?status=DLQ`| `totalElements` | Poison Jobs / Integer | GAUGE | 3,000 ms | Admin / Public Fallback | Shows clean state | `AdminDlqController.java` |
 | **30** | `DlqPage` | Failure Category Badge | `/admin/dlq` | `failureCategory` | Enum String | GAUGE | 3,000 ms | Admin / Public Fallback | Shows `UNKNOWN` if null | `FailureCategory.java` |
 | **31** | `DlqPage` | Diagnostic Stack Trace | `/admin/dlq/{id}` | `lastErrorStack` | Exception Frames / Text | GAUGE | On Demand | Admin Cookie / Header | Prompts admin unlock | `DlqJobDetailResponse.java` |
-| **32** | `AdministrationPage` | Session Privilege Mode | `/api/v1/auth/status` | `authenticated` | Boolean | GAUGE | 5,000 ms | Public / Cookie | Shows `READ-ONLY` | `AuthController.java` |
+| **32** | `AdministrationPage` | Session Privilege Mode | `/api/v1/auth/session` | `authenticated` | Boolean | GAUGE | 5,000 ms | Public / Cookie | Shows `READ-ONLY` | `AuthController.java` |
 | **33** | `AdministrationPage` | HikariCP Active Connections | `/system/health` | `databasePoolActive` | Connections / Integer | GAUGE | 5,000 ms | Public (Read-Only) | Shows `0` | `HikariDataSourcePoolMetadata`|
 | **34** | `AdministrationPage` | Worker Lease Duration | `/system/health` | `leaseDurationSeconds` | Seconds / Integer | GAUGE | 5,000 ms | Public (Read-Only) | Shows `30 seconds` | `WorkerCoordinator.java` |
 | **35** | `MonitoringPage` | Median (p50) Execution Latency | `/system/metrics-summary` | `executionLatencyP50Ms` | Milliseconds | GAUGE | 5,000 ms | Public (Read-Only) | Shows `0 ms` | `MetricsService.java` |

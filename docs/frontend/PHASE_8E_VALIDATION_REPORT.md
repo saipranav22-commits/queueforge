@@ -55,7 +55,7 @@ Phase 8E brings the entire **QueueForge Control Plane** into its release-ready s
 | **Flow E: Event Pipeline** | Outbox event explorer, 7-stage flow visualizer, manual dispatch | Consumes `/admin/outbox/stats` and `/admin/outbox/events`. Tiers stages into `VERIFIED`, `INFERRED / ACTIVE`, and `ARCHITECTURAL / INFERRED`. Bounded dispatch `[5, 10, 25, 50]`. | **VERIFIED** |
 | **Flow F: Reliability Lab** | 8 resilience mechanisms, historical ChaosLab evidence, 9 invariants | Interactive mechanism tabs, historical millisecond chronologies from `docs/engineering/chaoslab.md`, and 9 formal invariants from `InvariantVerifier.java`. | **VERIFIED** |
 | **Flow G: DLQ Recovery** | Poison job triage, stack trace inspection, replay, discard | Consumes `/admin/dlq` with failure category filter. Detail drawer renders collapsible stack traces. Replay and discard protected by two-step confirmation dialogs. | **VERIFIED** |
-| **Flow H: Administration** | Session privilege, anti-CSRF, runtime pool parameters, security policies | Consumes `/system/health` and `/api/v1/auth/status`. Displays live HikariCP pool metrics and worker coordinator parameters. Anti-CSRF double-submit cookie verification. | **VERIFIED** |
+| **Flow H: Administration** | Session privilege, anti-CSRF, runtime pool parameters, security policies | Consumes `/system/health` and `/api/v1/auth/session`. Displays live HikariCP pool metrics and worker coordinator parameters. Anti-CSRF double-submit cookie verification. | **VERIFIED** |
 
 ---
 

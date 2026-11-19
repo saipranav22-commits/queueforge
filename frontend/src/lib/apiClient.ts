@@ -37,11 +37,23 @@ export async function apiRequest<T>(
     headers.set('X-CSRF-Token', currentCsrfToken);
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include', // Include QF_SESSION cookie
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include', // Include QF_SESSION cookie
+    });
+  } catch (netErr: any) {
+    if (netErr instanceof ApiError) {
+      throw netErr;
+    }
+    throw new ApiError(
+      0,
+      'Backend service unavailable. Unable to connect to QueueForge API server.',
+      { originalError: netErr?.message }
+    );
+  }
 
   if (!response.ok) {
     let errorData: any = null;

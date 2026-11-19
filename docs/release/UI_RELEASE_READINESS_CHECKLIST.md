@@ -1,9 +1,9 @@
 # QueueForge Control Plane — UI Release Readiness Checklist
 
-**Release Target:** QueueForge V2 Control Plane (Phase 8E)  
+**Release Target:** QueueForge V2 Control Plane (Phase 8F)  
 **Branch:** `feature/v2-control-plane-ui`  
 **Base Commit Anchor:** `7125821`  
-**Current Commit:** `d1b4a40`  
+**Current Commit:** `0af3de6` (reconciling in Phase 8F)  
 **Evaluator:** Principal Full-Stack Engineer, Security Reviewer & Release Engineer  
 **Date:** November 19, 2026
 
@@ -16,13 +16,13 @@
 | Assessment Area | Status | Summary Evidence |
 | :--- | :--- | :--- |
 | **Frontend Code Quality** | **PASS** | TypeScript (`tsc -b`) compiles with 0 errors; Oxlint passes with 0 errors. |
-| **Frontend Test Suite** | **PASS** | 38/38 unit/component tests passing across 20 Vitest test files. |
-| **Production Bundle Quality** | **PASS** | Vite production build in 1.97s; code-split chunks with optimal vendor caching. |
+| **Frontend Test Suite** | **PASS** | 44/44 unit/component tests passing across 20 Vitest test files (including 7 auth error regression tests). |
+| **Production Bundle Quality** | **PASS** | Vite production build in 3.29s; code-split chunks with optimal vendor caching. |
 | **Design System Fidelity** | **PASS** | Obsidian Pulse tokens strictly enforced; zero legacy `slate-`, `purple-`, or `blue-` utility leaks; light theme parity confirmed. |
 | **Data Provenance & Semantics** | **PASS** | Exhaustive data provenance matrix completed; synthetic live telemetry eliminated; benchmark and historical exhibits clearly cited. |
-| **Security & Authentication** | **PASS** | Double-submit CSRF protection verified; sensitive payloads masked in read-only mode; admin mutations locked; tenant isolation preserved. |
-| **Backend Unit Regression** | **PASS** | 23/23 database-independent backend unit tests passing in Maven Surefire. |
-| **Flyway V8 & Database Runtime** | **BLOCKED (HOST MEMORY)** | Host physical RAM constraint (~613 MB free out of 7.3 GB) prevents booting Docker Desktop / PostgreSQL without severe system thrashing. Bootstrapping must run via CI gate. |
+| **Security & Authentication** | **PASS** | Double-submit CSRF protection verified; sensitive payloads masked in read-only mode; admin mutations locked; tenant isolation preserved; password masking toggle and network error handling implemented. |
+| **Backend Unit Regression** | **PASS** | 23/23 database-independent backend unit tests passing in Maven Surefire across InvariantVerifierTest, BackoffCalculatorTest, OutboxReadApiUnitTest, and WorkerFleetAttributionTest. |
+| **Flyway V8 & Database Runtime** | **BLOCKED (HOST MEMORY)** | Host physical RAM constraint (~1.08 GB free out of 7.3 GB) prevents booting Docker Desktop / PostgreSQL without severe system thrashing. Bootstrapping must run via CI gate. |
 
 ---
 

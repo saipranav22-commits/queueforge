@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldAlert, KeyRound, X, Loader2, AlertCircle } from 'lucide-react';
+import { ShieldAlert, KeyRound, X, Loader2, AlertCircle, Eye, EyeOff, HelpCircle } from 'lucide-react';
 
 export const AdminUnlockModal: React.FC = () => {
   const { isUnlockModalOpen, closeUnlockModal, login } = useAuth();
   const [adminKey, setAdminKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -22,8 +23,16 @@ export const AdminUnlockModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminKey.trim()) {
-      setErrorMsg('Please enter the administrative key');
+    const trimmed = adminKey.trim();
+
+    if (!trimmed) {
+      setErrorMsg('Please enter the administrative API key.');
+      return;
+    }
+
+    // Detect if user is attempting username:password syntax
+    if (trimmed.includes(':') || trimmed.toLowerCase().startsWith('user:') || trimmed.toLowerCase().startsWith('admin:')) {
+      setErrorMsg('QueueForge authenticates using an Administrator API Key (not a username and password). Please enter the administrative secret key directly.');
       return;
     }
 
@@ -31,13 +40,21 @@ export const AdminUnlockModal: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      await login(adminKey.trim());
+      await login(trimmed);
       setAdminKey('');
     } catch (err: any) {
       if (err.status === 429) {
         setErrorMsg('Rate limit exceeded: Max 5 failed attempts reached. Please wait 60 seconds.');
+      } else if (err.status === 401) {
+        setErrorMsg('Invalid administrative API key. Please check your QF_ADMIN_API_KEY environment variable or application configuration.');
+      } else if (err.status === 403) {
+        setErrorMsg('Access forbidden: Missing or invalid CSRF security token. Please refresh the page and try again.');
+      } else if (err.status === 0 || err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('unavailable')) {
+        setErrorMsg('Backend service unavailable (connection refused at http://127.0.0.1:8085). Please ensure the QueueForge backend is running.');
+      } else if (err.status >= 500) {
+        setErrorMsg(`Backend server error (${err.status}). The service may be initializing or overloaded. Please check server logs.`);
       } else {
-        setErrorMsg(err.message || 'Invalid administrative key.');
+        setErrorMsg(err.message || 'Authentication failed. Please verify your administrative credentials.');
       }
     } finally {
       setIsSubmitting(false);
@@ -78,29 +95,56 @@ export const AdminUnlockModal: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5 font-mono">
-              Admin API Key
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label
+                htmlFor="admin-key-input"
+                className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] font-mono"
+              >
+                Admin API Key
+              </label>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+                No username/password needed
+              </span>
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-muted)]">
                 <KeyRound className="w-4 h-4" />
               </div>
               <input
-                type="password"
+                id="admin-key-input"
+                type={showKey ? 'text' : 'password'}
                 value={adminKey}
                 onChange={(e) => setAdminKey(e.target.value)}
                 placeholder="Enter QF_ADMIN_API_KEY"
                 autoFocus
-                className="w-full pl-10 pr-4 py-2 text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-amethyst)] focus:ring-1 focus:ring-[var(--color-amethyst)] font-mono transition"
+                aria-describedby="admin-key-desc"
+                aria-invalid={Boolean(errorMsg)}
+                className="w-full pl-10 pr-10 py-2 text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-amethyst)] focus:ring-1 focus:ring-[var(--color-amethyst)] font-mono transition"
               />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? 'Hide administrative key' : 'Show administrative key'}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-            <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">
-              Sent securely to backend via HTTPS/SameSite session. Never cached on disk.
-            </p>
+            <div id="admin-key-desc" className="mt-2 p-2.5 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] flex items-start gap-2 text-[11px] text-[var(--color-text-muted)]">
+              <HelpCircle className="w-4 h-4 text-[var(--color-cyan)] flex-shrink-0 mt-0.5" />
+              <div>
+                <span>
+                  QueueForge uses an <strong>Administrator API Key</strong> (not username/password). In local development, configured in <code className="text-[var(--color-text-secondary)] font-mono">application.yml</code> under <code className="text-[var(--color-text-secondary)] font-mono">queueforge.admin.api-key</code>.
+                </span>
+              </div>
+            </div>
           </div>
 
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-[var(--color-crimson-bg)] border border-[var(--color-crimson-border)] text-[var(--color-crimson)] text-xs flex items-start gap-2">
+            <div
+              role="alert"
+              className="p-3 rounded-lg bg-[var(--color-crimson-bg)] border border-[var(--color-crimson-border)] text-[var(--color-crimson)] text-xs flex items-start gap-2"
+            >
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>

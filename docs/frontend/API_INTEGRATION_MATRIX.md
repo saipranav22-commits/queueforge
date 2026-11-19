@@ -28,9 +28,9 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 | **DLQ Job Diagnostics** | `/api/v1/admin/dlq/{jobId}` | `GET` | Yes (Admin) | No | Path: `jobId` | `DlqJobDetailResponse` |
 | **DLQ Job Replay** | `/api/v1/admin/dlq/{jobId}/replay` | `POST` | Yes (Admin) | Yes | Path: `jobId` | `ApiMessageResponse` |
 | **DLQ Job Discard** | `/api/v1/admin/dlq/{jobId}/discard` | `POST / DELETE` | Yes (Admin) | Yes | Path: `jobId` | `DiscardJobResponse` |
-| **Admin Session Unlock** | `/api/v1/auth/unlock` | `POST` | No | Yes | `password` | `{ authenticated: true }` |
-| **Admin Session Lock** | `/api/v1/auth/logout` | `POST` | Yes (Admin) | Yes | None | `{ authenticated: false }` |
-| **Session Status Check** | `/api/v1/auth/status` | `GET` | No | No | None | `{ authenticated: boolean }` |
+| **Admin Session Unlock** | `/api/v1/auth/login` | `POST` | No | No | `{"adminKey": string}` | `AuthSessionResponse` |
+| **Admin Session Lock** | `/api/v1/auth/logout` | `POST` | Yes (Session) | Yes | None | `MessageResponse` |
+| **Session Status Check** | `/api/v1/auth/session` | `GET` | No | No | None | `AuthSessionResponse` |
 
 ---
 

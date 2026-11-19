@@ -103,6 +103,7 @@ export const App: React.FC = () => {
                     </Suspense>
                   }
                 />
+                <Route path="events" element={<Navigate to="/pipeline" replace />} />
                 <Route
                   path="reliability"
                   element={
@@ -135,6 +136,7 @@ export const App: React.FC = () => {
                     </Suspense>
                   }
                 />
+                <Route path="observability" element={<Navigate to="/monitoring" replace />} />
                 <Route
                   path="admin"
                   element={
