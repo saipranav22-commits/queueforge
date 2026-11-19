@@ -220,7 +220,7 @@ jobs:
       - name: Wait for Services Health
         run: |
           echo "Waiting for all 7 containers to become healthy..."
-          timeout 120s bash -c 'until [ $(docker compose -f docker-compose.v2.yml ps --filter "health=healthy" -q | wc -l) -ge 7 ]; do echo "Waiting for healthy containers... ($(docker compose -f docker-compose.v2.yml ps --filter "health=healthy" -q | wc -l)/7)"; sleep 3; done'
+          timeout 120s bash -c 'until [ $(docker ps --filter "health=healthy" -q | wc -l) -ge 7 ]; do echo "Waiting for healthy containers... ($(docker ps --filter "health=healthy" -q | wc -l)/7)"; sleep 3; done'
           docker compose -f docker-compose.v2.yml ps
 
       - name: Execute Live Smoke Test Suite
@@ -287,7 +287,7 @@ jobs:
         run: |
           docker compose -f docker-compose.v2.yml up -d --build
           echo "Waiting for services to become healthy..."
-          timeout 120s bash -c 'until [ $(docker compose -f docker-compose.v2.yml ps --filter "health=healthy" -q | wc -l) -ge 7 ]; do sleep 3; done'
+          timeout 120s bash -c 'until [ $(docker ps --filter "health=healthy" -q | wc -l) -ge 7 ]; do sleep 3; done'
           docker compose -f docker-compose.v2.yml ps
 
       - name: Run Playwright E2E Tests
