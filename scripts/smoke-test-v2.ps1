@@ -205,17 +205,25 @@ if ($idempResult -match "idempotentReplay.:true" -and $dupCharges -eq "1") {
 # ------------------------------------------------------------------------------
 Write-Host "`n[6/6] Verifying Concurrent Multi-Worker Attribution..."
 $batchJobs = @()
-for ($i = 1; $i -le 6; $i++) {
-    $batchPayload = @{
+for ($i = 1; $i -le 8; $i++) {
+    $batchPayloadA = @{
         jobType = "GENERATE_REPORT"
         payload = @{ reportId = $i; run = "concurrent-burst-v2" }
         priority = 50
     } | ConvertTo-Json
-    $bJob = Invoke-RestMethod -Uri "$BASE_URL/api/v1/jobs" -Method Post -Headers $tenantAHeaders -Body $batchPayload
-    $batchJobs += $bJob.jobId
+    $bJobA = Invoke-RestMethod -Uri "$BASE_URL/api/v1/jobs" -Method Post -Headers $tenantAHeaders -Body $batchPayloadA
+    $batchJobs += $bJobA.jobId
+
+    $batchPayloadB = @{
+        jobType = "GENERATE_REPORT"
+        payload = @{ reportId = $i; run = "concurrent-burst-v2" }
+        priority = 50
+    } | ConvertTo-Json
+    $bJobB = Invoke-RestMethod -Uri "$BASE_URL/api/v1/jobs" -Method Post -Headers $tenantBHeaders -Body $batchPayloadB
+    $batchJobs += $bJobB.jobId
 }
-Write-Host "  -> Enqueued 6 jobs for Tenant Alpha. Waiting 6s for cluster drain..."
-Start-Sleep -Seconds 6
+Write-Host "  -> Enqueued 16 burst jobs across Tenant Alpha & Beta. Waiting 8s for cluster drain..."
+Start-Sleep -Seconds 8
 
 $workerAttribution = docker exec qf-v2-sender-db psql -U queueforge_app -d queueforge -t -c "SELECT worker_id, COUNT(*) FROM qf_job_execution_logs GROUP BY worker_id;"
 Write-Host "  -> Worker Cluster Attribution Distribution:"

@@ -242,15 +242,19 @@ fi
 # 8. Concurrent Multi-Worker Attribution Burst
 # ------------------------------------------------------------------------------
 echo -e "\n[8/8] Verifying Concurrent Multi-Worker Attribution Distribution..."
-for i in $(seq 1 6); do
+for i in $(seq 1 8); do
     curl -s -X POST "${BASE_URL}/api/v1/jobs" \
         -H "X-Tenant-Key: ${TENANT_A_KEY}" \
         -H "Content-Type: application/json" \
         -d "{\"jobType\": \"GENERATE_REPORT\", \"payload\": {\"batchIndex\": $i}, \"priority\": 50}" > /dev/null
+    curl -s -X POST "${BASE_URL}/api/v1/jobs" \
+        -H "X-Tenant-Key: ${TENANT_B_KEY}" \
+        -H "Content-Type: application/json" \
+        -d "{\"jobType\": \"GENERATE_REPORT\", \"payload\": {\"batchIndex\": $i}, \"priority\": 50}" > /dev/null
 done
 
-echo "  -> Enqueued 6 burst jobs for Tenant Alpha. Waiting 6s for cluster drain..."
-sleep 6
+echo "  -> Enqueued 16 burst jobs across Tenant Alpha & Beta. Waiting 8s for cluster drain..."
+sleep 8
 
 WORKER_DISTRIBUTION=$(docker exec qf-v2-sender-db psql -U queueforge_app -d queueforge -t -c \
     "SELECT worker_id, COUNT(*) FROM qf_job_execution_logs GROUP BY worker_id;")
