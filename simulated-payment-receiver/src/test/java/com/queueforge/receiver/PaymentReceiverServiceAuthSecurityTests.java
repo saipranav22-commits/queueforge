@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:postgresql://127.0.0.1:5435/queueforge_payment_receiver",
+        "spring.datasource.url=jdbc:postgresql://${RECEIVER_DB_HOST:${DB_HOST:127.0.0.1}}:${RECEIVER_DB_PORT:${DB_PORT:5435}}/${RECEIVER_DB_NAME:queueforge_payment_receiver}",
         "queueforge.receiver.test-endpoints-enabled=false",
         "queueforge.receiver.service-auth-enabled=true",
         "queueforge.receiver.service-key=test_isolated_service_secret_2026"
