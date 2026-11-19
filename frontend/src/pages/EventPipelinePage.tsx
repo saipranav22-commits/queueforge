@@ -34,42 +34,49 @@ const PIPELINE_STAGES = [
     title: 'Order Created',
     detail: 'Client submits checkout or payment request to business domain API.',
     entity: 'qf_orders',
+    tier: 'VERIFIED',
   },
   {
     step: 2,
     title: 'Outbox Event Persisted',
     detail: 'Event record inserted into outbox_events in the same ACID database transaction.',
     entity: 'outbox_events (PENDING)',
+    tier: 'VERIFIED',
   },
   {
     step: 3,
     title: 'Dispatcher Claims Event',
     detail: 'Dispatcher acquires lease via SELECT FOR UPDATE SKIP LOCKED with claim token.',
     entity: 'claim_token + claim_expires_at',
+    tier: 'VERIFIED',
   },
   {
     step: 4,
     title: 'HTTP Dispatch to Receiver',
     detail: 'Dispatcher relays charge request to simulated payment service with X-Service-Key.',
     entity: 'POST :8085/api/v1/receiver/charges',
+    tier: 'INFERRED / ACTIVE',
   },
   {
     step: 5,
     title: 'Receiver Idempotency Check',
     detail: 'Receiver validates Idempotency-Key. If key was previously processed, replay returns cached charge.',
     entity: 'UNIQUE(idempotency_key)',
+    tier: 'ARCHITECTURAL / INFERRED',
   },
   {
     step: 6,
     title: 'Business Effect Recorded',
     detail: 'Downstream payment microservice commits simulated financial charge transaction.',
     entity: 'simulated_charges',
+    tier: 'ARCHITECTURAL / INFERRED',
   },
   {
     step: 7,
     title: 'Delivery Acknowledged',
     detail: 'Dispatcher receives HTTP 200/201 OK and updates outbox status to DELIVERED.',
     entity: 'status = DELIVERED',
+    tier: 'VERIFIED',
   },
 ];
 
@@ -326,8 +333,17 @@ export const EventPipelinePage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="mt-3 pt-2 border-t border-[var(--color-border-subtle)] text-[10px] font-mono text-[var(--color-text-muted)] truncate">
-                  {s.entity}
+                <div className="mt-3 pt-2 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-[10px] font-mono gap-1">
+                  <span className="text-[var(--color-text-muted)] truncate" title={s.entity}>{s.entity}</span>
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold whitespace-nowrap ${
+                    s.tier === 'VERIFIED'
+                      ? 'bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]'
+                      : s.tier.includes('ACTIVE')
+                      ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]'
+                      : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]'
+                  }`}>
+                    {s.tier}
+                  </span>
                 </div>
               </div>
             );
@@ -598,9 +614,15 @@ export const EventPipelinePage: React.FC = () => {
               </h4>
               <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Aggregate:</span>
+                  <span className="text-[var(--color-text-muted)]">Domain Aggregate:</span>
                   <span className="text-[var(--color-text-primary)] font-bold">
-                    {eventDetail.aggregateType}: {eventDetail.aggregateId}
+                    {eventDetail.aggregateType} (Order UUID)
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-text-muted)]">Order ID:</span>
+                  <span className="text-[var(--color-cyan)] font-mono text-[11px] truncate max-w-[200px]" title={eventDetail.aggregateId}>
+                    {eventDetail.aggregateId}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -652,13 +674,14 @@ export const EventPipelinePage: React.FC = () => {
               </pre>
             </div>
 
-            {/* Deep-link Action to Related Job in Job Explorer */}
+            {/* Deep-link Action to Related Job in Job Explorer via Idempotency Key */}
             <div className="pt-4 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
               <Link
-                to={`/jobs?search=${encodeURIComponent(eventDetail.aggregateId)}`}
+                to={`/jobs?search=${encodeURIComponent(eventDetail.idempotencyKey || eventDetail.aggregateId)}`}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-cyan)] hover:underline"
+                title="Search Job Queue by Idempotency Key"
               >
-                Inspect Related Jobs in Explorer <ArrowRight className="w-3.5 h-3.5" />
+                Search Job Queue by Idempotency Key <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <button
                 onClick={() => setSelectedEventId(null)}

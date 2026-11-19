@@ -20,7 +20,7 @@ describe('TenantQuotaProgress', () => {
     expect(screen.getByText('tenant-alpha')).toBeInTheDocument();
     expect(screen.getByText('5x')).toBeInTheDocument();
     expect(screen.getByText('4/10')).toBeInTheDocument();
-    expect(screen.getByText(/Deficit Counter: 2.5/)).toBeInTheDocument();
+    expect(screen.getByText(/Persisted Sweep Deficit \(Di\): 2.5/)).toBeInTheDocument();
     expect(screen.getByText(/40% active/)).toBeInTheDocument();
   });
 

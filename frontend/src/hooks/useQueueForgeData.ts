@@ -3,6 +3,7 @@ import { apiRequest } from '../lib/apiClient';
 import type {
   JobSummary,
   JobDetail,
+  DlqJobDetail,
   JobExecutionLog,
   PageResponse,
   JobStatus,
@@ -81,6 +82,15 @@ export function useJobHistory(jobId: string | undefined) {
       // If any active attempts, poll more often
       return 3000;
     },
+  });
+}
+
+export function useDlqJobDetail(jobId: string | undefined, enabled = true) {
+  return useQuery<DlqJobDetail>({
+    queryKey: ['dlq-job-detail', jobId],
+    queryFn: () => apiRequest<DlqJobDetail>(`/admin/dlq/${jobId}`),
+    enabled: !!jobId && enabled,
+    retry: false,
   });
 }
 

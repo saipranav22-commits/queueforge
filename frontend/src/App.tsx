@@ -21,6 +21,9 @@ const FairSharePage = lazy(() =>
 const EventPipelinePage = lazy(() =>
   import('./pages/EventPipelinePage').then((m) => ({ default: m.EventPipelinePage }))
 );
+const ReliabilityLabPage = lazy(() =>
+  import('./pages/ReliabilityLabPage').then((m) => ({ default: m.ReliabilityLabPage }))
+);
 const DlqPage = lazy(() =>
   import('./pages/DlqPage').then((m) => ({ default: m.DlqPage }))
 );
@@ -97,6 +100,14 @@ export const App: React.FC = () => {
                   element={
                     <Suspense fallback={<PageSuspenseFallback />}>
                       <EventPipelinePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="reliability"
+                  element={
+                    <Suspense fallback={<PageSuspenseFallback />}>
+                      <ReliabilityLabPage />
                     </Suspense>
                   }
                 />

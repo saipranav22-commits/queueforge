@@ -132,4 +132,46 @@ Third-party libraries are isolated into dedicated, cached vendor files:
 - `vendor-react`: React, React-DOM, React-Router (`245 kB`)
 - `vendor-charts`: Recharts, D3 (`369 kB`, loaded only on chart-heavy routes)
 - `vendor-query`: TanStack React Query (`35 kB`)
-- `vendor-icons`: Lucide React (`15 kB`)
+- `vendor-icons`: Lucide React (`17 kB`)
+
+---
+
+## 8. Reliability Lab & Distributed Invariant Verification
+
+The **Reliability Lab (`/reliability`)** acts as the correctness verification center of QueueForge, unifying telemetry with empirical distributed testing evidence:
+
+### A. 8 Core Distributed Resilience Mechanisms
+1. **Lease Fencing:** Conditional SQL `UPDATE ... WHERE claim_token = :token AND lease_until >= NOW()` rejects stale zombie commits.
+2. **Orphaned Lease Sweeper:** Periodic scan identifies un-heartbeated expired leases and safely resets them to `PENDING`.
+3. **Exponential Backoff & Full Jitter:** Decorrelates network load using randomized backoff ceilings to avoid stampedes.
+4. **Dead-Letter Queue Poison Isolation:** Quarantines tasks exceeding `maxRetries` or encountering `PERMANENT_FAILURE`.
+5. **Transactional Outbox (`SKIP LOCKED`):** Atomic dual-write elimination with non-blocking dispatcher batch claiming.
+6. **Consumer-Side Durable Idempotency:** Downstream receiver `UNIQUE(idempotency_key)` deduplication.
+7. **FairShare DRR Quotas:** Multi-tenant fair queuing preventing starvation with strict concurrency ceilings.
+8. **SmartLifecycle Thread Draining:** Graceful container termination allowing up to 25s for in-flight tasks to complete.
+
+### B. ChaosLab Empirical Fault Scenarios
+Presents verified millisecond chronologies from the automated ChaosLab test suite (`docs/engineering/chaoslab.md`):
+- **Experiment A:** Hard Worker Crash Mid-Execution (`SIGKILL`, 6s lease expiry, sweeper recovery, fresh token).
+- **Experiment B:** Zombie Worker & Fencing Token Protection (GC pause barrier, conditional UPDATE rejected, 0 corruption).
+- **Experiment C:** Split-Brain Network Partition (Worker 1 partitioned, Worker 2 maintains continuous queue throughput).
+
+### C. 9 Formal Invariant Verification Matrix
+Verified by `InvariantVerifier.java` across database row states and audit logs:
+- **SAFETY-1 through SAFETY-6:** Single Valid Owner, Stale Worker Fenced, Durable Storage Survival, Bounded Retries, No Terminal Reversal, Consistent Audit Evidence.
+- **LIVENESS-1 through LIVENESS-3:** Abandoned Job Recoverable, Eventual Terminal State, Healthy Worker Continuity.
+
+---
+
+## 9. Dead-Letter Queue Operations & Platform Administration
+
+### A. Dead-Letter Queue Console (`/dlq`)
+- **Triage Explorer:** Paginated search and failure category filtering (`TRANSIENT_FAILURE`, `PERMANENT_FAILURE`, `LEASE_EXPIRED`, `HANDLER_NOT_FOUND`).
+- **Diagnostic Inspector Drawer:** Metadata, failure taxonomy badge, retry counter, formatted fatal error message, collapsible stack trace, and JSON payload viewer.
+- **Safe Recovery Workflows:** Replay modal (resets status to `PENDING` with zeroed claim token) and Discard modal (soft-deleted archival preserving audit trail).
+
+### B. Control Plane Administration (`/admin`)
+- **Session Lifecycle:** Double-submit CSRF cookie protection and `X-Admin-Key` authorization status.
+- **Tenant Administration Snapshot:** Real-time active tenant tally, total weight allocation, and navigation to FairShare.
+- **Runtime Platform Configuration:** Real-time HikariCP pool metrics (active, idle, total connections, timeouts) and Worker Coordinator execution parameters.
+- **Security Boundaries:** Enforced tenant isolation, secret masking policies, and append-only audit trail immutability.

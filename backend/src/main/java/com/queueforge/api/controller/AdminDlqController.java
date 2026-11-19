@@ -53,8 +53,9 @@ public class AdminDlqController {
 
     /**
      * Discards a dead-letter job by archiving it without hard deleting the database row.
+     * Supports both POST and DELETE for HTTP client flexibility.
      */
-    @PostMapping("/{jobId}/discard")
+    @RequestMapping(value = "/{jobId}/discard", method = {RequestMethod.POST, RequestMethod.DELETE})
     public ResponseEntity<DiscardJobResponse> discardJob(@PathVariable UUID jobId) {
         DiscardJobResponse response = dlqService.discardDlqJob(jobId);
         return ResponseEntity.ok(response);

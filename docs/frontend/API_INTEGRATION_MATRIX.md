@@ -25,8 +25,9 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 | **Outbox Event Explorer** | `/api/v1/admin/outbox/events` | `GET` | Yes (Admin) | No | `page, size, status, eventType, search, sortBy, sortDirection` | `PageResponse<OutboxEventSummary>` |
 | **Outbox Event Detail** | `/api/v1/admin/outbox/events/{id}` | `GET` | Yes (Admin) | No | Path: `id` | `OutboxEventDetail` |
 | **Manual Outbox Dispatch** | `/api/v1/admin/outbox/dispatch`| `POST` | Yes (Admin) | Yes | `batchSize (1-50), leaseDurationSeconds (1-60)` | `OutboxDispatchResult` |
+| **DLQ Job Diagnostics** | `/api/v1/admin/dlq/{jobId}` | `GET` | Yes (Admin) | No | Path: `jobId` | `DlqJobDetailResponse` |
 | **DLQ Job Replay** | `/api/v1/admin/dlq/{jobId}/replay` | `POST` | Yes (Admin) | Yes | Path: `jobId` | `ApiMessageResponse` |
-| **DLQ Job Discard** | `/api/v1/admin/dlq/{jobId}/discard` | `DELETE`| Yes (Admin) | Yes | Path: `jobId` | `ApiMessageResponse` |
+| **DLQ Job Discard** | `/api/v1/admin/dlq/{jobId}/discard` | `POST / DELETE` | Yes (Admin) | Yes | Path: `jobId` | `DiscardJobResponse` |
 | **Admin Session Unlock** | `/api/v1/auth/unlock` | `POST` | No | Yes | `password` | `{ authenticated: true }` |
 | **Admin Session Lock** | `/api/v1/auth/logout` | `POST` | Yes (Admin) | Yes | None | `{ authenticated: false }` |
 | **Session Status Check** | `/api/v1/auth/status` | `GET` | No | No | None | `{ authenticated: boolean }` |

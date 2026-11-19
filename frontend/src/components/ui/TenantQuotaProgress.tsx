@@ -74,7 +74,9 @@ export const TenantQuotaProgress: React.FC<TenantQuotaProgressProps> = ({
       </div>
 
       <div className="flex items-center justify-between mt-1.5 text-[10px] text-[var(--text-tertiary)] font-mono">
-        <span>Deficit Counter: {deficit.toFixed(1)}</span>
+        <span title="Persisted deficit counter from qf_tenants.deficit_counter (last executed DRR sweep)">
+          Persisted Sweep Deficit (Di): {deficit.toFixed(1)}
+        </span>
         <span>{percentage}% active</span>
       </div>
     </div>

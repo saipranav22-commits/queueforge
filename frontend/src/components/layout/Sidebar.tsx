@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Layers,
   Flame,
+  ShieldAlert,
   Activity,
   Cpu,
   Scale,
@@ -53,9 +54,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
       icon: GitBranch,
     },
     {
-      to: '/dlq',
+      to: '/reliability',
       label: 'Reliability Lab',
       icon: Flame,
+    },
+    {
+      to: '/dlq',
+      label: 'Dead-Letter Queue',
+      icon: ShieldAlert,
       count: stats?.deadLetterJobs,
       countVariant: stats?.deadLetterJobs && stats.deadLetterJobs > 0 ? 'danger' : 'default',
     },

@@ -6,6 +6,7 @@ import {
   Cpu,
   Scale,
   GitBranch,
+  Flame,
   ShieldAlert,
   Activity,
   Settings,
@@ -97,8 +98,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       },
     },
     {
-      id: 'reliability-dlq',
-      title: 'Reliability Lab & DLQ',
+      id: 'reliability-lab',
+      title: 'Reliability Lab & Distributed Verification',
+      subtitle: 'Resilience mechanisms, historical ChaosLab experiments and 9-invariant matrix',
+      icon: Flame,
+      action: () => {
+        navigate('/reliability');
+        onClose();
+      },
+    },
+    {
+      id: 'dlq-operations',
+      title: 'Dead-Letter Queue Operations',
       subtitle: 'Exhausted retry inspection, replay triggers and failure taxonomy',
       icon: ShieldAlert,
       action: () => {

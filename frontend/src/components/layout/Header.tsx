@@ -37,7 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
     if (path.startsWith('/workers')) return 'Worker Fleet';
     if (path.startsWith('/fairshare')) return 'FairShare Multi-Tenant';
     if (path.startsWith('/pipeline')) return 'Event Pipeline';
-    if (path.startsWith('/dlq')) return 'Reliability Lab';
+    if (path.startsWith('/reliability')) return 'Reliability Lab';
+    if (path.startsWith('/dlq')) return 'Dead-Letter Queue';
     if (path.startsWith('/monitoring')) return 'Observability';
     if (path.startsWith('/admin')) return 'Administration';
     return 'Console';

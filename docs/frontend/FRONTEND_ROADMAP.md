@@ -83,8 +83,38 @@ The QueueForge frontend engineering strategy is structured into disciplined, ver
 
 ---
 
-### Phase 8D: ChaosLab Reliability Console & Distributed Fault Injection (Upcoming)
-- [ ] Visual ChaosLab experiment runner and fault injection controls.
-- [ ] Real-time invariant verification monitors (9 distributed invariants).
-- [ ] Split-brain and worker crash simulation controls with lease recovery observability.
-- [ ] Live Docker Compose multi-instance smoke test and browser E2E verification gate.
+### Phase 8D: Reliability Lab, Dead-Letter Operations & Premium Administration (Completed)
+- [x] **Reliability Lab & Distributed Verification (`/reliability`):**
+  - Real-time reliability overview metrics: DLQ poison jobs, system failures, successful completions, outbox dead-letter events, and active worker fleet resilience.
+  - Core Distributed Resilience Mechanisms explorer: 8 interactive mechanism cards (Lease Fencing, Orphan Lease Sweeper, Full Jitter Backoff, DLQ Poison Isolation, Transactional Outbox, Durable Idempotency, FairShare DRR, SmartLifecycle Graceful Drain) with problems solved, implementations, and formal guarantees.
+  - Historical ChaosLab Experiment Evidence panel: 3 empirical fault injection experiments (Experiment A: Hard Worker Crash mid-execution, Experiment B: Zombie Worker & Fencing Token protection, Experiment C: Split-Brain Network Partition) with millisecond execution chronologies and verified pass statuses.
+  - Formal Correctness Invariant Matrix: 9 mathematical distributed invariants (SAFETY-1 through SAFETY-6, LIVENESS-1 through LIVENESS-3) evaluated across database states and append-only audit traces.
+- [x] **Dead-Letter Queue Operations Console (`/dlq`):**
+  - Full Obsidian Pulse design system overhaul eliminating legacy Tailwind styling.
+  - Server-side filtered and paginated poison job explorer with search and failure category filtering (`TRANSIENT_FAILURE`, `PERMANENT_FAILURE`, `LEASE_EXPIRED`, `HANDLER_NOT_FOUND`).
+  - Slide-over diagnostic inspector drawer displaying metadata, failure taxonomy badge, retry counter, formatted fatal error message, collapsible stack trace, formatted JSON payload viewer, and direct link to Job Explorer.
+  - Safe replay workflow with confirmation modal explaining status reset to `PENDING` and zeroed claim token.
+  - Safe discard workflow with confirmation modal explaining soft-deleted archival to preserve audit trail.
+  - Backend controller update supporting both `POST` and `DELETE` on `/api/v1/admin/dlq/{jobId}/discard`.
+- [x] **Control Plane Administration (`/admin`):**
+  - Obsidian Pulse design tokens across all administration widgets.
+  - Access control and session lifecycle management with real-time privilege status (ADMINISTRATOR vs READ-ONLY), unlock/lock modal controls, and anti-CSRF double-submit cookie verification.
+  - Tenant administration snapshot with active tenant counts, aggregate weight capacity, and direct navigation to FairShare.
+  - Runtime platform configuration displaying real HikariCP connection pool metrics (active, idle, total, timeouts) and Worker Coordinator execution thresholds (lease duration, poll interval, recovery sweep).
+  - Explicit security boundaries documenting cross-tenant isolation, secret masking policies, and append-only audit trail immutability.
+- [x] **Observability & Distributed Metrics (`/monitoring`):**
+  - Obsidian Pulse design tokens with median (p50), p95, and p99 execution latencies, as well as p50 and p95 queue wait times from `/api/v1/system/metrics-summary`.
+  - Failure category breakdown progress bars.
+  - Truthful external telemetry integration panel documenting Prometheus scrape endpoint (`/actuator/prometheus`) and Docker Compose Grafana dashboard definitions.
+- [x] **Quality Gate:**
+  - 30/30 Vitest tests passing across 17 test files.
+  - Clean TypeScript compilation (`tsc -b`), 0 errors.
+  - 23/23 backend unit tests passing in Maven Surefire.
+  - Optimized production Vite build with perfect chunk splitting.
+
+---
+
+### Phase 8E: Live Multi-Instance Verification & End-to-End Release Hardening (Upcoming)
+- [ ] Multi-instance Docker Compose stack verification (backend API, workers, Postgres, payment receiver, frontend).
+- [ ] End-to-end browser user journey validation across Mission Control, Job Explorer, FairShare, Event Pipeline, Reliability Lab, DLQ, and Administration.
+- [ ] Comprehensive release candidate documentation and production readiness gate.

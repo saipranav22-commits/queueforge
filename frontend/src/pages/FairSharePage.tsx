@@ -366,7 +366,7 @@ export const FairSharePage: React.FC = () => {
               Tenant Concurrency & Quota Real-Time Utilization
             </h3>
             <p className="text-xs text-[var(--color-text-secondary)]">
-              Active running jobs against hard cluster concurrency ceilings and live deficit counters
+              Active running jobs against hard cluster concurrency ceilings and persisted sweep deficit counters (Di)
             </p>
           </div>
           <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
@@ -439,7 +439,7 @@ export const FairSharePage: React.FC = () => {
                 <th className="px-5 py-3">Weight</th>
                 <th className="px-5 py-3">Quota (Max)</th>
                 <th className="px-5 py-3">Running / Pending</th>
-                <th className="px-5 py-3">Deficit Counter</th>
+                <th className="px-5 py-3" title="Persisted Deficit Counter from qf_tenants.deficit_counter (updated each DRR scheduling sweep)">Sweep Deficit (Di)</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
