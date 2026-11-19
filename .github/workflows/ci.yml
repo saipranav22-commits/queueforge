@@ -294,8 +294,7 @@ jobs:
         working-directory: ./frontend
         env:
           BASE_URL: http://127.0.0.1:8088
-          ADMIN_API_KEY: ${{ env.ADMIN_API_KEY }}
-        run: npm run test:e2e
+        run: ADMIN_API_KEY="$ADMIN_API_KEY" npm run test:e2e
 
       - name: Upload Playwright Report on Failure
         if: failure()
