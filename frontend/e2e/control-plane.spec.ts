@@ -90,7 +90,7 @@ test.describe('QueueForge Obsidian Pulse Control Plane E2E Suite', () => {
 
     await expect(page.getByRole('heading', { name: /Reliability Lab/i }).first()).toBeVisible();
     await expect(page.locator('text=9/9 INVARIANTS PASS').first()).toBeVisible();
-    await expect(page.locator('text=SAFETY-1').first()).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'SAFETY-1' }).first()).toBeVisible();
   });
 
   test('Flow 8: Dead-Letter Queue & Guarded Recovery Triage', async ({ page }) => {
