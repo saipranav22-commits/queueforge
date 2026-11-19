@@ -571,6 +571,53 @@ public class JobClaimService {
         }
     }
 
+    public void registerWorkerHeartbeat(String instanceId, String mode, String status, int concurrency, int activeJobs) {
+        try {
+            String sql = """
+                INSERT INTO qf_worker_heartbeats (instance_id, mode, status, concurrency, active_jobs, last_heartbeat, started_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT (instance_id) DO UPDATE
+                SET status = EXCLUDED.status,
+                    concurrency = EXCLUDED.concurrency,
+                    active_jobs = EXCLUDED.active_jobs,
+                    last_heartbeat = CURRENT_TIMESTAMP
+                """;
+            jdbcTemplate.update(sql, instanceId, mode, status, concurrency, activeJobs);
+        } catch (Exception e) {
+            log.trace("Worker heartbeat registration not available: {}", e.getMessage());
+        }
+    }
+
+    public void updateWorkerHeartbeat(String instanceId, int activeJobs) {
+        try {
+            String sql = """
+                UPDATE qf_worker_heartbeats
+                SET last_heartbeat = CURRENT_TIMESTAMP,
+                    active_jobs = ?,
+                    status = 'RUNNING'
+                WHERE instance_id = ?
+                """;
+            jdbcTemplate.update(sql, activeJobs, instanceId);
+        } catch (Exception e) {
+            log.trace("Worker heartbeat update not available: {}", e.getMessage());
+        }
+    }
+
+    public void markWorkerStopped(String instanceId) {
+        try {
+            String sql = """
+                UPDATE qf_worker_heartbeats
+                SET status = 'STOPPED',
+                    active_jobs = 0,
+                    last_heartbeat = CURRENT_TIMESTAMP
+                WHERE instance_id = ?
+                """;
+            jdbcTemplate.update(sql, instanceId);
+        } catch (Exception e) {
+            log.trace("Worker stop status update not available: {}", e.getMessage());
+        }
+    }
+
     private record ExpiredLeaseCandidate(
             UUID id,
             UUID claimToken,

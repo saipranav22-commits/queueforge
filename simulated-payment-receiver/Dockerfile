@@ -9,7 +9,7 @@ RUN mvn dependency:go-offline -B || true
 
 # Copy source code and package application skipping unit/integration tests
 COPY src ./src
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B -U
 
 # Stage 2: Minimal hardened runtime
 FROM eclipse-temurin:21-jre-alpine

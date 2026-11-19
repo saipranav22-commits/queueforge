@@ -35,12 +35,12 @@ class DatabaseIntegrationTest {
         );
         assertThat(logsTableCount).isEqualTo(1);
 
-        // 4. Verify flyway schema history records V1, V2, V3 success
+        // 4. Verify flyway schema history records V1 through V8 success
         Integer flywayCount = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM flyway_schema_history WHERE success = true",
             Integer.class
         );
-        assertThat(flywayCount).isGreaterThanOrEqualTo(3);
+        assertThat(flywayCount).isGreaterThanOrEqualTo(8);
 
         // 5. Verify V2 added idempotency_fingerprint column
         Integer fingerprintCol = jdbcTemplate.queryForObject(
@@ -61,5 +61,26 @@ class DatabaseIntegrationTest {
             Integer.class
         );
         assertThat(claimVersionCol).isEqualTo(1);
+
+        // 7. Verify V5 transactional outbox table was created
+        Integer outboxTableCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'outbox_events'",
+            Integer.class
+        );
+        assertThat(outboxTableCount).isEqualTo(1);
+
+        // 8. Verify V6 multi-tenant table was created
+        Integer tenantsTableCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'qf_tenants'",
+            Integer.class
+        );
+        assertThat(tenantsTableCount).isEqualTo(1);
+
+        // 9. Verify V8 worker heartbeats table was created
+        Integer heartbeatsTableCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'qf_worker_heartbeats'",
+            Integer.class
+        );
+        assertThat(heartbeatsTableCount).isEqualTo(1);
     }
 }

@@ -3,11 +3,14 @@ package com.queueforge.api.controller;
 import com.queueforge.api.dto.DashboardStatsResponse;
 import com.queueforge.api.dto.SystemHealthResponse;
 import com.queueforge.api.dto.SystemMetricsSummaryResponse;
+import com.queueforge.api.dto.WorkerInstanceResponse;
 import com.queueforge.service.DashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -44,5 +47,14 @@ public class DashboardController {
     public ResponseEntity<SystemMetricsSummaryResponse> getMetricsSummary() {
         SystemMetricsSummaryResponse summary = dashboardService.getMetricsSummary();
         return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Retrieves real-time distributed worker fleet heartbeats and lease attribution.
+     */
+    @GetMapping("/system/workers")
+    public ResponseEntity<List<WorkerInstanceResponse>> getWorkerFleet() {
+        List<WorkerInstanceResponse> fleet = dashboardService.getWorkerFleet();
+        return ResponseEntity.ok(fleet);
     }
 }

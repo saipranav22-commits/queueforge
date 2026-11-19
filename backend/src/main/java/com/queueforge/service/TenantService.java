@@ -24,10 +24,31 @@ public class TenantService {
 
     private final TenantRepository tenantRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final com.queueforge.config.FairShareProperties fairShareProperties;
 
-    public TenantService(TenantRepository tenantRepository, JdbcTemplate jdbcTemplate) {
+    public TenantService(TenantRepository tenantRepository,
+                         JdbcTemplate jdbcTemplate,
+                         com.queueforge.config.FairShareProperties fairShareProperties) {
         this.tenantRepository = tenantRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.fairShareProperties = fairShareProperties;
+    }
+
+    @Transactional(readOnly = true)
+    public FairShareConfigResponse getSchedulerConfig() {
+        List<TenantEntity> allTenants = tenantRepository.findAll();
+        long activeCount = allTenants.stream().filter(t -> t.getStatus() == TenantStatus.ACTIVE).count();
+        int totalWeight = allTenants.stream().mapToInt(TenantEntity::getWeight).sum();
+        int totalConcurrency = allTenants.stream().mapToInt(TenantEntity::getMaxConcurrency).sum();
+
+        return new FairShareConfigResponse(
+                fairShareProperties.isEnabled(),
+                fairShareProperties.getBaseQuantum(),
+                fairShareProperties.getMaxTenantsPerSweep(),
+                activeCount,
+                totalWeight,
+                totalConcurrency
+        );
     }
 
     @Transactional(readOnly = true)

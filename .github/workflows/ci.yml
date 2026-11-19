@@ -2,9 +2,9 @@ name: QueueForge V2 CI
 
 on:
   push:
-    branches: [ master, main, feature/multi-instance-workers ]
+    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui ]
   pull_request:
-    branches: [ master, main, feature/multi-instance-workers ]
+    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui ]
   workflow_dispatch:
     inputs:
       run_destructive_chaos:
@@ -185,3 +185,126 @@ jobs:
           file: ./frontend/Dockerfile
           push: false
           tags: queueforge-frontend:ci
+
+  # ----------------------------------------------------------------------------
+  # 5. Full-Stack Multi-Worker Docker Compose Smoke Test
+  # ----------------------------------------------------------------------------
+  full-stack-smoke-test:
+    name: Full-Stack Docker Smoke Test
+    runs-on: ubuntu-latest
+    needs: [docker-build-verification]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Generate High-Entropy Cluster Credentials
+        run: |
+          DYNAMIC_ADMIN_KEY=$(openssl rand -hex 24)
+          DYNAMIC_RECEIVER_KEY=$(openssl rand -hex 24)
+          DYNAMIC_DB_PASS=$(openssl rand -hex 16)
+          echo "::add-mask::$DYNAMIC_ADMIN_KEY"
+          echo "::add-mask::$DYNAMIC_RECEIVER_KEY"
+          echo "::add-mask::$DYNAMIC_DB_PASS"
+          echo "ADMIN_API_KEY=$DYNAMIC_ADMIN_KEY" >> $GITHUB_ENV
+          echo "RECEIVER_SERVICE_KEY=$DYNAMIC_RECEIVER_KEY" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DYNAMIC_DB_PASS" >> $GITHUB_ENV
+
+      - name: Start QueueForge V2 Multi-Instance Cluster
+        env:
+          FRONTEND_PORT: 8088
+        run: |
+          docker compose -f docker-compose.v2.yml up -d --build
+
+      - name: Wait for Services Health
+        run: |
+          echo "Waiting for all 7 containers to become healthy..."
+          timeout 120s bash -c 'until [ $(docker ps --filter "health=healthy" -q | wc -l) -ge 7 ]; do echo "Waiting for healthy containers... ($(docker ps --filter "health=healthy" -q | wc -l)/7)"; sleep 3; done'
+          docker compose -f docker-compose.v2.yml ps
+
+      - name: Execute Live Smoke Test Suite
+        env:
+          FRONTEND_URL: http://127.0.0.1:8088
+        run: |
+          chmod +x scripts/smoke-test-v2.sh
+          bash scripts/smoke-test-v2.sh
+
+      - name: Dump Container Logs on Failure
+        if: failure()
+        run: |
+          echo "=== DUMPING CLUSTER CONTAINER LOGS ==="
+          docker compose -f docker-compose.v2.yml logs --tail 200
+
+      - name: Tear Down Cluster
+        if: always()
+        run: |
+          docker compose -f docker-compose.v2.yml down -v
+
+  # ----------------------------------------------------------------------------
+  # 6. Playwright Browser E2E Verification
+  # ----------------------------------------------------------------------------
+  browser-e2e-test:
+    name: Browser E2E Verification (Playwright)
+    runs-on: ubuntu-latest
+    needs: [docker-build-verification]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate High-Entropy Cluster Credentials
+        run: |
+          DYNAMIC_ADMIN_KEY=$(openssl rand -hex 24)
+          DYNAMIC_RECEIVER_KEY=$(openssl rand -hex 24)
+          DYNAMIC_DB_PASS=$(openssl rand -hex 16)
+          echo "::add-mask::$DYNAMIC_ADMIN_KEY"
+          echo "::add-mask::$DYNAMIC_RECEIVER_KEY"
+          echo "::add-mask::$DYNAMIC_DB_PASS"
+          echo "ADMIN_API_KEY=$DYNAMIC_ADMIN_KEY" >> $GITHUB_ENV
+          echo "RECEIVER_SERVICE_KEY=$DYNAMIC_RECEIVER_KEY" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DYNAMIC_DB_PASS" >> $GITHUB_ENV
+
+      - name: Start Cluster in Background
+        env:
+          FRONTEND_PORT: 8088
+        run: |
+          docker compose -f docker-compose.v2.yml up -d --build
+          echo "Waiting for services to become healthy..."
+          timeout 120s bash -c 'until [ $(docker ps --filter "health=healthy" -q | wc -l) -ge 7 ]; do sleep 3; done'
+          docker compose -f docker-compose.v2.yml ps
+
+      - name: Run Playwright E2E Tests
+        working-directory: ./frontend
+        env:
+          BASE_URL: http://127.0.0.1:8088
+        run: ADMIN_API_KEY="$ADMIN_API_KEY" npm run test:e2e
+
+      - name: Upload Playwright Report on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Tear Down Cluster
+        if: always()
+        run: |
+          docker compose -f docker-compose.v2.yml down -v

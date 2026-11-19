@@ -22,28 +22,31 @@ export const JsonViewer: React.FC<JsonViewerProps> = ({ jsonString, title = 'Pay
 
   const handleCopy = () => {
     if (formatted) {
-      navigator.clipboard.writeText(formatted);
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(formatted);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/70 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/80 bg-slate-900/50">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+    <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] overflow-hidden transition-colors">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)]">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
           {title}
         </span>
         <button
+          type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 rounded-md transition"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-deep)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded-md transition font-mono"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-[var(--color-success)]" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
       <div className="p-4 overflow-x-auto max-h-96">
-        <pre className="text-xs font-mono text-slate-300 leading-relaxed selection:bg-blue-600/30">
+        <pre className="text-xs font-mono text-[var(--color-text-primary)] leading-relaxed selection:bg-[var(--color-amethyst-bg)]">
           {formatted || '// Empty payload'}
         </pre>
       </div>

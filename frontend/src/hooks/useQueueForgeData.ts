@@ -3,6 +3,7 @@ import { apiRequest } from '../lib/apiClient';
 import type {
   JobSummary,
   JobDetail,
+  DlqJobDetail,
   JobExecutionLog,
   PageResponse,
   JobStatus,
@@ -27,6 +28,10 @@ export interface JobsQueryFilter {
   search?: string;
   sortBy?: string;
   sortDirection?: 'ASC' | 'DESC';
+  tenantId?: string;
+  priority?: number;
+  minPriority?: number;
+  maxPriority?: number;
 }
 
 export function useJobs(filters: JobsQueryFilter) {
@@ -38,6 +43,10 @@ export function useJobs(filters: JobsQueryFilter) {
   if (filters.search) queryParams.set('search', filters.search);
   if (filters.sortBy) queryParams.set('sortBy', filters.sortBy);
   if (filters.sortDirection) queryParams.set('sortDirection', filters.sortDirection);
+  if (filters.tenantId) queryParams.set('tenantId', filters.tenantId);
+  if (filters.priority != null) queryParams.set('priority', filters.priority.toString());
+  if (filters.minPriority != null) queryParams.set('minPriority', filters.minPriority.toString());
+  if (filters.maxPriority != null) queryParams.set('maxPriority', filters.maxPriority.toString());
 
   const queryString = queryParams.toString();
   const endpoint = `/jobs${queryString ? `?${queryString}` : ''}`;
@@ -76,6 +85,15 @@ export function useJobHistory(jobId: string | undefined) {
   });
 }
 
+export function useDlqJobDetail(jobId: string | undefined, enabled = true) {
+  return useQuery<DlqJobDetail>({
+    queryKey: ['dlq-job-detail', jobId],
+    queryFn: () => apiRequest<DlqJobDetail>(`/admin/dlq/${jobId}`),
+    enabled: !!jobId && enabled,
+    retry: false,
+  });
+}
+
 export function useSystemHealth() {
   return useQuery<SystemHealth>({
     queryKey: ['system-health'],
@@ -89,6 +107,14 @@ export function useSystemMetricsSummary() {
     queryKey: ['system-metrics-summary'],
     queryFn: () => apiRequest<SystemMetricsSummary>('/system/metrics-summary'),
     refetchInterval: 5000,
+  });
+}
+
+export function useWorkerFleet() {
+  return useQuery<import('../types/worker').WorkerInstance[]>({
+    queryKey: ['system-workers'],
+    queryFn: () => apiRequest<import('../types/worker').WorkerInstance[]>('/system/workers'),
+    refetchInterval: 3000,
   });
 }
 
@@ -121,4 +147,138 @@ export function useDlqActions() {
     discardJob: discardMutation.mutateAsync,
     isDiscarding: discardMutation.isPending,
   };
+}
+
+export function useTenants(enabled = true) {
+  return useQuery<import('../types/tenant').TenantSummary[]>({
+    queryKey: ['admin-tenants'],
+    queryFn: () => apiRequest<import('../types/tenant').TenantSummary[]>('/admin/tenants'),
+    enabled,
+    refetchInterval: 5000,
+    retry: false, // Don't spam if 401 unauthenticated
+  });
+}
+
+export function useManualOutboxDispatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params?: { batchSize?: number; leaseDurationSeconds?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.batchSize) q.set('batchSize', params.batchSize.toString());
+      if (params?.leaseDurationSeconds) q.set('leaseDurationSeconds', params.leaseDurationSeconds.toString());
+      const queryStr = q.toString();
+      return apiRequest<import('../types/outbox').OutboxDispatchResult>(
+        `/admin/outbox/dispatch${queryStr ? `?${queryStr}` : ''}`,
+        { method: 'POST' }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['system-metrics-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-outbox-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-outbox-events'] });
+    },
+  });
+}
+
+export function useSchedulerConfig(enabled = true) {
+  return useQuery<import('../types/tenant').FairShareSchedulerConfig>({
+    queryKey: ['admin-scheduler-config'],
+    queryFn: () => apiRequest<import('../types/tenant').FairShareSchedulerConfig>('/admin/tenants/scheduler-config'),
+    enabled,
+    refetchInterval: 10000,
+    retry: false,
+  });
+}
+
+export function useUpdateTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: import('../types/tenant').UpdateTenantRequest }) =>
+      apiRequest<import('../types/tenant').TenantDetail>(`/admin/tenants/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-scheduler-config'] });
+    },
+  });
+}
+
+export function useOutboxStats(enabled = true) {
+  return useQuery<import('../types/outbox').OutboxStats>({
+    queryKey: ['admin-outbox-stats'],
+    queryFn: () => apiRequest<import('../types/outbox').OutboxStats>('/admin/outbox/stats'),
+    enabled,
+    refetchInterval: 3000,
+    retry: false,
+  });
+}
+
+export function useOutboxEvents(filters: import('../types/outbox').OutboxQueryFilter, enabled = true) {
+  const queryParams = new URLSearchParams();
+  if (filters.page != null) queryParams.set('page', filters.page.toString());
+  if (filters.size != null) queryParams.set('size', filters.size.toString());
+  if (filters.status) queryParams.set('status', filters.status);
+  if (filters.eventType) queryParams.set('eventType', filters.eventType);
+  if (filters.search) queryParams.set('search', filters.search);
+  if (filters.sortBy) queryParams.set('sortBy', filters.sortBy);
+  if (filters.sortDirection) queryParams.set('sortDirection', filters.sortDirection);
+
+  const queryString = queryParams.toString();
+  const endpoint = `/admin/outbox/events${queryString ? `?${queryString}` : ''}`;
+
+  return useQuery<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>({
+    queryKey: ['admin-outbox-events', filters],
+    queryFn: () => apiRequest<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>(endpoint),
+    enabled,
+    refetchInterval: 3000,
+    retry: false,
+  });
+}
+
+export function useOutboxEventDetail(id?: string) {
+  return useQuery<import('../types/outbox').OutboxEventDetail>({
+    queryKey: ['admin-outbox-event-detail', id],
+    queryFn: () => apiRequest<import('../types/outbox').OutboxEventDetail>(`/admin/outbox/events/${id}`),
+    enabled: Boolean(id),
+    retry: false,
+  });
+}
+
+export function useCreateJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      jobType: string;
+      payload: any;
+      priority?: number;
+      maxRetries?: number;
+      delaySeconds?: number;
+      tenantId?: string;
+      idempotencyKey?: string;
+    }) => {
+      const headers: Record<string, string> = {};
+      if (data.idempotencyKey) {
+        headers['Idempotency-Key'] = data.idempotencyKey;
+      }
+      return apiRequest<{ jobId: string; tenantId: string; status: string; createdAt: string }>('/jobs', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          jobType: data.jobType,
+          payload: data.payload,
+          priority: data.priority ?? 50,
+          maxRetries: data.maxRetries ?? 3,
+          delaySeconds: data.delaySeconds ?? 0,
+          tenantId: data.tenantId,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
 }
