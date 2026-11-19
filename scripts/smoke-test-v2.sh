@@ -224,10 +224,11 @@ fi
 
 # Verify idempotency by re-dispatching the exact charge to payment receiver
 IDEMP_KEY="order-payment-${ORDER_ID}"
+FINGERPRINT=$(echo -n "order:${ORDER_ID}|customer:CUST-CI|amount:15000|currency:USD" | sha256sum | awk '{print $1}')
 REPLAY_RESP=$(docker exec -i qf-v2-worker-1 wget -q -O - \
     --header "Content-Type: application/json" \
     --header "X-Service-Key: ${RECEIVER_KEY}" \
-    --post-data "{\"orderId\":\"${ORDER_ID}\",\"amountCents\":15000,\"currency\":\"USD\",\"idempotencyKey\":\"${IDEMP_KEY}\"}" \
+    --post-data "{\"orderId\":\"${ORDER_ID}\",\"customerId\":\"CUST-CI\",\"amountCents\":15000,\"currency\":\"USD\",\"idempotencyKey\":\"${IDEMP_KEY}\",\"fingerprint\":\"${FINGERPRINT}\"}" \
     "http://payment-receiver:8098/api/v1/payments/charges" || echo "{}")
 
 if echo "$REPLAY_RESP" | grep -q '"idempotentReplay":true'; then

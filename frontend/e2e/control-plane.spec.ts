@@ -10,10 +10,11 @@ test.describe('QueueForge Obsidian Pulse Control Plane E2E Suite', () => {
     await expect(page).toHaveTitle(/QueueForge/i);
     await expect(page.locator('text=Control Plane').first()).toBeVisible();
 
-    // Verify presence of primary KPI cards
-    await expect(page.locator('text=Active Workers').first()).toBeVisible();
+    // Verify presence of primary KPI cards and chart
     await expect(page.locator('text=Pending Queue').first()).toBeVisible();
-    await expect(page.locator('text=Throughput').first()).toBeVisible();
+    await expect(page.locator('text=Active Running').first()).toBeVisible();
+    await expect(page.locator('text=Completed Total').first()).toBeVisible();
+    await expect(page.locator('text=Cluster Execution Activity').first()).toBeVisible();
   });
 
   test('Flow 2: Admin Unlock Authentication and Double-Submit CSRF Lifecycle', async ({ page }) => {
@@ -56,7 +57,7 @@ test.describe('QueueForge Obsidian Pulse Control Plane E2E Suite', () => {
     await page.goto('/jobs');
 
     // Verify search input
-    const searchInput = page.getByPlaceholder(/Search by Job ID/i);
+    const searchInput = page.getByPlaceholder(/Search UUID or idempotency key/i);
     await expect(searchInput).toBeVisible();
 
     // Test filter pills
@@ -69,28 +70,28 @@ test.describe('QueueForge Obsidian Pulse Control Plane E2E Suite', () => {
     await page.goto('/workers');
 
     await expect(page.locator('text=Worker Fleet').first()).toBeVisible();
-    await expect(page.locator('text=CLUSTER ARCHITECTURE').first()).toBeVisible();
+    await expect(page.locator('text=MULTI-NODE CLUSTER').first()).toBeVisible();
   });
 
   test('Flow 5: FairShare Multi-Tenant Intelligence & Deficit Counters', async ({ page }) => {
     await page.goto('/fairshare');
 
     await expect(page.locator('text=FairShare Multi-Tenant').first()).toBeVisible();
-    await expect(page.locator('text=DRR SCHEDULER').first()).toBeVisible();
+    await expect(page.locator('text=DRR ENGINE').first()).toBeVisible();
   });
 
   test('Flow 6: Transactional Event Pipeline & Outbox Explorer', async ({ page }) => {
     await page.goto('/pipeline');
 
-    await expect(page.locator('text=Transactional Event Pipeline').first()).toBeVisible();
-    await expect(page.locator('text=OUTBOX PATTERN').first()).toBeVisible();
+    await expect(page.locator('text=Transactional Outbox Event Pipeline').first()).toBeVisible();
+    await expect(page.locator('text=AT-LEAST-ONCE').first()).toBeVisible();
   });
 
   test('Flow 7: Reliability Lab & Formal Invariant Matrix', async ({ page }) => {
     await page.goto('/reliability');
 
     await expect(page.locator('text=Reliability Lab').first()).toBeVisible();
-    await expect(page.locator('text=DISTRIBUTED INVARIANTS').first()).toBeVisible();
+    await expect(page.locator('text=9/9 INVARIANTS PASS').first()).toBeVisible();
     await expect(page.locator('text=SAFETY-1').first()).toBeVisible();
   });
 
@@ -98,7 +99,7 @@ test.describe('QueueForge Obsidian Pulse Control Plane E2E Suite', () => {
     await page.goto('/dlq');
 
     await expect(page.locator('text=Dead-Letter Queue Operations').first()).toBeVisible();
-    await expect(page.locator('text=POISON JOB ISOLATION').first()).toBeVisible();
+    await expect(page.locator('text=POISON ISOLATION').first()).toBeVisible();
   });
 
   test('Flow 9: Administration & Session Control', async ({ page }) => {
