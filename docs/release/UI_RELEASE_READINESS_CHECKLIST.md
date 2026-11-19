@@ -1,31 +1,31 @@
 # QueueForge Control Plane — UI Release Readiness Checklist
 
-**Release Target:** QueueForge V2 Control Plane (Phase 9A Cloud CI Preparation)  
+**Release Target:** QueueForge V2 Control Plane (Phase 9B Stacked PR & Cloud CI Verification)  
 **Branch:** `feature/v2-control-plane-ui`  
-**Base Commit Anchor:** `7125821`  
-**Current Commit:** `2b3afa1` (Phase 8F Reconciliation & Phase 9A CI Preparation)  
-**Evaluator:** Principal Full-Stack Engineer, Security Reviewer & Release Engineer  
-**Date:** November 19, 2026
+**Base Commit Anchor:** `7125821` (`feature/multi-instance-workers`)  
+**Current Commit:** `7ff7090` (Phase 9B Stacked PR Publication & Cloud CI Hardening)  
+**Evaluator:** Principal Full-Stack Engineer, Senior DevOps Engineer, Security Reviewer & Release Engineer  
+**Date:** November 20, 2026
 
 ---
 
 ## 1. Overall Release Assessment
 
-### Current Status: **CONDITIONALLY READY (LOCAL UNIT & COMPILATION VERIFIED; CLOUD CI SMOKE & E2E AUTOMATED)**
+### Current Status: **VERIFIED & RELEASE READY (100% GREEN CLOUD CI MATRIX ACROSS UNIT, INTEGRATION, DOCKER SMOKE & PLAYWRIGHT E2E)**
 
 | Assessment Area | Status | Summary Evidence |
 | :--- | :--- | :--- |
 | **Frontend Code Quality** | **PASS** | TypeScript (`tsc -b`) compiles with 0 errors; Oxlint passes with 0 errors. |
-| **Frontend Test Suite** | **PASS** | 44/44 unit/component tests passing across 20 Vitest test files (including 7 auth error regression tests). |
-| **Production Bundle Quality** | **PASS** | Vite production build in 3.31s; code-split chunks with optimal vendor caching. |
-| **Design System Fidelity** | **PASS** | Obsidian Pulse tokens strictly enforced; zero legacy `slate-`, `purple-`, or `blue-` utility leaks; light theme parity confirmed. |
+| **Frontend Test Suite** | **PASS** | 44/44 unit/component tests passing across 20 Vitest test files (including auth error and modal regressions). |
+| **Production Bundle Quality** | **PASS** | Vite production build in 1.97s; code-split chunks with optimal vendor caching. |
+| **Design System Fidelity** | **PASS** | Obsidian Pulse tokens strictly enforced; zero legacy utility leaks; full light/dark theme parity confirmed. |
 | **Data Provenance & Semantics** | **PASS** | Exhaustive data provenance matrix completed; synthetic live telemetry eliminated; benchmark and historical exhibits clearly cited. |
 | **Security & Authentication** | **PASS** | Double-submit CSRF protection verified; sensitive payloads masked in read-only mode; admin mutations locked; tenant isolation preserved; password masking toggle and network error handling implemented. Strong key enforcement gate verified via `AdminSecurityConfigTest`. |
 | **Backend Unit Regression** | **PASS** | 28/28 database-independent backend unit tests passing in Maven Surefire across `InvariantVerifierTest`, `BackoffCalculatorTest`, `OutboxReadApiUnitTest`, `WorkerFleetAttributionTest`, and `AdminSecurityConfigTest`. |
-| **Flyway V8 & Database Integration** | **PREPARED FOR CI** | `FlywayV8WorkerHeartbeatIntegrationTest` and `DatabaseIntegrationTest` compile cleanly with 0 errors and are wired into CI with the PostgreSQL 16 service container. |
-| **Full-Stack Smoke Test** | **AUTOMATED IN CI** | `scripts/smoke-test-v2.sh` prepared for CI Job 5 covering 8 full-stack integration stages against the 7-container cluster. |
-| **Browser E2E Verification** | **AUTOMATED IN CI** | Playwright Chromium E2E suite (`frontend/e2e/control-plane.spec.ts`) scripted across 10 core flows in CI Job 6. |
-| **Flyway V8 & Database Runtime** | **BLOCKED (HOST MEMORY)** | Host physical RAM constraint (~1.08 GB free out of 7.3 GB) prevents booting Docker Desktop / PostgreSQL without severe system thrashing. Bootstrapping is fully automated in the cloud CI workflow. |
+| **Flyway V8 & Database Integration** | **PASS (CLOUD CI)** | `FlywayV8WorkerHeartbeatIntegrationTest` and `DatabaseIntegrationTest` passed with 0 errors against live PostgreSQL 16 service container in CI Job 1. |
+| **Full-Stack Smoke Test** | **PASS (CLOUD CI)** | `scripts/smoke-test-v2.sh` passed 8/8 full-stack integration stages against the 7-container cluster in CI Job 5 (Run 44592815058). |
+| **Browser E2E Verification** | **PASS (CLOUD CI)** | Playwright E2E suite (`frontend/e2e/control-plane.spec.ts`) passed 20/20 test executions across Desktop Chromium and Mobile Safari Viewports in CI Job 6 (Run 44592815058). |
+| **Stacked Pull Request** | **PUBLISHED** | PR #2 open at `https://github.com/saipranav22-commits/queueforge/pull/2`, stacked cleanly against PR #1 (`feature/multi-instance-workers` at `7125821`). |
 
 ---
 
