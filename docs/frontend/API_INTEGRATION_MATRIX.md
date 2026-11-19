@@ -13,7 +13,7 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 | **Health Header Pills** | `/api/v1/system/health` | `GET` | No | No | None | `SystemHealth` |
 | **Telemetry & Latency P95** | `/api/v1/system/metrics-summary` | `GET` | No | No | None | `SystemMetricsSummary` |
 | **Worker Fleet Discovery** | `/api/v1/system/workers` | `GET` | No | No | None | `WorkerInstance[]` |
-| **Job Explorer Table** | `/api/v1/jobs` | `GET` | No | No | `page, size, status, tenantId, jobType, search, priority, sortBy, sortDirection` | `PageResponse<JobSummary>` |
+| **Job Explorer Table** | `/api/v1/jobs` | `GET` | No | No | `page, size, status, tenantId, jobType, search, priority, minPriority, maxPriority, sortBy, sortDirection` | `PageResponse<JobSummary>` |
 | **Job Slide-Over Drawer** | `/api/v1/jobs/{jobId}/detail` | `GET` | No (Masked) / Yes (Raw) | No | Path: `jobId` | `JobDetail` |
 | **Execution History Logs** | `/api/v1/jobs/{jobId}/history` | `GET` | No (Masked) / Yes (Raw) | No | Path: `jobId` | `JobExecutionLog[]` |
 | **Submit Test Job** | `/api/v1/jobs` | `POST` | No | No | `jobType, payload, priority, maxRetries, tenantId` | `{ jobId, status, createdAt }` |
@@ -52,6 +52,18 @@ The QueueForge Control Plane interacts with the backend through REST endpoints s
 - `ONLINE`: `heartbeatAgeSeconds <= 15`
 - `STALE`: `heartbeatAgeSeconds > 15 && heartbeatAgeSeconds <= 45`
 - `OFFLINE`: `heartbeatAgeSeconds > 45` or explicitly reported as `STOPPED`
+
+---
+
+## 4. Job Query & Search Parameters (`/api/v1/jobs`)
+
+- `search`: Case-insensitive disjunctive search across `id` (UUID format), `idempotencyKey` (LIKE substring), and `lockedBy` (LIKE substring). Clicking "Inspect Jobs Handled by this Node" in the Worker Fleet passes `search=${instanceId}` to instantly surface all active leases locked by that worker.
+- `priority`: Exact integer equality match (`cb.equal(root.get("priority"), priority)`).
+- `minPriority`: Minimum priority threshold (`cb.greaterThanOrEqualTo(root.get("priority"), minPriority)`). Used by the `High (80+)` preset pill to match all jobs with priority $\ge 80$.
+- `maxPriority`: Maximum priority threshold (`cb.lessThanOrEqualTo(root.get("priority"), maxPriority)`).
+- `status`: Exact enum filter (`PENDING`, `CLAIMED`, `RUNNING`, `COMPLETED`, `FAILED`, `DEAD_LETTER`).
+- `jobType`: Exact uppercase job type string filter.
+- `tenantId`: Tenant isolation filter (restricted to caller's tenant unless authenticated as master admin).
 
 ---
 

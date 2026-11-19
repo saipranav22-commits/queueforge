@@ -210,19 +210,19 @@ public class DashboardService {
                         SELECT COUNT(*) 
                         FROM qf_jobs j 
                         WHERE j.status = 'RUNNING' 
-                          AND j.locked_by LIKE CONCAT(h.instance_id, '%')
+                          AND (j.locked_by = h.instance_id OR j.locked_by LIKE CONCAT(h.instance_id, ':%'))
                     ), 0) AS held_leases,
                     COALESCE((
                         SELECT COUNT(*) 
                         FROM qf_job_execution_logs l 
                         WHERE l.status = 'COMPLETED' 
-                          AND l.worker_id LIKE CONCAT(h.instance_id, '%')
+                          AND (l.worker_id = h.instance_id OR l.worker_id LIKE CONCAT(h.instance_id, ':%'))
                     ), 0) AS completed_count,
                     COALESCE((
                         SELECT COUNT(*) 
                         FROM qf_job_execution_logs l 
                         WHERE l.status = 'FAILED' 
-                          AND l.worker_id LIKE CONCAT(h.instance_id, '%')
+                          AND (l.worker_id = h.instance_id OR l.worker_id LIKE CONCAT(h.instance_id, ':%'))
                     ), 0) AS failed_count
                 FROM qf_worker_heartbeats h
                 ORDER BY h.instance_id ASC

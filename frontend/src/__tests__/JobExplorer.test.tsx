@@ -36,5 +36,8 @@ describe('JobExplorerPage', () => {
     expect(screen.getByText('RUNNING')).toBeInTheDocument();
     expect(screen.getByText('COMPLETED')).toBeInTheDocument();
     expect(screen.getByText('DEAD_LETTER')).toBeInTheDocument();
+    expect(screen.getByText('High (80+)')).toBeInTheDocument();
+    expect(screen.getByText('Med (50)')).toBeInTheDocument();
+    expect(screen.getByText('Low (20)')).toBeInTheDocument();
   });
 });

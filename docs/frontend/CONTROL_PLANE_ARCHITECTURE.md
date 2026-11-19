@@ -67,7 +67,10 @@ The backend calculates heartbeat freshness (`heartbeatAgeSeconds`) on each reque
 - **`OFFLINE`:** Heartbeat older than 45 seconds or explicitly marked `STOPPED` during graceful shutdown.
 
 ### C. Attribution & Held Lease Scanning
-Each worker card and inspector drawer joins the worker's instance prefix against active rows in `qf_jobs` (`locked_by LIKE instanceId% AND status = 'RUNNING'`) and historical execution logs in `qf_job_execution_logs`.
+Each worker card and inspector drawer joins the worker's instance ID against active rows in `qf_jobs` and historical execution logs in `qf_job_execution_logs`. To prevent unsafe prefix collisions where `worker-1` could match `worker-10`, attribution strictly evaluates:
+`(j.locked_by = h.instance_id OR j.locked_by LIKE CONCAT(h.instance_id, ':%'))`
+for active leases, and similarly for historical worker logs:
+`(l.worker_id = h.instance_id OR l.worker_id LIKE CONCAT(h.instance_id, ':%'))`.
 
 ---
 

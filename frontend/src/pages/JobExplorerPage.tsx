@@ -31,6 +31,8 @@ export const JobExplorerPage: React.FC = () => {
     sortDirection: 'DESC',
     tenantId: '',
     priority: undefined,
+    minPriority: undefined,
+    maxPriority: undefined,
   });
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -69,8 +71,21 @@ export const JobExplorerPage: React.FC = () => {
     setFilters((prev) => ({ ...prev, tenantId: e.target.value, page: 0 }));
   };
 
-  const handlePriorityFilter = (priority?: number) => {
-    setFilters((prev) => ({ ...prev, priority, page: 0 }));
+  const handlePriorityPreset = (preset: 'all' | 'high' | 'med' | 'low') => {
+    switch (preset) {
+      case 'high':
+        setFilters((prev) => ({ ...prev, priority: undefined, minPriority: 80, page: 0 }));
+        break;
+      case 'med':
+        setFilters((prev) => ({ ...prev, priority: 50, minPriority: undefined, page: 0 }));
+        break;
+      case 'low':
+        setFilters((prev) => ({ ...prev, priority: 20, minPriority: undefined, page: 0 }));
+        break;
+      default:
+        setFilters((prev) => ({ ...prev, priority: undefined, minPriority: undefined, page: 0 }));
+        break;
+    }
   };
 
   const toggleSortDirection = () => {
@@ -92,6 +107,8 @@ export const JobExplorerPage: React.FC = () => {
       sortDirection: 'DESC',
       tenantId: '',
       priority: undefined,
+      minPriority: undefined,
+      maxPriority: undefined,
     });
     setSelectedRowIds(new Set());
   };
@@ -101,7 +118,8 @@ export const JobExplorerPage: React.FC = () => {
     filters.jobType ||
     filters.search ||
     filters.tenantId ||
-    filters.priority != null
+    filters.priority != null ||
+    filters.minPriority != null
   );
 
   const toggleSelectAll = () => {
@@ -256,16 +274,16 @@ export const JobExplorerPage: React.FC = () => {
               Priority:
             </span>
             {[
-              { label: 'All', value: undefined },
-              { label: 'High (80+)', value: 80 },
-              { label: 'Med (50)', value: 50 },
-              { label: 'Low (20)', value: 20 },
+              { label: 'All', key: 'all', active: filters.priority === undefined && filters.minPriority === undefined },
+              { label: 'High (80+)', key: 'high', active: filters.minPriority === 80 },
+              { label: 'Med (50)', key: 'med', active: filters.priority === 50 },
+              { label: 'Low (20)', key: 'low', active: filters.priority === 20 },
             ].map((p) => (
               <button
                 key={p.label}
-                onClick={() => handlePriorityFilter(p.value)}
+                onClick={() => handlePriorityPreset(p.key as 'all' | 'high' | 'med' | 'low')}
                 className={`px-2 py-0.5 rounded text-[11px] border transition ${
-                  filters.priority === p.value
+                  p.active
                     ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border-[var(--color-cyan-border)] font-semibold'
                     : 'bg-[var(--color-bg-deep)] text-[var(--color-text-muted)] border-[var(--color-border-subtle)] hover:text-[var(--color-text-primary)]'
                 }`}

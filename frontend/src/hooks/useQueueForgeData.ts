@@ -29,6 +29,8 @@ export interface JobsQueryFilter {
   sortDirection?: 'ASC' | 'DESC';
   tenantId?: string;
   priority?: number;
+  minPriority?: number;
+  maxPriority?: number;
 }
 
 export function useJobs(filters: JobsQueryFilter) {
@@ -42,6 +44,8 @@ export function useJobs(filters: JobsQueryFilter) {
   if (filters.sortDirection) queryParams.set('sortDirection', filters.sortDirection);
   if (filters.tenantId) queryParams.set('tenantId', filters.tenantId);
   if (filters.priority != null) queryParams.set('priority', filters.priority.toString());
+  if (filters.minPriority != null) queryParams.set('minPriority', filters.minPriority.toString());
+  if (filters.maxPriority != null) queryParams.set('maxPriority', filters.maxPriority.toString());
 
   const queryString = queryParams.toString();
   const endpoint = `/jobs${queryString ? `?${queryString}` : ''}`;
