@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.queueforge.api.controller.AuthController;
 import com.queueforge.api.dto.ErrorResponse;
 import com.queueforge.config.AdminProperties;
+import com.queueforge.config.TenantSecurityProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -37,13 +39,23 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     private final AdminProperties adminProperties;
     private final AuthSessionService sessionService;
     private final ObjectMapper objectMapper;
+    private final TenantSecurityProperties tenantSecurityProperties;
 
     public AdminAuthInterceptor(AdminProperties adminProperties,
                                 AuthSessionService sessionService,
                                 ObjectMapper objectMapper) {
+        this(adminProperties, sessionService, objectMapper, null);
+    }
+
+    @Autowired
+    public AdminAuthInterceptor(AdminProperties adminProperties,
+                                AuthSessionService sessionService,
+                                ObjectMapper objectMapper,
+                                @Autowired(required = false) TenantSecurityProperties tenantSecurityProperties) {
         this.adminProperties = adminProperties;
         this.sessionService = sessionService;
         this.objectMapper = objectMapper;
+        this.tenantSecurityProperties = tenantSecurityProperties;
     }
 
     @Override
@@ -81,6 +93,19 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
                 }
 
                 return true;
+            }
+        }
+
+        // 4. Public Demo Mode: Allow read-only GET requests on allowlisted monitoring endpoints
+        if (tenantSecurityProperties != null && tenantSecurityProperties.isPublicDemoMode()) {
+            if ("GET".equalsIgnoreCase(request.getMethod())) {
+                String uri = request.getRequestURI();
+                if (uri.startsWith("/api/v1/admin/dlq") ||
+                    uri.startsWith("/api/v1/admin/outbox") ||
+                    uri.startsWith("/api/v1/admin/tenants")) {
+                    log.debug("Permitting anonymous read access under public demo mode: {} {}", request.getMethod(), uri);
+                    return true;
+                }
             }
         }
 

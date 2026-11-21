@@ -24,6 +24,13 @@ public class TenantSecurityProperties {
      */
     private boolean enforceStrongAdminKey = false;
 
+    /**
+     * When enabled, allows unauthenticated GET requests to certain admin monitoring endpoints
+     * (/api/v1/admin/dlq, /api/v1/admin/outbox/**, /api/v1/admin/tenants/**) for public portfolio demonstration.
+     * State-mutating requests (POST, PUT, DELETE, PATCH) remain strictly authenticated.
+     */
+    private boolean publicDemoMode = false;
+
     @Autowired(required = false)
     private Environment environment;
 
@@ -53,5 +60,13 @@ public class TenantSecurityProperties {
 
     public void setEnforceStrongAdminKey(boolean enforceStrongAdminKey) {
         this.enforceStrongAdminKey = enforceStrongAdminKey;
+    }
+
+    public boolean isPublicDemoMode() {
+        return publicDemoMode;
+    }
+
+    public void setPublicDemoMode(boolean publicDemoMode) {
+        this.publicDemoMode = publicDemoMode;
     }
 }
