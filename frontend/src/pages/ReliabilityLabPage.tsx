@@ -325,7 +325,7 @@ export const ReliabilityLabPage: React.FC = () => {
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
               Reliability Lab & Distributed Verification
             </h2>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
               CHAOS TESTED
             </span>
             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]">
@@ -390,7 +390,7 @@ export const ReliabilityLabPage: React.FC = () => {
           value={`${onlineWorkers}/${totalWorkers} ACTIVE`}
           subtitle="Heartbeating instances"
           icon={Server}
-          variant="cyan"
+          variant="default"
         />
       </div>
 
@@ -398,7 +398,7 @@ export const ReliabilityLabPage: React.FC = () => {
       <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-6 shadow-lg space-y-5">
         <div>
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-[var(--color-cyan)]" />
+            <Layers className="w-4 h-4 text-[var(--color-accent)]" />
             <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
               Core Distributed Resilience Mechanisms
             </h3>
@@ -416,7 +416,7 @@ export const ReliabilityLabPage: React.FC = () => {
               onClick={() => setActiveMechanismTab(m.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                 activeMechanismTab === m.id
-                  ? 'bg-[var(--color-cyan)] text-black font-semibold shadow-md shadow-[var(--color-cyan)]/20'
+                  ? 'bg-[var(--color-action-bg)] text-[var(--color-action-text)] font-semibold shadow-sm'
                   : 'bg-[var(--color-bg-deep)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-subtle)]'
               }`}
             >
@@ -442,7 +442,7 @@ export const ReliabilityLabPage: React.FC = () => {
                 {currentMechanism.subtitle}
               </p>
             </div>
-            <div className="text-[11px] font-mono text-[var(--color-cyan)] flex items-center gap-1">
+            <div className="text-[11px] font-mono text-[var(--color-accent)] flex items-center gap-1">
               <Lock className="w-3.5 h-3.5" /> Fencing Guarantee Enforced
             </div>
           </div>
@@ -472,14 +472,14 @@ export const ReliabilityLabPage: React.FC = () => {
             <div className="text-[10px] font-mono uppercase font-bold text-[var(--color-text-muted)] flex items-center gap-1">
               <Terminal className="w-3.5 h-3.5" /> Implementation & Database Protocol
             </div>
-            <pre className="p-3.5 rounded-lg bg-black/60 border border-[var(--color-border-subtle)] text-[11px] font-mono text-[var(--color-cyan)] overflow-x-auto leading-relaxed">
+            <pre className="p-3.5 rounded-lg bg-black/60 border border-[var(--color-border-subtle)] text-[11px] font-mono text-[var(--color-text-primary)] overflow-x-auto leading-relaxed">
               {currentMechanism.codeSnippet}
             </pre>
           </div>
 
           {/* Formal Guarantee Box */}
-          <div className="p-3 rounded-lg bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] text-xs text-[var(--color-cyan)] flex items-center gap-2 font-mono">
-            <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+          <div className="p-3 rounded-lg bg-[var(--color-bg-hover)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] flex items-center gap-2 font-mono">
+            <ShieldCheck className="w-4 h-4 flex-shrink-0 text-[var(--color-accent)]" />
             <span>{currentMechanism.guarantee}</span>
           </div>
         </div>
@@ -565,7 +565,7 @@ export const ReliabilityLabPage: React.FC = () => {
                       <div className="p-3 rounded-lg bg-black/60 border border-[var(--color-border-subtle)] space-y-1 font-mono text-[11px]">
                         {exp.timeline.map((step, idx) => (
                           <div key={idx} className="text-[var(--color-text-secondary)] flex items-start gap-2">
-                            <span className="text-[var(--color-cyan)] font-bold">›</span>
+                            <span className="text-[var(--color-accent)] font-bold">›</span>
                             <span>{step}</span>
                           </div>
                         ))}
@@ -607,7 +607,7 @@ export const ReliabilityLabPage: React.FC = () => {
                 onClick={() => setInvariantFilter(filter)}
                 className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded transition ${
                   invariantFilter === filter
-                    ? 'bg-[var(--color-cyan)] text-black'
+                    ? 'bg-[var(--color-action-bg)] text-[var(--color-action-text)]'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
@@ -632,7 +632,7 @@ export const ReliabilityLabPage: React.FC = () => {
             <tbody className="divide-y divide-[var(--color-border-subtle)]">
               {filteredInvariants.map((inv) => (
                 <tr key={inv.id} className="hover:bg-[var(--color-bg-interactive)] transition">
-                  <td className="px-4 py-3 font-bold text-[var(--color-cyan)]">
+                  <td className="px-4 py-3 font-bold text-[var(--color-text-primary)]">
                     {inv.id}
                   </td>
                   <td className="px-4 py-3">
@@ -640,7 +640,7 @@ export const ReliabilityLabPage: React.FC = () => {
                       className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
                         inv.category === 'SAFETY'
                           ? 'bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)] border-[var(--color-amethyst-border)]'
-                          : 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]'
+                          : 'bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]'
                       }`}
                     >
                       {inv.category}

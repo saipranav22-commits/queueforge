@@ -41,7 +41,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       case 'warning':
         return 'bg-[var(--color-amber)] hover:brightness-110 text-black font-bold shadow-md shadow-[var(--color-amber)]/25';
       default:
-        return 'bg-[var(--color-cyan)] hover:brightness-110 text-black font-bold shadow-md shadow-[var(--color-cyan)]/25';
+        return 'bg-[var(--color-action-bg)] hover:bg-[var(--color-action-hover)] text-[var(--color-action-text)] font-semibold';
     }
   };
 
@@ -52,7 +52,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       case 'warning':
         return 'bg-[var(--color-amber-bg)] text-[var(--color-amber)] border border-[var(--color-amber-border)]';
       default:
-        return 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]';
+        return 'bg-[var(--color-bg-hover)] text-[var(--color-accent)] border border-[var(--color-border-subtle)]';
     }
   };
 

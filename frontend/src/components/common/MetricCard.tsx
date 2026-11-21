@@ -28,40 +28,34 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       case 'amethyst':
       case 'purple':
         return {
-          iconBg: 'bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)] border-[var(--color-amethyst-border)]',
-          accent: 'border-l-[var(--color-amethyst)]',
-          glow: 'hover:shadow-[0_0_20px_rgba(155,112,245,0.12)]',
+          icon: 'text-[var(--color-accent)] bg-[var(--color-bg-interactive)] border-[var(--color-border-subtle)]',
+          topAccent: 'border-t-2 border-t-[var(--color-accent)]',
         };
       case 'cyan':
       case 'blue':
         return {
-          iconBg: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border-[var(--color-cyan-border)]',
-          accent: 'border-l-[var(--color-cyan)]',
-          glow: 'hover:shadow-[0_0_20px_rgba(53,216,245,0.12)]',
+          icon: 'text-[var(--color-text-primary)] bg-[var(--color-bg-interactive)] border-[var(--color-border-subtle)]',
+          topAccent: 'border-t-2 border-t-[var(--color-border-interactive)]',
         };
       case 'emerald':
         return {
-          iconBg: 'bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success-border)]',
-          accent: 'border-l-[var(--color-success)]',
-          glow: 'hover:shadow-[0_0_20px_rgba(71,214,173,0.12)]',
+          icon: 'text-[var(--color-success)] bg-[var(--color-success-bg)] border-[var(--color-success-border)]',
+          topAccent: 'border-t-2 border-t-[var(--color-success)]',
         };
       case 'amber':
         return {
-          iconBg: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning-border)]',
-          accent: 'border-l-[var(--color-warning)]',
-          glow: 'hover:shadow-[0_0_20px_rgba(244,184,96,0.12)]',
+          icon: 'text-[var(--color-warning)] bg-[var(--color-warning-bg)] border-[var(--color-warning-border)]',
+          topAccent: 'border-t-2 border-t-[var(--color-warning)]',
         };
       case 'rose':
         return {
-          iconBg: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border-[var(--color-danger-border)]',
-          accent: 'border-l-[var(--color-danger)]',
-          glow: 'hover:shadow-[0_0_20px_rgba(240,68,85,0.12)]',
+          icon: 'text-[var(--color-danger)] bg-[var(--color-danger-bg)] border-[var(--color-danger-border)]',
+          topAccent: 'border-t-2 border-t-[var(--color-danger)]',
         };
       default:
         return {
-          iconBg: 'bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border-[var(--color-border-subtle)]',
-          accent: 'border-l-[var(--color-amethyst)]',
-          glow: 'hover:shadow-[0_0_20px_rgba(155,112,245,0.08)]',
+          icon: 'text-[var(--color-text-secondary)] bg-[var(--color-bg-interactive)] border-[var(--color-border-subtle)]',
+          topAccent: 'border-t-2 border-t-[var(--color-border-subtle)]',
         };
     }
   };
@@ -71,20 +65,20 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg backdrop-blur-sm border-l-4 transition-all duration-200 ${
-        styles.accent
-      } ${styles.glow} ${onClick ? 'cursor-pointer hover:border-[var(--color-border-interactive)]' : ''}`}
+      className={`relative overflow-hidden rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-sm transition-all duration-200 ${
+        styles.topAccent
+      } ${onClick ? 'cursor-pointer hover:border-[var(--color-border-interactive)] hover:bg-[var(--color-bg-interactive)]/40' : ''}`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
           {title}
         </span>
-        <div className={`p-2 rounded-lg border ${styles.iconBg} transition-colors`}>
+        <div className={`p-2 rounded-lg border ${styles.icon} transition-colors`}>
           <Icon className="w-4 h-4" />
         </div>
       </div>
       <div className="mt-3 flex items-baseline justify-between gap-2">
-        <div className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] font-mono">
+        <div className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] font-mono tabular-nums">
           {value}
         </div>
         {trend && (

@@ -45,7 +45,7 @@ export const Breadcrumbs: React.FC = () => {
         <Home className="w-3.5 h-3.5" />
       </Link>
       <ChevronRight className="w-3 h-3 text-[var(--color-border-interactive)] opacity-60" />
-      <span className="font-mono text-[10px] tracking-wider uppercase text-[var(--color-cyan)] font-semibold px-1 py-0.5 rounded bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)]">
+      <span className="font-mono text-[10px] tracking-wider uppercase text-[var(--color-text-secondary)] font-semibold px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)]">
         {meta.zone}
       </span>
       <ChevronRight className="w-3 h-3 text-[var(--color-border-interactive)] opacity-60" />

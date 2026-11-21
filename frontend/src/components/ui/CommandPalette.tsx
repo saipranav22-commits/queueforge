@@ -219,7 +219,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       >
         {/* Search Input Bar */}
         <div className="flex items-center px-4 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]">
-          <Search className="w-5 h-5 text-[var(--color-cyan)] flex-shrink-0" />
+          <Search className="w-5 h-5 text-[var(--color-text-muted)] flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -232,7 +232,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+              className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer"
               aria-label="Clear Search Query"
             >
               <X className="w-4 h-4" />
@@ -258,16 +258,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer group ${
                     isSelected
-                      ? 'bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)]'
-                      : 'hover:bg-[var(--color-bg-interactive)] border border-transparent'
+                      ? 'bg-[var(--color-bg-interactive)] border border-[var(--color-border-interactive)] shadow-sm'
+                      : 'hover:bg-[var(--color-bg-interactive)]/60 border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`p-2 rounded-lg transition-colors ${
                         isSelected
-                          ? 'bg-[var(--color-cyan)] text-gray-950 font-bold'
-                          : 'bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-cyan)]'
+                          ? 'bg-[var(--color-bg-elevated)] text-[var(--color-accent)] border border-[var(--color-border-interactive)]'
+                          : 'bg-[var(--color-bg-deep)] text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -276,7 +276,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-xs font-semibold ${
-                            isSelected ? 'text-[var(--color-cyan)]' : 'text-[var(--color-text-primary)]'
+                            isSelected ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
                           }`}
                         >
                           {item.title}
@@ -291,7 +291,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                     </div>
                   </div>
                   {isSelected && (
-                    <ArrowRight className="w-4 h-4 text-[var(--color-cyan)] ml-2 flex-shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-[var(--color-accent)] ml-2 flex-shrink-0" />
                   )}
                 </button>
               );

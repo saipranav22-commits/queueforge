@@ -13,7 +13,6 @@ import {
   Settings,
   ExternalLink,
   X,
-  Radio,
 } from 'lucide-react';
 import { useDashboardStats, useWorkerFleet } from '../../hooks/useQueueForgeData';
 
@@ -30,7 +29,7 @@ interface NavSection {
     icon: React.ComponentType<{ className?: string }>;
     end?: boolean;
     count?: number;
-    countVariant?: 'default' | 'danger' | 'warning' | 'cyan';
+    countVariant?: 'default' | 'danger';
     badge?: string;
   }>;
 }
@@ -121,23 +120,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-[var(--color-border-subtle)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[var(--color-cyan)] to-[var(--color-blue)] flex items-center justify-center shadow-lg shadow-[var(--color-cyan-glow)]">
-              <Shield className="w-5 h-5 text-gray-950 font-bold" />
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-interactive)] border border-[var(--color-border-interactive)] flex items-center justify-center shadow-sm">
+              <Shield className="w-4 h-4 text-[var(--color-text-primary)]" />
             </div>
             <div>
               <div className="text-sm font-bold tracking-tight text-[var(--color-text-primary)] flex items-center gap-1.5">
                 <span>QueueForge</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)] font-semibold">
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)] font-medium">
                   V2
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-mono tracking-wide">COMMAND CENTER</p>
+              <p className="text-[10px] text-[var(--color-text-muted)] font-mono tracking-wider uppercase">CONTROL PLANE</p>
             </div>
           </div>
           {isMobile && (
             <button
               onClick={onClose}
-              className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)]"
+              className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] cursor-pointer"
               aria-label="Close Sidebar"
             >
               <X className="w-5 h-5" />
@@ -148,12 +147,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
         {/* Structured Command Sections */}
         <div className="p-3 space-y-4">
           {sections.map((sec) => (
-            <div key={sec.title} className="space-y-1">
-              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] font-mono flex items-center justify-between">
-                <span>{sec.title}</span>
-                {sec.title === 'MISSION CONTROL' && (
-                  <Radio className="w-2.5 h-2.5 text-[var(--color-cyan)] animate-pulse" />
-                )}
+            <div key={sec.title} className="space-y-0.5">
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
+                {sec.title}
               </div>
               {sec.items.map((item) => (
                 <NavLink
@@ -166,32 +162,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
                     }
                   }}
                   className={({ isActive }) =>
-                    `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 relative ${
+                    `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-md transition-all duration-150 relative ${
                       isActive
-                        ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)] shadow-sm'
-                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] border border-transparent'
+                        ? 'bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] font-semibold border-l-2 border-[var(--color-accent)] pl-2.5 shadow-sm'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)]/60'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       <div className="flex items-center gap-2.5">
-                        <item.icon className={`w-4 h-4 transition ${isActive ? 'text-[var(--color-cyan)]' : 'group-hover:text-[var(--color-cyan)] text-[var(--color-text-muted)]'}`} />
+                        <item.icon className={`w-4 h-4 transition ${isActive ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]'}`} />
                         <span>{item.label}</span>
                       </div>
                       {item.count !== undefined && (
                         <span
-                          className={`px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded-full ${
+                          className={`px-1.5 py-0.5 text-[10px] font-mono font-medium rounded ${
                             item.countVariant === 'danger'
-                              ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border border-[var(--color-danger-border)] animate-pulse'
-                              : 'bg-[var(--color-bg-interactive)] text-[var(--color-text-muted)]'
+                              ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border border-[var(--color-danger-border)]'
+                              : 'bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]'
                           }`}
                         >
                           {item.count}
                         </span>
                       )}
                       {item.badge && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-mono text-[var(--color-cyan)] bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] rounded">
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-hover)] border border-[var(--color-border-subtle)] rounded">
                           {item.badge}
                         </span>
                       )}
@@ -204,34 +200,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
         </div>
       </div>
 
-      {/* Observability Endpoints Footer */}
-      <div className="p-3 border-t border-[var(--color-border-subtle)] space-y-1.5 flex-shrink-0">
-        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-          METRICS INTERFACES
+      {/* External Observability Endpoints Footer */}
+      <div className="p-3 border-t border-[var(--color-border-subtle)] space-y-1 flex-shrink-0">
+        <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
+          MONITORING HUBS
         </div>
         <a
           href="http://127.0.0.1:3000"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded-lg transition group"
+          className="flex items-center justify-between px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded-md transition group"
         >
           <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            Grafana Control
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]" />
+            Grafana Hub
           </span>
-          <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+          <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-80" />
         </a>
         <a
           href="http://127.0.0.1:9090"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded-lg transition group"
+          className="flex items-center justify-between px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded-md transition group"
         >
           <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-rose-400" />
-            Prometheus Engine
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-danger)]" />
+            Prometheus Metrics
           </span>
-          <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+          <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-80" />
         </a>
       </div>
     </aside>

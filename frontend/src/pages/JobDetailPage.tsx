@@ -102,7 +102,7 @@ export const JobDetailPage: React.FC = () => {
               <h2 className="text-lg font-bold text-[var(--color-text-primary)] font-mono">{job.jobId}</h2>
               <StatusBadge status={job.status} />
               {job.tenantId && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[var(--color-cyan)]">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[var(--color-accent)]">
                   {job.tenantId}
                 </span>
               )}
@@ -119,7 +119,7 @@ export const JobDetailPage: React.FC = () => {
             <button
               onClick={() => handleActionClick('replay')}
               disabled={isReplaying}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-amethyst)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg transition bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] disabled:opacity-50"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Replay Job
@@ -154,7 +154,7 @@ export const JobDetailPage: React.FC = () => {
           <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] font-mono">
             Assigned Worker Lease
           </span>
-          <div className="text-xs font-mono text-[var(--color-cyan)] truncate font-semibold">
+          <div className="text-xs font-mono text-[var(--color-accent)] truncate font-semibold">
             {job.lockedBy || 'None (Unassigned)'}
           </div>
           <div className="text-[11px] text-[var(--color-text-muted)] font-mono">

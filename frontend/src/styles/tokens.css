@@ -1,97 +1,111 @@
 /* ==============================================================================
-   QUEUEFORGE COMMAND — OBSIDIAN PULSE DESIGN SYSTEM TOKENS
-   Product Operational Theme: Deep Obsidian Void, Precision Cyber-Cyan, Layered Slate
+   QUEUEFORGE COMMAND — OBSIDIAN COMMAND ULTRA-PREMIUM DESIGN TOKENS
+   Product Operational Theme: Disciplined Neutral-First Architecture
+   Dark Canvas: #090A0C | Panels: #17191D | Inspector: #1E2025 | Borders: #30333A
+   Light Canvas: #F4F4F1 | Surfaces: #FAFAF8 | Secondary: #FFFFFF | Borders: #D9DCE1
    ============================================================================== */
 
 :root {
-  /* Foundations (Ultra-Deep Command Palette) */
-  --qf-obsidian: #06080F;
-  --qf-graphite: #0B0F19;
-  --qf-surface-elevated: #111625;
-  --qf-surface-interactive: #171E32;
-  --qf-surface-hover: #1F2842;
-  --qf-surface-active: #263252;
-  --qf-border-subtle: #1A2234;
-  --qf-border-strong: #27344F;
-  --qf-border-interactive: #384A6E;
+  /* Foundations — Dark Theme (Neutral-First Infrastructure Architecture) */
+  --qf-canvas-primary: #090A0C;
+  --qf-canvas-secondary: #101114;
+  --qf-panel-raised: #17191D;
+  --qf-panel-elevated: #1E2025;
+  --qf-surface-interactive: #23262D;
+  --qf-surface-hover: #2B2F38;
+  --qf-surface-active: #343844;
 
-  /* Typography */
-  --qf-text-frost: #F8FAFC;
-  --qf-text-silver: #E2E8F0;
-  --qf-text-chrome: #94A3B8;
-  --qf-text-muted: #64748B;
-  --qf-text-dim: #475569;
+  --qf-border-subtle: #24272E;
+  --qf-border-standard: #30333A;
+  --qf-border-interactive: #3F444D;
 
-  /* Command Brand & Operational Colors */
-  --qf-cyan: #00F0FF;
-  --qf-cyan-hover: #38F8FF;
-  --qf-cyan-subtle: rgba(0, 240, 255, 0.08);
-  --qf-cyan-border: rgba(0, 240, 255, 0.28);
-  --qf-cyan-glow: rgba(0, 240, 255, 0.20);
+  /* Typography — Dark Theme */
+  --qf-text-primary: #F2F3F5;
+  --qf-text-secondary: #A2A6AE;
+  --qf-text-muted: #737984;
+  --qf-text-dim: #555B66;
 
-  --qf-amethyst: #9B70F5;
-  --qf-amethyst-hover: #AE8AFF;
-  --qf-amethyst-subtle: rgba(155, 112, 245, 0.10);
-  --qf-amethyst-border: rgba(155, 112, 245, 0.30);
+  /* Actions — Dark Theme */
+  --qf-action-primary: #E8E9EC;
+  --qf-action-primary-text: #0E1013;
+  --qf-action-primary-hover: #FFFFFF;
 
-  --qf-blue: #3B82F6;
-  --qf-blue-subtle: rgba(59, 130, 246, 0.10);
-  --qf-blue-border: rgba(59, 130, 246, 0.28);
+  /* Accents & Restrained Semantics — Dark Theme */
+  --qf-accent-violet: #A78BFA;
+  --qf-accent-violet-subtle: rgba(167, 139, 250, 0.12);
+  --qf-accent-violet-border: rgba(167, 139, 250, 0.28);
 
-  /* Semantic Health & Status States */
-  --qf-status-success: #10B981;
-  --qf-status-success-subtle: rgba(16, 185, 129, 0.10);
-  --qf-status-success-border: rgba(16, 185, 129, 0.30);
-  --qf-status-success-glow: rgba(16, 185, 129, 0.20);
+  --qf-status-critical: #E35B65;
+  --qf-status-critical-subtle: rgba(227, 91, 101, 0.12);
+  --qf-status-critical-border: rgba(227, 91, 101, 0.28);
 
-  --qf-status-active: #00F0FF;
-  --qf-status-active-subtle: rgba(0, 240, 255, 0.10);
-  --qf-status-active-border: rgba(0, 240, 255, 0.30);
+  --qf-status-warning: #E7AB5A;
+  --qf-status-warning-subtle: rgba(231, 171, 90, 0.12);
+  --qf-status-warning-border: rgba(231, 171, 90, 0.28);
 
-  --qf-status-warning: #F59E0B;
-  --qf-status-warning-subtle: rgba(245, 158, 11, 0.10);
-  --qf-status-warning-border: rgba(245, 158, 11, 0.30);
+  --qf-status-success: #55B88A;
+  --qf-status-success-subtle: rgba(85, 184, 138, 0.12);
+  --qf-status-success-border: rgba(85, 184, 138, 0.28);
 
-  /* Laser Crimson: Strictly reserved for poison DLQ, failures, and destructive states */
-  --qf-status-critical: #F43F5E;
-  --qf-status-critical-subtle: rgba(244, 63, 94, 0.10);
-  --qf-status-critical-border: rgba(244, 63, 94, 0.35);
+  --qf-status-info: #8794B6;
+  --qf-status-info-subtle: rgba(135, 148, 182, 0.12);
+  --qf-status-info-border: rgba(135, 148, 182, 0.28);
 
-  /* Surface Mappings (Dark Mode Signature Command Architecture) */
-  --bg-app: var(--qf-obsidian);
-  --bg-sidebar: var(--qf-graphite);
-  --bg-header: rgba(11, 15, 25, 0.85);
-  --bg-card: var(--qf-surface-elevated);
+  /* Compatibility & Semantic Aliases (Dark) */
+  --bg-app: var(--qf-canvas-primary);
+  --bg-sidebar: var(--qf-canvas-secondary);
+  --bg-header: rgba(16, 17, 20, 0.88);
+  --bg-card: var(--qf-panel-raised);
   --bg-card-hover: var(--qf-surface-interactive);
-  --bg-input: #090C15;
-  --border-color: var(--qf-border-subtle);
-  --border-color-focus: var(--qf-cyan);
-  
-  --text-primary: var(--qf-text-frost);
-  --text-secondary: var(--qf-text-silver);
-  --text-tertiary: var(--qf-text-chrome);
+  --bg-input: #0D0E11;
+  --border-color: var(--qf-border-standard);
+  --border-color-focus: var(--qf-accent-violet);
 
-  /* Standardized Color Aliases across App */
-  --color-bg-base: var(--qf-obsidian);
-  --color-bg-deep: var(--qf-graphite);
-  --color-bg-elevated: var(--qf-surface-elevated);
+  --text-primary: var(--qf-text-primary);
+  --text-secondary: var(--qf-text-secondary);
+  --text-tertiary: var(--qf-text-muted);
+
+  --color-bg-base: var(--qf-canvas-primary);
+  --color-bg-deep: var(--qf-canvas-secondary);
+  --color-bg-elevated: var(--qf-panel-raised);
+  --color-bg-surface: var(--qf-panel-raised);
   --color-bg-interactive: var(--qf-surface-interactive);
   --color-bg-hover: var(--qf-surface-hover);
+  --color-bg-inspector: var(--qf-panel-elevated);
+
   --color-border-subtle: var(--qf-border-subtle);
-  --color-border-interactive: var(--qf-border-strong);
+  --color-border-interactive: var(--qf-border-standard);
+  --color-border-strong: var(--qf-border-interactive);
 
-  --color-text-primary: var(--qf-text-frost);
-  --color-text-secondary: var(--qf-text-silver);
-  --color-text-muted: var(--qf-text-chrome);
+  --color-text-primary: var(--qf-text-primary);
+  --color-text-secondary: var(--qf-text-secondary);
+  --color-text-muted: var(--qf-text-muted);
+  --color-text-dim: var(--qf-text-dim);
 
-  --color-amethyst: var(--qf-amethyst);
-  --color-amethyst-bg: var(--qf-amethyst-subtle);
-  --color-amethyst-border: var(--qf-amethyst-border);
+  /* Primary Action */
+  --color-action-bg: var(--qf-action-primary);
+  --color-action-text: var(--qf-action-primary-text);
+  --color-action-hover: var(--qf-action-primary-hover);
 
-  --color-cyan: var(--qf-cyan);
-  --color-cyan-bg: var(--qf-cyan-subtle);
-  --color-cyan-border: var(--qf-cyan-border);
+  /* Accent (Restrained Violet) */
+  --color-accent: var(--qf-accent-violet);
+  --color-accent-bg: var(--qf-accent-violet-subtle);
+  --color-accent-border: var(--qf-accent-violet-border);
 
+  --color-amethyst: var(--qf-accent-violet);
+  --color-amethyst-bg: var(--qf-accent-violet-subtle);
+  --color-amethyst-border: var(--qf-accent-violet-border);
+
+  /* Muted Slate Informational (Replaced Neon Cyan) */
+  --color-cyan: var(--qf-status-info);
+  --color-cyan-bg: var(--qf-status-info-subtle);
+  --color-cyan-border: var(--qf-status-info-border);
+  --color-cyan-hover: var(--qf-action-primary);
+  --color-cyan-glow: rgba(0, 0, 0, 0.25);
+
+  --color-blue: var(--qf-status-info);
+
+  /* Semantic Health */
   --color-success: var(--qf-status-success);
   --color-success-bg: var(--qf-status-success-subtle);
   --color-success-border: var(--qf-status-success-border);
@@ -99,7 +113,6 @@
   --color-warning: var(--qf-status-warning);
   --color-warning-bg: var(--qf-status-warning-subtle);
   --color-warning-border: var(--qf-status-warning-border);
-
   --color-amber: var(--qf-status-warning);
   --color-amber-bg: var(--qf-status-warning-subtle);
   --color-amber-border: var(--qf-status-warning-border);
@@ -107,131 +120,164 @@
   --color-danger: var(--qf-status-critical);
   --color-danger-bg: var(--qf-status-critical-subtle);
   --color-danger-border: var(--qf-status-critical-border);
-
   --color-crimson: var(--qf-status-critical);
   --color-crimson-bg: var(--qf-status-critical-subtle);
   --color-crimson-border: var(--qf-status-critical-border);
 
-  /* Elevation & Glow Shadows */
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.65);
-  --shadow-elevated: 0 12px 36px -4px rgba(0, 0, 0, 0.85);
-  --shadow-cyan: 0 0 20px -2px var(--qf-cyan-glow);
-  --shadow-emerald: 0 0 20px -2px var(--qf-status-success-glow);
-  --shadow-amethyst: 0 0 20px -2px rgba(155, 112, 245, 0.25);
+  /* Legacy qf- tokens for backwards compatibility */
+  --qf-obsidian: var(--qf-canvas-primary);
+  --qf-graphite: var(--qf-canvas-secondary);
+  --qf-surface-elevated: var(--qf-panel-raised);
+  --qf-surface-interactive: var(--qf-surface-interactive);
+  --qf-surface-hover: var(--qf-surface-hover);
+  --qf-border-strong: var(--qf-border-standard);
+  --qf-text-frost: var(--qf-text-primary);
+  --qf-text-silver: var(--qf-text-secondary);
+  --qf-text-chrome: var(--qf-text-muted);
+  --qf-cyan: var(--qf-status-info);
+  --qf-cyan-subtle: var(--qf-status-info-subtle);
+  --qf-cyan-border: var(--qf-status-info-border);
+  --qf-cyan-glow: rgba(0, 0, 0, 0.2);
+  --qf-amethyst: var(--qf-accent-violet);
+  --qf-amethyst-subtle: var(--qf-accent-violet-subtle);
+  --qf-amethyst-border: var(--qf-accent-violet-border);
+  --qf-amethyst-hover: #C4B5FD;
 }
 
 [data-theme="light"] {
-  /* Foundations (High-Legibility Light Command Palette) */
-  --qf-obsidian: #F4F6FB;
-  --qf-graphite: #FFFFFF;
-  --qf-surface-elevated: #FFFFFF;
-  --qf-surface-interactive: #EEF2F9;
-  --qf-surface-hover: #E4EBF5;
-  --qf-surface-active: #D8E2F0;
-  --qf-border-subtle: #D2DCEE;
-  --qf-border-strong: #B4C4DE;
-  --qf-border-interactive: #95ACCB;
+  /* Foundations — Light Theme (Executive Precision Architecture) */
+  --qf-canvas-primary: #F4F4F1;
+  --qf-canvas-secondary: #FFFFFF;
+  --qf-panel-raised: #FAFAF8;
+  --qf-panel-elevated: #FFFFFF;
+  --qf-surface-interactive: #EDEFEA;
+  --qf-surface-hover: #E4E7E1;
+  --qf-surface-active: #D8DCD3;
 
-  /* Typography */
-  --qf-text-frost: #0A0D15;
-  --qf-text-silver: #263248;
-  --qf-text-chrome: #4A5A74;
-  --qf-text-muted: #64748B;
-  --qf-text-dim: #94A3B8;
+  --qf-border-subtle: #E2E5E0;
+  --qf-border-standard: #D9DCE1;
+  --qf-border-interactive: #B8BEC9;
 
-  /* Brand Colors */
-  --qf-cyan: #088EA9;
-  --qf-cyan-hover: #07768C;
-  --qf-cyan-subtle: rgba(8, 142, 169, 0.08);
-  --qf-cyan-border: rgba(8, 142, 169, 0.28);
-  --qf-cyan-glow: rgba(8, 142, 169, 0.15);
+  /* Typography — Light Theme */
+  --qf-text-primary: #191B20;
+  --qf-text-secondary: #5B616C;
+  --qf-text-muted: #7C828D;
+  --qf-text-dim: #9FA5AF;
 
-  --qf-amethyst: #7E4EE6;
-  --qf-amethyst-hover: #6C3BD4;
-  --qf-amethyst-subtle: rgba(126, 78, 230, 0.08);
-  --qf-amethyst-border: rgba(126, 78, 230, 0.28);
+  /* Actions — Light Theme */
+  --qf-action-primary: #191B20;
+  --qf-action-primary-text: #FFFFFF;
+  --qf-action-primary-hover: #2D313A;
 
-  --qf-blue: #2563EB;
-  --qf-blue-subtle: rgba(37, 99, 235, 0.08);
-  --qf-blue-border: rgba(37, 99, 235, 0.25);
+  /* Accents & Restrained Semantics — Light Theme */
+  --qf-accent-violet: #6D28D9;
+  --qf-accent-violet-subtle: rgba(109, 40, 217, 0.10);
+  --qf-accent-violet-border: rgba(109, 40, 217, 0.25);
 
-  /* Semantic Colors */
-  --qf-status-success: #059669;
-  --qf-status-success-subtle: rgba(5, 150, 105, 0.08);
-  --qf-status-success-border: rgba(5, 150, 105, 0.25);
-  --qf-status-success-glow: rgba(5, 150, 105, 0.15);
+  --qf-status-critical: #BE123C;
+  --qf-status-critical-subtle: rgba(190, 18, 60, 0.10);
+  --qf-status-critical-border: rgba(190, 18, 60, 0.25);
 
-  --qf-status-active: #088EA9;
-  --qf-status-active-subtle: rgba(8, 142, 169, 0.08);
-  --qf-status-active-border: rgba(8, 142, 169, 0.28);
+  --qf-status-warning: #B45309;
+  --qf-status-warning-subtle: rgba(180, 83, 9, 0.10);
+  --qf-status-warning-border: rgba(180, 83, 9, 0.25);
 
-  --qf-status-warning: #D97706;
-  --qf-status-warning-subtle: rgba(217, 119, 6, 0.08);
-  --qf-status-warning-border: rgba(217, 119, 6, 0.25);
+  --qf-status-success: #15803D;
+  --qf-status-success-subtle: rgba(21, 128, 61, 0.10);
+  --qf-status-success-border: rgba(21, 128, 61, 0.25);
 
-  --qf-status-critical: #E11D48;
-  --qf-status-critical-subtle: rgba(225, 29, 72, 0.08);
-  --qf-status-critical-border: rgba(225, 29, 72, 0.28);
+  --qf-status-info: #475569;
+  --qf-status-info-subtle: rgba(71, 85, 105, 0.10);
+  --qf-status-info-border: rgba(71, 85, 105, 0.25);
 
-  /* Surface Mappings */
-  --bg-app: #F4F6FB;
-  --bg-sidebar: #FFFFFF;
-  --bg-header: rgba(255, 255, 255, 0.90);
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #F8FAFD;
+  /* Surface & Component Mappings (Light) */
+  --bg-app: var(--qf-canvas-primary);
+  --bg-sidebar: var(--qf-canvas-secondary);
+  --bg-header: rgba(255, 255, 255, 0.92);
+  --bg-card: var(--qf-panel-raised);
+  --bg-card-hover: var(--qf-surface-interactive);
   --bg-input: #FFFFFF;
-  --border-color: #D2DCEE;
-  --border-color-focus: #088EA9;
-  
-  --text-primary: #0A0D15;
-  --text-secondary: #263248;
-  --text-tertiary: #4A5A74;
+  --border-color: var(--qf-border-standard);
+  --border-color-focus: var(--qf-accent-violet);
 
-  /* Standardized Color Aliases (Light) */
-  --color-bg-base: #F4F6FB;
-  --color-bg-deep: #FFFFFF;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-interactive: #EEF2F9;
-  --color-bg-hover: #E4EBF5;
-  --color-border-subtle: #D2DCEE;
-  --color-border-interactive: #B4C4DE;
+  --text-primary: var(--qf-text-primary);
+  --text-secondary: var(--qf-text-secondary);
+  --text-tertiary: var(--qf-text-muted);
 
-  --color-text-primary: #0A0D15;
-  --color-text-secondary: #263248;
-  --color-text-muted: #64748B;
+  --color-bg-base: var(--qf-canvas-primary);
+  --color-bg-deep: var(--qf-canvas-secondary);
+  --color-bg-elevated: var(--qf-panel-raised);
+  --color-bg-surface: var(--qf-panel-raised);
+  --color-bg-interactive: var(--qf-surface-interactive);
+  --color-bg-hover: var(--qf-surface-hover);
+  --color-bg-inspector: var(--qf-panel-elevated);
 
-  --color-amethyst: #7E4EE6;
-  --color-amethyst-bg: rgba(126, 78, 230, 0.08);
-  --color-amethyst-border: rgba(126, 78, 230, 0.28);
+  --color-border-subtle: var(--qf-border-subtle);
+  --color-border-interactive: var(--qf-border-standard);
+  --color-border-strong: var(--qf-border-interactive);
 
-  --color-cyan: #088EA9;
-  --color-cyan-bg: rgba(8, 142, 169, 0.08);
-  --color-cyan-border: rgba(8, 142, 169, 0.28);
+  --color-text-primary: var(--qf-text-primary);
+  --color-text-secondary: var(--qf-text-secondary);
+  --color-text-muted: var(--qf-text-muted);
+  --color-text-dim: var(--qf-text-dim);
 
-  --color-success: #059669;
-  --color-success-bg: rgba(5, 150, 105, 0.08);
-  --color-success-border: rgba(5, 150, 105, 0.25);
+  /* Primary Action */
+  --color-action-bg: var(--qf-action-primary);
+  --color-action-text: var(--qf-action-primary-text);
+  --color-action-hover: var(--qf-action-primary-hover);
 
-  --color-warning: #D97706;
-  --color-warning-bg: rgba(217, 119, 6, 0.08);
-  --color-warning-border: rgba(217, 119, 6, 0.25);
+  /* Accent */
+  --color-accent: var(--qf-accent-violet);
+  --color-accent-bg: var(--qf-accent-violet-subtle);
+  --color-accent-border: var(--qf-accent-violet-border);
 
-  --color-amber: #D97706;
-  --color-amber-bg: rgba(217, 119, 6, 0.08);
-  --color-amber-border: rgba(217, 119, 6, 0.25);
+  --color-amethyst: var(--qf-accent-violet);
+  --color-amethyst-bg: var(--qf-accent-violet-subtle);
+  --color-amethyst-border: var(--qf-accent-violet-border);
 
-  --color-danger: #E11D48;
-  --color-danger-bg: rgba(225, 29, 72, 0.08);
-  --color-danger-border: rgba(225, 29, 72, 0.28);
+  --color-cyan: var(--qf-status-info);
+  --color-cyan-bg: var(--qf-status-info-subtle);
+  --color-cyan-border: var(--qf-status-info-border);
+  --color-cyan-hover: var(--qf-action-primary);
+  --color-cyan-glow: rgba(0, 0, 0, 0.05);
 
-  --color-crimson: #E11D48;
-  --color-crimson-bg: rgba(225, 29, 72, 0.08);
-  --color-crimson-border: rgba(225, 29, 72, 0.28);
+  --color-blue: var(--qf-status-info);
 
-  /* Shadows */
-  --shadow-card: 0 2px 10px -2px rgba(15, 23, 42, 0.06);
-  --shadow-elevated: 0 10px 25px -4px rgba(15, 23, 42, 0.10);
-  --shadow-cyan: 0 0 12px -2px rgba(8, 142, 169, 0.20);
-  --shadow-emerald: 0 0 12px -2px rgba(5, 150, 105, 0.20);
-  --shadow-amethyst: 0 0 12px -2px rgba(126, 78, 230, 0.20);
+  /* Semantics */
+  --color-success: var(--qf-status-success);
+  --color-success-bg: var(--qf-status-success-subtle);
+  --color-success-border: var(--qf-status-success-border);
+
+  --color-warning: var(--qf-status-warning);
+  --color-warning-bg: var(--qf-status-warning-subtle);
+  --color-warning-border: var(--qf-status-warning-border);
+  --color-amber: var(--qf-status-warning);
+  --color-amber-bg: var(--qf-status-warning-subtle);
+  --color-amber-border: var(--qf-status-warning-border);
+
+  --color-danger: var(--qf-status-critical);
+  --color-danger-bg: var(--qf-status-critical-subtle);
+  --color-danger-border: var(--qf-status-critical-border);
+  --color-crimson: var(--qf-status-critical);
+  --color-crimson-bg: var(--qf-status-critical-subtle);
+  --color-crimson-border: var(--qf-status-critical-border);
+
+  /* Legacy qf- tokens for light mode */
+  --qf-obsidian: var(--qf-canvas-primary);
+  --qf-graphite: var(--qf-canvas-secondary);
+  --qf-surface-elevated: var(--qf-panel-raised);
+  --qf-surface-interactive: var(--qf-surface-interactive);
+  --qf-surface-hover: var(--qf-surface-hover);
+  --qf-border-strong: var(--qf-border-standard);
+  --qf-text-frost: var(--qf-text-primary);
+  --qf-text-silver: var(--qf-text-secondary);
+  --qf-text-chrome: var(--qf-text-muted);
+  --qf-cyan: var(--qf-status-info);
+  --qf-cyan-subtle: var(--qf-status-info-subtle);
+  --qf-cyan-border: var(--qf-status-info-border);
+  --qf-cyan-glow: rgba(0, 0, 0, 0.05);
+  --qf-amethyst: var(--qf-accent-violet);
+  --qf-amethyst-subtle: var(--qf-accent-violet-subtle);
+  --qf-amethyst-border: var(--qf-accent-violet-border);
+  --qf-amethyst-hover: #5B21B6;
 }

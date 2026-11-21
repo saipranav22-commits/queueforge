@@ -35,7 +35,7 @@ export const Badge: React.FC<BadgeProps> = ({
     amethyst:
       'bg-[var(--qf-amethyst-subtle)] text-[var(--qf-amethyst)] border border-[var(--qf-amethyst-border)]',
     cyan:
-      'bg-[var(--qf-cyan-subtle)] text-[var(--qf-cyan)] border border-[var(--qf-cyan-border)]',
+      'bg-[var(--qf-status-info-subtle)] text-[var(--qf-status-info)] border border-[var(--qf-status-info-border)]',
     success:
       'bg-[var(--qf-status-success-subtle)] text-[var(--qf-status-success)] border border-[var(--qf-status-success-border)]',
     warning:

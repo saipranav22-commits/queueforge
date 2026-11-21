@@ -57,17 +57,17 @@ export function getStatusBadgeStyle(status: JobStatus | string): {
       };
     case 'CLAIMED':
       return {
-        bg: 'bg-[var(--color-cyan-bg)]',
-        text: 'text-[var(--color-cyan)]',
-        border: 'border-[var(--color-cyan-border)]',
-        dot: 'bg-[var(--color-cyan)]',
+        bg: 'bg-[var(--color-accent-bg)]',
+        text: 'text-[var(--color-accent)]',
+        border: 'border-[var(--color-accent-border)]',
+        dot: 'bg-[var(--color-accent)]',
       };
     case 'RUNNING':
       return {
-        bg: 'bg-[var(--color-amethyst-bg)]',
-        text: 'text-[var(--color-amethyst)]',
-        border: 'border-[var(--color-amethyst-border)]',
-        dot: 'bg-[var(--color-amethyst)] animate-pulse',
+        bg: 'bg-[var(--color-accent-bg)]',
+        text: 'text-[var(--color-accent)]',
+        border: 'border-[var(--color-accent-border)]',
+        dot: 'bg-[var(--color-accent)] animate-pulse',
       };
     case 'COMPLETED':
       return {
@@ -78,17 +78,17 @@ export function getStatusBadgeStyle(status: JobStatus | string): {
       };
     case 'FAILED':
       return {
-        bg: 'bg-[var(--color-crimson-bg)]',
-        text: 'text-[var(--color-crimson)]',
-        border: 'border-[var(--color-crimson-border)]',
-        dot: 'bg-[var(--color-crimson)]',
+        bg: 'bg-[var(--color-danger-bg)]',
+        text: 'text-[var(--color-danger)]',
+        border: 'border-[var(--color-danger-border)]',
+        dot: 'bg-[var(--color-danger)]',
       };
     case 'DEAD_LETTER':
       return {
-        bg: 'bg-[var(--color-amethyst-bg)]',
-        text: 'text-[var(--color-amethyst)]',
-        border: 'border-[var(--color-amethyst-border)]',
-        dot: 'bg-[var(--color-amethyst)]',
+        bg: 'bg-[var(--color-danger-bg)]',
+        text: 'text-[var(--color-danger)]',
+        border: 'border-[var(--color-danger-border)]',
+        dot: 'bg-[var(--color-danger)]',
       };
     default:
       return {

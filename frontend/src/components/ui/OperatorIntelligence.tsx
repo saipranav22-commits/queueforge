@@ -6,7 +6,6 @@ import {
   Info,
   CheckCircle2,
   ArrowRight,
-  Cpu,
 } from 'lucide-react';
 import {
   useSystemHealth,
@@ -50,82 +49,81 @@ export const OperatorIntelligence: React.FC = () => {
     });
   }
 
-  // Rule 2: Dead-Letter Queue Backlog
-  const dlqCount = stats?.deadLetterJobs ?? 0;
-  if (dlqCount > 0) {
-    insights.push({
-      id: 'dlq-backlog',
-      severity: 'CRITICAL',
-      subsystem: 'Dead-Letter Queue',
-      metric: 'Poison Jobs',
-      value: `${dlqCount} poisoned`,
-      reason: `${dlqCount} job(s) exhausted maximum retry attempts and are isolated in the Dead-Letter Queue.`,
-      recommendation: 'Inspect error stack traces, unlock redacted payload, and trigger authenticated replay if downstream service recovered.',
-      link: '/dlq',
-      actionText: 'Review DLQ',
-    });
-  }
-
-  // Rule 3: Stale Worker Heartbeat Check
-  if (workers && workers.length > 0) {
-    const staleWorkers = workers.filter((w) => {
-      if (!w.lastHeartbeat) return true;
-      const ageSeconds = (Date.now() - new Date(w.lastHeartbeat).getTime()) / 1000;
-      return ageSeconds > 15;
-    });
-
-    if (staleWorkers.length > 0) {
+    // Rule 2: Dead-Letter Queue Backlog
+    const dlqCount = stats?.deadLetterJobs ?? 0;
+    if (dlqCount > 0) {
       insights.push({
-        id: 'stale-worker',
-        severity: 'WARNING',
-        subsystem: 'Worker Fleet',
-        metric: 'Heartbeat Freshness',
-        value: `${staleWorkers.length} stale node(s)`,
-        reason: `Worker instance ${staleWorkers.map((w) => w.instanceId).join(', ')} has missed its 5-second heartbeat window for >15s.`,
-        recommendation: 'Background lease reaper will automatically reclaim abandoned tasks after the 30s lease expiry.',
-        link: '/workers',
-        actionText: 'Inspect Fleet',
+        id: 'dlq-backlog',
+        severity: 'CRITICAL',
+        subsystem: 'Dead-Letter Queue',
+        metric: 'Poison Jobs',
+        value: `${dlqCount} quarantined`,
+        reason: 'Permanent handler exceptions or exhausted retries have isolated jobs into the dead-letter queue.',
+        recommendation: 'Inspect exception traces and trigger authenticated recovery replay.',
+        link: '/dlq',
+        actionText: 'Review Poison Jobs',
       });
     }
-  }
 
-  // Rule 4: High Queue Depth Congestion Check
-  const pendingJobs = stats?.pendingJobs ?? 0;
-  const activeWorkers = stats?.activeWorkers ?? 1;
-  if (pendingJobs > 100) {
-    insights.push({
-      id: 'queue-congestion',
-      severity: 'WARNING',
-      subsystem: 'Job Queue',
-      metric: 'Pending Backlog',
-      value: `${pendingJobs} pending`,
-      reason: `Queue depth exceeds 100 jobs while active worker capacity is ${activeWorkers}. Processing delay may increase.`,
-      recommendation: 'Verify worker threads are not blocked on external network I/O or increase worker instance count.',
-      link: '/jobs',
-      actionText: 'Explore Jobs',
-    });
-  }
+    // Rule 3: Stale Worker Heartbeats
+    if (workers && workers.length > 0) {
+      const staleWorkers = workers.filter((w) => {
+        if (!w.lastHeartbeat) return true;
+        const ageSeconds = (Date.now() - new Date(w.lastHeartbeat).getTime()) / 1000;
+        return ageSeconds > 15;
+      });
 
-  // Rule 5: Outbox Pending Backlog
-  const pendingOutbox = outboxStats?.pendingCount ?? 0;
-  if (pendingOutbox > 50) {
-    insights.push({
-      id: 'outbox-pending',
-      severity: 'WARNING',
-      subsystem: 'Transactional Outbox',
-      metric: 'Pending Events',
-      value: `${pendingOutbox} staged`,
-      reason: 'Outbox dispatcher has >50 staged events awaiting HTTP delivery to simulated payment receiver.',
-      recommendation: 'Trigger manual outbox sweep from the Event Pipeline page or inspect payment-receiver status.',
-      link: '/pipeline',
-      actionText: 'Review Pipeline',
-    });
-  }
+      if (staleWorkers.length > 0) {
+        insights.push({
+          id: 'stale-heartbeat',
+          severity: 'WARNING',
+          subsystem: 'Worker Fleet',
+          metric: 'Heartbeat Health',
+          value: `${staleWorkers.length} nodes stale`,
+          reason: 'Worker nodes have missed the 15-second heartbeat freshness deadline. Leases are eligible for sweeper reclamation.',
+          recommendation: 'Check worker CPU saturation or restart unresponsive worker JVM instances.',
+          link: '/workers',
+          actionText: 'Inspect Worker Nodes',
+        });
+      }
+    }
 
-  // Rule 6: Nominal State Fallback
+    // Rule 4: Queue Congestion Threshold
+    const pendingCount = stats?.pendingJobs ?? 0;
+    if (pendingCount > 100) {
+      insights.push({
+        id: 'queue-congestion',
+        severity: 'WARNING',
+        subsystem: 'Job Queue',
+        metric: 'Pending Backlog',
+        value: `${pendingCount} jobs`,
+        reason: 'High ingestion rate exceeds current cluster claiming concurrency capacity.',
+        recommendation: 'Increase worker instance count or adjust tenant DRR quantum weights.',
+        link: '/jobs',
+        actionText: 'View Queue Backlog',
+      });
+    }
+
+    // Rule 5: Outbox Backlog Warning
+    const unprocessedOutbox = outboxStats?.pendingCount ?? 0;
+    if (unprocessedOutbox > 50) {
+      insights.push({
+        id: 'outbox-backlog',
+        severity: 'WARNING',
+        subsystem: 'Transactional Outbox',
+        metric: 'Unprocessed Events',
+        value: `${unprocessedOutbox} pending`,
+        reason: 'Outbox polling publisher has accumulated un-relayed business events.',
+        recommendation: 'Trigger manual batch dispatch or inspect simulated payment receiver latency.',
+        link: '/pipeline',
+        actionText: 'Dispatch Outbox Batch',
+      });
+    }
+
+  // Fallback Nominal Baseline (Only if zero issues detected)
   if (insights.length === 0) {
     insights.push({
-      id: 'cluster-nominal',
+      id: 'nominal-baseline',
       severity: 'NOMINAL',
       subsystem: 'Cluster Operations',
       metric: 'All Subsystems',
@@ -137,98 +135,89 @@ export const OperatorIntelligence: React.FC = () => {
     });
   }
 
-  const getSeverityBadge = (sev: OperationalInsight['severity']) => {
-    switch (sev) {
-      case 'CRITICAL':
-        return {
-          bg: 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border-[var(--color-danger-border)]',
-          icon: AlertOctagon,
-        };
-      case 'WARNING':
-        return {
-          bg: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning-border)]',
-          icon: AlertTriangle,
-        };
-      case 'INFO':
-        return {
-          bg: 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border-[var(--color-cyan-border)]',
-          icon: Info,
-        };
-      case 'NOMINAL':
-      default:
-        return {
-          bg: 'bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success-border)]',
-          icon: CheckCircle2,
-        };
-    }
-  };
-
   return (
-    <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg space-y-4">
+    <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-sm space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] flex items-center justify-center">
-            <Cpu className="w-4 h-4 text-[var(--color-cyan)]" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold tracking-tight text-[var(--color-text-primary)]">
-              Deterministic Operator Intelligence
-            </h3>
-            <p className="text-xs text-[var(--color-text-muted)]">
-              Automated invariant and threshold diagnostics derived from live telemetry.
-            </p>
-          </div>
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight text-[var(--color-text-primary)]">
+            Deterministic Operator Intelligence
+          </h3>
+          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+            Automated invariant and threshold diagnostics derived from telemetry.
+          </p>
         </div>
         <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)]">
-          {insights.length} Insight{insights.length === 1 ? '' : 's'} Evaluated
+          {insights.length} {insights.length === 1 ? 'Insight' : 'Insights'} Evaluated
         </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        {insights.map((ins) => {
-          const badge = getSeverityBadge(ins.severity);
-          const IconComp = badge.icon;
+        {insights.map((insight) => {
+          const isCritical = insight.severity === 'CRITICAL';
+          const isWarning = insight.severity === 'WARNING';
+          const isNominal = insight.severity === 'NOMINAL';
 
           return (
             <div
-              key={ins.id}
-              className="rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] p-4 flex flex-col justify-between hover:border-[var(--color-border-interactive)] transition"
+              key={insight.id}
+              className={`rounded-lg bg-[var(--color-bg-deep)] border p-4 flex flex-col justify-between transition ${
+                isCritical
+                  ? 'border-[var(--color-danger-border)]'
+                  : isWarning
+                  ? 'border-[var(--color-warning-border)]'
+                  : isNominal
+                  ? 'border-[var(--color-success-border)]'
+                  : 'border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)]'
+              }`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded border ${badge.bg}`}
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded border ${
+                      isCritical
+                        ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border-[var(--color-danger-border)]'
+                        : isWarning
+                        ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning-border)]'
+                        : isNominal
+                        ? 'bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success-border)]'
+                        : 'bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border-[var(--color-border-subtle)]'
+                    }`}
                   >
-                    <IconComp className="w-3 h-3" />
-                    {ins.severity}
+                    {isCritical && <AlertOctagon className="w-3 h-3" />}
+                    {isWarning && <AlertTriangle className="w-3 h-3" />}
+                    {isNominal && <CheckCircle2 className="w-3 h-3" />}
+                    {!isCritical && !isWarning && !isNominal && <Info className="w-3 h-3" />}
+                    {insight.severity}
                   </span>
                   <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                    {ins.subsystem}
+                    {insight.subsystem}
                   </span>
                 </div>
 
                 <div>
                   <div className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <span>{ins.metric}:</span>
-                    <span className="font-mono text-[var(--color-cyan)]">{ins.value}</span>
+                    <span>{insight.metric}:</span>
+                    <span className="font-mono text-[var(--color-text-primary)]">
+                      {insight.value}
+                    </span>
                   </div>
                   <p className="text-[11.5px] text-[var(--color-text-secondary)] leading-relaxed mt-1">
-                    {ins.reason}
+                    {insight.reason}
                   </p>
                 </div>
 
                 <div className="pt-2 border-t border-[var(--color-border-subtle)]/60 text-[11px] text-[var(--color-text-muted)]">
                   <strong className="text-[var(--color-text-secondary)] font-medium">Action: </strong>
-                  {ins.recommendation}
+                  {insight.recommendation}
                 </div>
               </div>
 
               <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-end">
                 <Link
-                  to={ins.link}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-cyan)] hover:underline"
+                  to={insight.link}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition"
                 >
-                  <span>{ins.actionText}</span>
+                  <span>{insight.actionText}</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>

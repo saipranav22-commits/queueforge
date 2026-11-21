@@ -31,7 +31,7 @@ export const MonitoringPage: React.FC = () => {
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
               Observability & Distributed Metrics
             </h2>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
               MICROMETER & ACTUATOR
             </span>
           </div>
@@ -46,7 +46,7 @@ export const MonitoringPage: React.FC = () => {
             disabled={isFetching}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] rounded-lg border border-[var(--color-border-subtle)] transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[var(--color-cyan)]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[var(--color-accent)]' : ''}`} />
             Refresh
           </button>
         </div>
@@ -89,7 +89,7 @@ export const MonitoringPage: React.FC = () => {
         {/* Latency Distribution Table */}
         <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 space-y-4 shadow-lg">
           <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-border-subtle)]">
-            <Clock className="w-4 h-4 text-[var(--color-cyan)]" />
+            <Clock className="w-4 h-4 text-[var(--color-accent)]" />
             <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
               Execution & Queue Wait Latencies
             </h3>
@@ -104,7 +104,7 @@ export const MonitoringPage: React.FC = () => {
             </div>
             <div className="flex justify-between items-center py-2 border-b border-[var(--color-border-subtle)]">
               <span className="text-[var(--color-text-secondary)]">p95 Execution Duration</span>
-              <span className="text-[var(--color-cyan)] font-bold">
+              <span className="text-[var(--color-text-primary)] font-bold">
                 {formatDurationMs(metrics?.executionLatencyP95Ms)}
               </span>
             </div>
@@ -189,14 +189,14 @@ export const MonitoringPage: React.FC = () => {
           <div className="p-4 rounded-xl bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[var(--color-text-primary)] flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-[var(--color-cyan)]" /> Prometheus Scrape Target
+                <Activity className="w-4 h-4 text-[var(--color-accent)]" /> Prometheus Scrape Target
               </span>
-              <span className="px-2 py-0.5 rounded text-[9px] bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)] font-bold">
+              <span className="px-2 py-0.5 rounded text-[9px] bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)] font-bold">
                 PORT 8080 / 8088
               </span>
             </div>
             <p className="text-[11px] text-[var(--color-text-secondary)] font-sans">
-              Micrometer exposes standard OpenMetrics at <code className="text-[var(--color-cyan)]">/actuator/prometheus</code>, including <code className="text-[var(--color-cyan)]">queueforge_jobs_claimed_total</code>, <code className="text-[var(--color-cyan)]">queueforge_jobs_completed_total</code>, and <code className="text-[var(--color-cyan)]">queueforge_jobs_failed_total</code>.
+              Micrometer exposes standard OpenMetrics at <code className="text-[var(--color-accent)] font-mono">/actuator/prometheus</code>, including <code className="text-[var(--color-accent)] font-mono">queueforge_jobs_claimed_total</code>, <code className="text-[var(--color-accent)] font-mono">queueforge_jobs_completed_total</code>, and <code className="text-[var(--color-accent)] font-mono">queueforge_jobs_failed_total</code>.
             </p>
           </div>
 

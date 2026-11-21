@@ -33,7 +33,7 @@ export const DrrSimulator: React.FC = () => {
       deficit: 0,
       queuedJobs: 20,
       completedJobs: 0,
-      color: '#F43F5E', // Red/Crimson
+      color: '#E7AB5A', // Warm Amber
     },
     {
       id: 'tenant-interactive-a',
@@ -42,7 +42,7 @@ export const DrrSimulator: React.FC = () => {
       deficit: 0,
       queuedJobs: 3,
       completedJobs: 0,
-      color: '#00F0FF', // Cyan
+      color: '#A78BFA', // Restrained Violet
     },
     {
       id: 'tenant-interactive-b',
@@ -51,28 +51,34 @@ export const DrrSimulator: React.FC = () => {
       deficit: 0,
       queuedJobs: 2,
       completedJobs: 0,
-      color: '#10B981', // Emerald
+      color: '#55B88A', // Forest Emerald
     },
   ]);
 
   const handleStepSweep = () => {
     const jobCost = 10; // Standard job cost
-    let nextTenants = [...tenants];
-    let currentIdx = activeTenantIdx;
-    let nextLogs = [...logs];
-    let nextRound = round + 1;
+    const nextTenants = [...tenants];
+    const nextLogs = [...logs];
+    const currentIdx = activeTenantIdx;
+    const target = { ...nextTenants[currentIdx] };
+    const nextRound = round + 1;
 
-    let target = { ...nextTenants[currentIdx] };
+    // DRR Step 1: Accumulate Deficit = Deficit + Quantum * Weight
+    const addedQuantum = quantum * target.weight;
+    target.deficit += addedQuantum;
 
-    // DRR Step 1: Add quantum credit proportional to weight
-    target.deficit += quantum * target.weight;
-
+    // DRR Step 2: Service queued jobs as long as deficit >= jobCost
     let executedInSweep = 0;
     while (target.deficit >= jobCost && target.queuedJobs > 0) {
       target.deficit -= jobCost;
       target.queuedJobs -= 1;
       target.completedJobs += 1;
       executedInSweep += 1;
+    }
+
+    // Anti-hoarding: If queue is empty, reset deficit to 0
+    if (target.queuedJobs === 0) {
+      target.deficit = 0;
     }
 
     nextLogs.unshift({
@@ -106,7 +112,7 @@ export const DrrSimulator: React.FC = () => {
         deficit: 0,
         queuedJobs: 20,
         completedJobs: 0,
-        color: '#F43F5E',
+        color: '#E7AB5A',
       },
       {
         id: 'tenant-interactive-a',
@@ -115,7 +121,7 @@ export const DrrSimulator: React.FC = () => {
         deficit: 0,
         queuedJobs: 3,
         completedJobs: 0,
-        color: '#00F0FF',
+        color: '#A78BFA',
       },
       {
         id: 'tenant-interactive-b',
@@ -124,18 +130,18 @@ export const DrrSimulator: React.FC = () => {
         deficit: 0,
         queuedJobs: 2,
         completedJobs: 0,
-        color: '#10B981',
+        color: '#55B88A',
       },
     ]);
   };
 
   return (
-    <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg space-y-5">
+    <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-sm space-y-5">
       {/* Educational Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--color-border-subtle)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] flex items-center justify-center">
-            <Scale className="w-4 h-4 text-[var(--color-cyan)]" />
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-accent-bg)] border border-[var(--color-accent-border)] flex items-center justify-center">
+            <Scale className="w-4 h-4 text-[var(--color-accent)]" />
           </div>
           <div>
             <h3 className="text-sm font-bold tracking-tight text-[var(--color-text-primary)]">
@@ -147,7 +153,7 @@ export const DrrSimulator: React.FC = () => {
           </div>
         </div>
 
-        <span className="text-[10px] uppercase font-mono px-2.5 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-semibold self-start sm:self-auto">
+        <span className="text-[10px] uppercase font-mono px-2.5 py-1 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)] font-semibold self-start sm:self-auto">
           ⚠️ EDUCATIONAL SIMULATION — NOT LIVE SCHEDULER STATE
         </span>
       </div>
@@ -164,7 +170,7 @@ export const DrrSimulator: React.FC = () => {
               step="5"
               value={quantum}
               onChange={(e) => setQuantum(Number(e.target.value))}
-              className="w-16 px-2 py-1 text-xs font-mono rounded bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:border-[var(--color-cyan)] outline-none"
+              className="w-16 px-2 py-1 text-xs font-mono rounded bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:border-[var(--color-accent)] outline-none"
             />
           </label>
           <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
@@ -175,14 +181,14 @@ export const DrrSimulator: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleStepSweep}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--color-cyan-hover)] text-gray-950 hover:brightness-110 shadow-md shadow-[var(--color-cyan-glow)] transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] shadow-sm transition active:scale-95 cursor-pointer"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             Simulate Sweep (Round {round + 1})
           </button>
           <button
             onClick={handleReset}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-subtle)] transition"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-subtle)] transition cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Reset
@@ -199,7 +205,7 @@ export const DrrSimulator: React.FC = () => {
               key={t.id}
               className={`rounded-lg p-4 border transition-all ${
                 isTurn
-                  ? 'bg-[var(--color-cyan-bg)] border-[var(--color-cyan)] shadow-md shadow-[var(--color-cyan-glow)]'
+                  ? 'bg-[var(--color-bg-interactive)] border-[var(--color-accent)] shadow-sm'
                   : 'bg-[var(--color-bg-deep)] border-[var(--color-border-subtle)]'
               }`}
             >
@@ -211,7 +217,7 @@ export const DrrSimulator: React.FC = () => {
                   <h4 className="text-xs font-bold text-[var(--color-text-primary)]">{t.name}</h4>
                 </div>
                 {isTurn && (
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-cyan)] text-gray-950 font-bold">
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-accent)] text-[var(--color-action-text)] font-semibold">
                     ACTIVE TURN
                   </span>
                 )}
@@ -219,24 +225,23 @@ export const DrrSimulator: React.FC = () => {
 
               <div className="mt-3 space-y-2 text-xs">
                 <div className="flex justify-between font-mono">
-                  <span className="text-[var(--color-text-muted)]">Current Deficit ($D_i$):</span>
-                  <span className="font-bold text-[var(--color-cyan)]">{t.deficit}</span>
+                  <span className="text-[var(--color-text-muted)]">Deficit Counter ($D_i$):</span>
+                  <strong className="text-[var(--color-text-primary)]">{t.deficit} credits</strong>
                 </div>
                 <div className="flex justify-between font-mono">
-                  <span className="text-[var(--color-text-muted)]">Queued Jobs:</span>
-                  <span className="text-[var(--color-text-primary)]">{t.queuedJobs}</span>
+                  <span className="text-[var(--color-text-muted)]">Queued Workload:</span>
+                  <span className="text-[var(--color-text-secondary)]">{t.queuedJobs} jobs remaining</span>
                 </div>
                 <div className="flex justify-between font-mono">
-                  <span className="text-[var(--color-text-muted)]">Completed in Sim:</span>
-                  <span className="text-[var(--color-success)]">{t.completedJobs}</span>
+                  <span className="text-[var(--color-text-muted)]">Completed Dispatches:</span>
+                  <span className="text-[var(--color-success)] font-semibold">{t.completedJobs} jobs</span>
                 </div>
 
-                {/* Progress Visual */}
                 <div className="w-full bg-[var(--color-bg-base)] h-2 rounded-full overflow-hidden mt-2">
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
-                      width: `${Math.min(100, (t.deficit / (quantum * t.weight || 1)) * 100)}%`,
+                      width: `${Math.min(100, (t.deficit / 50) * 100)}%`,
                       backgroundColor: t.color,
                     }}
                   />
@@ -247,26 +252,27 @@ export const DrrSimulator: React.FC = () => {
         })}
       </div>
 
-      {/* Sweep Execution Traces */}
-      {logs.length > 0 && (
-        <div className="space-y-2 pt-2 border-t border-[var(--color-border-subtle)]">
-          <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-text-muted)]">
-            Recent Sweep Execution Traces
-          </h4>
-          <div className="rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] divide-y divide-[var(--color-border-subtle)] text-xs font-mono">
-            {logs.map((lg, i) => (
-              <div key={i} className="p-2.5 flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-[var(--color-cyan)] font-bold">R{lg.round}</span>
-                  <span className="text-[var(--color-text-primary)]">{lg.tenantId}</span>
-                  <span className="text-[var(--color-text-muted)]">→</span>
-                  <span className="text-[var(--color-text-secondary)]">{lg.action}</span>
-                </div>
+      {/* Sweep Execution Trace Log */}
+      <div>
+        <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-text-muted)] mb-2">
+          Sweep Step Execution Log
+        </h4>
+        <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] max-h-48 overflow-y-auto space-y-1.5 font-mono text-xs">
+          {logs.length === 0 ? (
+            <div className="text-[var(--color-text-muted)] text-[11px] py-3 text-center">
+              Click &quot;Simulate Sweep&quot; to step through deficit rounds.
+            </div>
+          ) : (
+            logs.map((log, idx) => (
+              <div key={idx} className="flex items-center justify-between text-[11px] py-1 border-b border-[var(--color-border-subtle)]/50 last:border-0">
+                <span className="text-[var(--color-accent)] font-semibold">Round {log.round}</span>
+                <span className="text-[var(--color-text-secondary)]">{log.tenantId}</span>
+                <span className="text-[var(--color-text-muted)] truncate max-w-md">{log.action}</span>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

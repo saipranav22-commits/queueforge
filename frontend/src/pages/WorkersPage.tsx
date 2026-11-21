@@ -43,7 +43,7 @@ export const WorkersPage: React.FC = () => {
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
               Distributed Worker Fleet
             </h2>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
               MULTI-NODE CLUSTER
             </span>
           </div>
@@ -58,7 +58,7 @@ export const WorkersPage: React.FC = () => {
             disabled={isFetching}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded-lg transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[var(--color-cyan)]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[var(--color-accent)]' : ''}`} />
             Refresh Fleet
           </button>
         </div>
@@ -78,7 +78,7 @@ export const WorkersPage: React.FC = () => {
           value={fleetLoading ? '...' : `${totalHeldLeases} / ${totalConcurrency}`}
           subtitle="Held leases / Capacity slots"
           icon={Layers}
-          variant="cyan"
+          variant="default"
         />
         <MetricCard
           title="PostgreSQL Lease Store"
@@ -130,7 +130,7 @@ export const WorkersPage: React.FC = () => {
                   className="p-5 hover:bg-[var(--color-bg-interactive)] transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="flex items-start sm:items-center gap-3.5">
-                    <div className="p-2.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[var(--color-cyan)]">
+                    <div className="p-2.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)]">
                       <Server className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -186,7 +186,7 @@ export const WorkersPage: React.FC = () => {
                   <div className="flex items-center gap-6 text-xs font-mono">
                     <div className="text-right">
                       <div className="text-[10px] uppercase text-[var(--color-text-muted)]">Active Leases</div>
-                      <div className="font-bold text-[var(--color-cyan)] text-sm">
+                      <div className="font-bold text-[var(--color-text-primary)] text-sm">
                         {worker.heldLeasesCount} / {worker.concurrency} slots
                       </div>
                     </div>
@@ -263,7 +263,7 @@ export const WorkersPage: React.FC = () => {
             </div>
             <div className="flex justify-between items-center py-1">
               <span className="text-[var(--color-text-secondary)]">Heartbeat Extension</span>
-              <span className="text-[var(--color-cyan)] font-semibold">
+              <span className="text-[var(--color-accent)] font-semibold">
                 Dynamic 3s In-Flight Renewal
               </span>
             </div>
@@ -272,7 +272,7 @@ export const WorkersPage: React.FC = () => {
 
         <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 space-y-4 shadow-lg">
           <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-border-subtle)]">
-            <Shield className="w-4 h-4 text-[var(--color-cyan)]" />
+            <Shield className="w-4 h-4 text-[var(--color-accent)]" />
             <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
               Fault Tolerance & Crash Recovery
             </h3>
@@ -281,7 +281,7 @@ export const WorkersPage: React.FC = () => {
           <div className="space-y-3 text-xs font-mono">
             <div className="flex justify-between items-center py-1 border-b border-[var(--color-border-subtle)]">
               <span className="text-[var(--color-text-secondary)]">Split-Brain Prevention</span>
-              <span className="text-[var(--color-cyan)] font-semibold">
+              <span className="text-[var(--color-accent)] font-semibold">
                 Claim Fencing Token (UUID)
               </span>
             </div>
@@ -321,7 +321,7 @@ export const WorkersPage: React.FC = () => {
             <div className="p-4 rounded-xl bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)]">
-                  <Server className="w-5 h-5 text-[var(--color-cyan)]" />
+                  <Server className="w-5 h-5 text-[var(--color-accent)]" />
                 </div>
                 <div>
                   <div className="font-mono font-bold text-sm text-[var(--color-text-primary)]">
@@ -364,7 +364,7 @@ export const WorkersPage: React.FC = () => {
               </div>
               <div className="p-3.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
                 <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Held Leases</span>
-                <span className="text-base font-bold text-[var(--color-cyan)]">
+                <span className="text-base font-bold text-[var(--color-text-primary)]">
                   {selectedWorker.heldLeasesCount} active
                 </span>
               </div>

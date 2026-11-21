@@ -119,7 +119,7 @@ export const AdminUnlockModal: React.FC = () => {
                 autoFocus
                 aria-describedby="admin-key-desc"
                 aria-invalid={Boolean(errorMsg)}
-                className="w-full pl-10 pr-10 py-2 text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-amethyst)] focus:ring-1 focus:ring-[var(--color-amethyst)] font-mono transition"
+                className="w-full pl-10 pr-10 py-2 text-sm bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] font-mono transition"
               />
               <button
                 type="button"
@@ -131,7 +131,7 @@ export const AdminUnlockModal: React.FC = () => {
               </button>
             </div>
             <div id="admin-key-desc" className="mt-2 p-2.5 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] flex items-start gap-2 text-[11px] text-[var(--color-text-muted)]">
-              <HelpCircle className="w-4 h-4 text-[var(--color-cyan)] flex-shrink-0 mt-0.5" />
+              <HelpCircle className="w-4 h-4 text-[var(--color-accent)] flex-shrink-0 mt-0.5" />
               <div>
                 <span>
                   QueueForge uses an <strong>Administrator API Key</strong> (not username/password). In local development, configured in <code className="text-[var(--color-text-secondary)] font-mono">application.yml</code> under <code className="text-[var(--color-text-secondary)] font-mono">queueforge.admin.api-key</code>.
@@ -161,7 +161,7 @@ export const AdminUnlockModal: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[var(--color-amethyst)] hover:brightness-110 disabled:opacity-50 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/25"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Authenticate & Unlock

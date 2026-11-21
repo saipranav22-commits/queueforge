@@ -4,12 +4,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useSystemHealth, useWorkerFleet } from '../../hooks/useQueueForgeData';
 import { Breadcrumbs } from '../ui/Breadcrumbs';
 import {
-  ShieldCheck,
-  ShieldAlert,
   Lock,
   Unlock,
-  Database,
-  Cpu,
   Menu,
   Sun,
   Moon,
@@ -20,16 +16,23 @@ import {
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenUnlockModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   onOpenCommandPalette,
+  onOpenUnlockModal,
 }) => {
   const { isAuthenticated, openUnlockModal, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { data: health, isFetching, refetch } = useSystemHealth();
   const { data: workers } = useWorkerFleet();
+
+  const handleUnlockClick = () => {
+    onOpenUnlockModal?.();
+    openUnlockModal();
+  };
 
   // Dynamic status evaluation
   const dbUp = health?.dbStatus === 'UP';
@@ -42,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getSystemStatus = () => {
     if (!health) return { label: 'CONNECTING', variant: 'muted' };
-    if (!dbUp) return { label: 'DB DOWN', variant: 'critical' };
+    if (!dbUp) return { label: 'DB OFFLINE', variant: 'critical' };
     if (!workerRunning || hasStaleWorker) return { label: 'DEGRADED', variant: 'warning' };
     return { label: 'NOMINAL', variant: 'success' };
   };
@@ -50,12 +53,13 @@ export const Header: React.FC<HeaderProps> = ({
   const sysStatus = getSystemStatus();
 
   return (
-    <header className="h-16 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between transition-colors z-20 select-none">
+    <header className="h-16 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between transition-colors z-20 select-none">
+      {/* LEFT SECTION: Menu Toggle & Breadcrumbs */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         {onToggleMobileMenu && (
           <button
             onClick={onToggleMobileMenu}
-            className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] md:hidden transition"
+            className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] md:hidden transition cursor-pointer"
             title="Toggle Navigation Menu"
             aria-label="Toggle Navigation Menu"
           >
@@ -64,83 +68,49 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         {/* Dynamic Context Breadcrumbs */}
-        <div className="min-w-0">
+        <div className="hidden sm:block min-w-0">
           <Breadcrumbs />
         </div>
 
         <div className="h-4 w-px bg-[var(--color-border-subtle)] hidden lg:block" />
 
-        {/* Cluster Operational Health Telemetry Pill */}
-        <div className="hidden lg:flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[11px] font-mono text-[var(--color-text-secondary)]">
-            <span className="relative flex h-2 w-2">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  sysStatus.variant === 'success'
-                    ? 'bg-[var(--color-success)]'
-                    : sysStatus.variant === 'warning'
-                    ? 'bg-[var(--color-warning)]'
-                    : sysStatus.variant === 'critical'
-                    ? 'bg-[var(--color-danger)]'
-                    : 'bg-[var(--color-cyan)]'
-                }`}
-              />
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  sysStatus.variant === 'success'
-                    ? 'bg-[var(--color-success)]'
-                    : sysStatus.variant === 'warning'
-                    ? 'bg-[var(--color-warning)]'
-                    : sysStatus.variant === 'critical'
-                    ? 'bg-[var(--color-danger)]'
-                    : 'bg-[var(--color-cyan)]'
-                }`}
-              />
-            </span>
-            <span className="font-semibold">{sysStatus.label}</span>
-          </div>
-
-          {/* Database Health Status */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[11px] font-mono text-[var(--color-text-secondary)]">
-            <Database className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-            <span className="hidden xl:inline text-[var(--color-text-muted)]">DB:</span>
+        {/* Consolidated System Health Status (Quiet & Intentional) */}
+        <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-xs font-mono">
+          <span className="relative flex h-2 w-2">
             <span
-              className={`font-semibold ${
-                dbUp ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
+              className={`relative inline-flex rounded-full h-2 w-2 ${
+                sysStatus.variant === 'success'
+                  ? 'bg-[var(--color-success)]'
+                  : sysStatus.variant === 'warning'
+                  ? 'bg-[var(--color-warning)]'
+                  : sysStatus.variant === 'critical'
+                  ? 'bg-[var(--color-danger)]'
+                  : 'bg-[var(--color-text-muted)]'
               }`}
-            >
-              {health?.dbStatus || 'UNKNOWN'}
-            </span>
-          </div>
-
-          {/* Coordinator Node Status */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[11px] font-mono text-[var(--color-text-secondary)]">
-            <Cpu className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-            <span className="hidden xl:inline text-[var(--color-text-muted)]">Coordinator:</span>
-            <span
-              className={`font-semibold ${
-                workerRunning
-                  ? 'text-[var(--color-success)]'
-                  : 'text-[var(--color-warning)]'
-              }`}
-            >
-              {health?.workerStatus || 'UNKNOWN'}
-            </span>
-          </div>
+            />
+          </span>
+          <span className="font-semibold text-[var(--color-text-primary)] tracking-wide">
+            {sysStatus.label}
+          </span>
+          <span className="text-[var(--color-border-subtle)]">|</span>
+          <span className="text-[var(--color-text-muted)]">
+            DB: <strong className={dbUp ? 'text-[var(--color-success)] font-semibold' : 'text-[var(--color-text-secondary)]'}>{health?.dbStatus || 'OFFLINE'}</strong>
+          </span>
         </div>
       </div>
 
+      {/* RIGHT SECTION: Operational Controls & Primary Auth Action */}
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         {/* Command Palette Trigger */}
         <button
           onClick={onOpenCommandPalette}
-          className="flex items-center gap-2 px-2.5 py-1 text-xs text-[var(--color-text-secondary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded-lg transition"
+          className="hidden sm:inline-flex items-center gap-2 h-10 px-3 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded-lg transition cursor-pointer"
           title="Command Palette (Ctrl+K or Cmd+K)"
           aria-label="Open Command Palette"
         >
-          <Search className="w-3.5 h-3.5 text-[var(--color-cyan)]" />
-          <span className="hidden sm:inline font-medium">Command</span>
-          <kbd className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-mono bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded text-[var(--color-text-muted)]">
+          <Search className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
+          <span className="font-medium">Command</span>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded text-[var(--color-text-muted)]">
             Ctrl+K
           </kbd>
         </button>
@@ -148,23 +118,23 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
-          className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] transition"
+          className="inline-flex items-center justify-center h-10 w-10 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] transition cursor-pointer"
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           aria-label="Toggle Color Theme"
         >
           {theme === 'dark' ? (
             <Sun className="w-4 h-4 text-[var(--color-warning)]" />
           ) : (
-            <Moon className="w-4 h-4 text-[var(--color-amethyst)]" />
+            <Moon className="w-4 h-4 text-[var(--color-accent)]" />
           )}
         </button>
 
-        {/* Refresh Indicator */}
+        {/* Refresh Telemetry Button */}
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className={`p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] transition ${
-            isFetching ? 'animate-spin text-[var(--color-cyan)]' : ''
+          className={`inline-flex items-center justify-center h-10 w-10 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] transition cursor-pointer ${
+            isFetching ? 'animate-spin text-[var(--color-text-primary)]' : ''
           }`}
           title="Refresh Cluster Telemetry"
           aria-label="Refresh Data"
@@ -172,19 +142,19 @@ export const Header: React.FC<HeaderProps> = ({
           <RefreshCw className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-px bg-[var(--color-border-subtle)]" />
+        <div className="h-5 w-px bg-[var(--color-border-subtle)] mx-0.5" />
 
-        {/* Admin Authentication Status */}
+        {/* PRIMARY AUTHENTICATION CONTROL (Highest visual priority, minimum 44px practical target) */}
         {isAuthenticated ? (
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--color-success-bg)] border border-[var(--color-success-border)] text-[var(--color-success)] text-xs font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Admin Mode</span>
-            </span>
+            <div className="inline-flex items-center gap-2 h-10 px-3 rounded-lg bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)]">
+              <span className="w-2 h-2 rounded-full bg-[var(--color-success)]" />
+              <span className="font-mono text-xs font-semibold whitespace-nowrap">Operator Session</span>
+            </div>
             <button
               onClick={() => logout()}
-              title="Lock Admin session"
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] rounded-md border border-[var(--color-border-subtle)] transition"
+              title="Lock Operator session"
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] rounded-lg border border-[var(--color-border-subtle)] transition cursor-pointer"
               aria-label="Lock Session"
             >
               <Lock className="w-3.5 h-3.5" />
@@ -192,21 +162,16 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] text-xs font-medium">
-              <ShieldAlert className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-              Demo View
-            </span>
-            <button
-              onClick={() => openUnlockModal()}
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[var(--color-cyan-hover)] hover:brightness-110 rounded-md transition shadow-md shadow-[var(--color-cyan-glow)]"
-              style={{ color: '#030712' }}
-              aria-label="Unlock Administrator Actions"
-            >
-              <Unlock className="w-3.5 h-3.5" />
-              Unlock
-            </button>
-          </div>
+          <button
+            onClick={handleUnlockClick}
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 min-h-[44px] min-w-[44px] text-xs font-semibold rounded-lg bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-base)] transition-all shadow-sm active:scale-95 cursor-pointer select-none"
+            title="Unlock Administrator Console"
+            aria-label="Unlock Administrator Console"
+            data-testid="header-unlock-button"
+          >
+            <Unlock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap font-medium tracking-wide">Unlock Console</span>
+          </button>
         )}
       </div>
     </header>
