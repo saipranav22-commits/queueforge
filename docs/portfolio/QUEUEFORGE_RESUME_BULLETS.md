@@ -1,50 +1,58 @@
-# QueueForge V2 — Resume Bullet Points & Portfolio Positioning
+# QueueForge V2 — High-Impact Resume Bullets & Experience Statements
 
-**Author**: Senior Technical Recruiter & Staff Software Engineer  
-**Date**: November 2026  
-**Audience**: FAANG / Tier-1 Tech / High-Growth Startup Engineering Recruiters  
-
----
-
-## 1. Resume Bullet Option 1: Backend Java / Spring Boot Engineer Focus
-
-> **QueueForge | Distributed Task Orchestration & Transactional Outbox Platform**  
-> *Java 21, Spring Boot 3, PostgreSQL 16, Testcontainers, Docker Compose, JUnit 5*
-> - Engineered a high-throughput distributed task execution engine using **Java 21** and **PostgreSQL 16**, leveraging `SELECT FOR UPDATE SKIP LOCKED` to enable contention-free concurrent job claims across independent worker JVMs.
-> - Implemented a multi-tenant **Deficit Round Robin (DRR)** scheduler with cluster-wide concurrency quotas, reducing quiet-tenant starvation p50 queue latency by **89.8%** during noisy-neighbor flood workloads.
-> - Built a **Transactional Outbox** pipeline with asynchronous HTTP relay and SHA-256 payload fingerprinting, guaranteeing at-least-once cross-service delivery and idempotent charge processing under network partitions.
-> - Established automated crash-recovery mechanisms utilizing monotonic fencing tokens and dynamic worker heartbeats (`qf_worker_heartbeats`), eliminating split-brain writes during simulated worker dropouts.
-> - Formulated a 6-job cloud CI suite on **GitHub Actions**, writing **164 JUnit 5 / Spring Boot integration tests** with real PostgreSQL testcontainers and an 8-stage live cluster smoke test suite.
+**Document Identifier:** `QF-PORTFOLIO-RESUME-BULLETS`  
+**Classification:** Career & Interview Portfolio Collateral  
+**Target Roles:** Staff/Senior Backend Engineer, Distributed Systems Engineer, Full-Stack Systems Architect  
 
 ---
 
-## 2. Resume Bullet Option 2: Full-Stack Software Engineer Focus
+## 1. Top 3 Flagship Resume Bullets (General Backend / Distributed Systems)
 
-> **QueueForge | Full-Stack Distributed Job Queue & Operations Console**  
-> *React 19, TypeScript, Vite, Tailwind CSS, Java 21, Spring Boot 3, PostgreSQL 16, Playwright*
-> - Architected an enterprise-grade full-stack orchestration platform featuring a high-performance **Spring Boot 3** backend and a reactive **React 19 / TypeScript** operations control plane (**Obsidian Pulse**).
-> - Developed 9 mission-critical operational views including real-time job timeline visualizers, worker fleet heartbeat dashboards, FairShare tenant analytics, and an authenticated Dead-Letter Queue (DLQ) console.
-> - Hardened application security by implementing SHA-256 verifiers, constant-time token comparison, HttpOnly session cookies, cryptographic CSRF token verification, and externalized CORS policies.
-> - Engineered an automated end-to-end verification harness executing **20 Playwright browser tests** across desktop and mobile viewports against a live 7-container Docker Compose cluster in GitHub Actions CI.
-> - Achieved **100% test coverage compliance** across 241 automated tests (164 backend, 13 receiver, 44 Vitest frontend components) with zero unhandled exceptions.
+```markdown
+• Architected QueueForge V2, an ACID-compliant distributed task queue in Java 21, Spring Boot 3, and PostgreSQL 16; eliminated external message broker operational overhead and dual-write hazards using `SELECT FOR UPDATE SKIP LOCKED` inside atomic CTEs for contention-free worker claiming.
 
----
+• Designed a multi-tenant Deficit Round Robin (DRR) fair scheduler with cluster-wide concurrency quotas enforced via PostgreSQL row-level locks; benchmarked to reduce quiet-tenant median wait latency by 89.8% (from 11.8s to 1.2s) under asymmetric noisy-neighbor burst workloads.
 
-## 3. Resume Bullet Option 3: Distributed Systems / Platform Engineer Focus
-
-> **QueueForge | Dual-Fenced Distributed Scheduler & Chaos Testing Harness**  
-> *Distributed Systems, Concurrency, PostgreSQL ACID, Chaos Engineering, Nginx, Docker*
-> - Designed a resilient distributed scheduling platform capable of executing concurrent multi-tenant workloads across heterogeneous node modes (`API_ONLY`, `WORKER_ONLY`, `COMBINED`) without external message brokers.
-> - Designed and deployed **ChaosLab**, an automated fault-injection testing harness simulating JVM crashes, transient gateway 503 outages, and poison-pill scenarios to validate exponential backoff and lease recovery.
-> - Mitigated dual-write data anomalies by pairing local ACID database transactions with an outbox relay engine and downstream idempotency verification, ensuring durable state synchronization.
-> - Containerized the 7-service system under a resource-constrained topology (< 2.2 GB RAM footprint) utilizing Nginx reverse proxy routing, multi-stage Docker builds, and isolated bridge subnets.
-> - Governed database evolution across 8 zero-downtime Flyway migrations, introducing cryptographic tenant credential hashing (V7) and worker instance discovery registries (V8).
+• Implemented the Transactional Outbox pattern and an independent payment receiver microservice; enforced cross-service at-least-once delivery with durable primary-key deduplication and SHA-256 payload fingerprinting to guarantee idempotent financial processing.
+```
 
 ---
 
-## 4. Key Differentiators to Emphasize in Interviews
+## 2. Role-Tailored Bullet Variations
 
-1. **Not a Toy CRUD App**: QueueForge addresses real distributed systems challenges—race conditions, network splits, noisy neighbors, and dual writes.
-2. **PostgreSQL as a Message Broker Done Right**: Explains how modern PostgreSQL features (`SKIP LOCKED`, compound B-tree indexes, partial indexes) provide reliable queuing without Kafka/RabbitMQ operational overhead.
-3. **Verified Metrics**: Every latency claim (89.8% starvation reduction) and test metric (164 backend, 13 receiver, 44 frontend, 8 smoke stages, 20 Playwright tests) is verifiable in code and CI logs.
-4. **End-to-End Delivery**: Demonstrates complete ownership from database schema DDL to frontend pixel-level design and cloud CI automation.
+### A. Senior / Staff Backend Engineer (Distributed Systems Focus)
+```markdown
+• Engineered a multi-instance distributed worker topology in Java 21/Spring Boot 3 using time-bounded PostgreSQL leases and dual fencing tokens (UUID and monotonic version counter), preventing split-brain zombie writes during worker failover.
+
+• Implemented an enterprise-grade retry engine featuring exponential backoff with full jitter and an authenticated Dead-Letter Queue (DLQ) operations console with atomic state replay capabilities.
+
+• Hardened credential security by migrating tenant API keys to SHA-256 cryptographic verifiers (Flyway V7) and constant-time token comparisons (`MessageDigest.isEqual`), eliminating plaintext secrets from database storage.
+```
+
+### B. Senior Full-Stack Engineer (Java 21 + React 19)
+```markdown
+• Built Obsidian Pulse, a responsive dark-mode operational control plane using React 19, TypeScript, TanStack Query, and Tailwind CSS; integrated 3-second periodic polling for real-time queue depth, worker heartbeats, and DLQ inspection.
+
+• Designed an allowlisted Public Demo security architecture enforcing dual-mode admin authentication (constant-time API key and HttpOnly session cookies with CSRF defense) while masking sensitive payloads and tenant credentials.
+
+• Automated end-to-end verification across the entire stack, authoring 187 backend Spring Boot tests, 13 receiver tests, 44 Vitest component tests, and 20 Playwright browser scenarios (100% pass rate in CI).
+```
+
+### C. DevOps / SRE / Release Engineer
+```markdown
+• Orchestrated a 7-service production Docker Compose topology (two PostgreSQL databases, API gateway, two decoupled workers, receiver microservice, and Nginx reverse proxy) capped at ~2.4 GB aggregate memory.
+
+• Built a multi-stage GitHub Actions CI/CD pipeline executing 264 automated tests, 8 multi-container smoke stages, and automated OCI container image packaging and publishing to GitHub Container Registry (GHCR).
+```
+
+---
+
+## 3. Metric & Source Mapping Reference Table
+
+| Resume Claim | Source Code Reference | Test / Benchmark Evidence | Quantifiable Impact |
+| :--- | :--- | :--- | :--- |
+| **PostgreSQL SKIP LOCKED Queue** | [JobClaimService.java#L85-L107](..\..\backend\src\main\java\com\queueforge\service\JobClaimService.java#L85-L107) | `JobClaimServiceIntegrationTest.java` (11 tests) | Eliminates row lock waiting across concurrent worker JVMs. |
+| **89.8% Quiet-Tenant Latency Cut** | [JobClaimService.java#L130-L277](..\..\backend\src\main\java\com\queueforge\service\JobClaimService.java#L130-L277) | [benchmark-results-fairshare.json](..\benchmark\benchmark-results-fairshare.json) | Quiet tenant p50 wait dropped from 11,868ms to 1,210ms under 1,000-job flood. |
+| **Transactional Outbox & Idempotency** | [OrderService.java](..\..\backend\src\main\java\com\queueforge\outbox\service\OrderService.java) & [PaymentReceiverService.java](..\..\simulated-payment-receiver\src\main\java\com\queueforge\receiver\service\PaymentReceiverService.java) | `TransactionalOutboxIntegrationTest.java` & `PaymentReceiverApplicationTests.java` | Zero dual-write loss; exact duplicate suppression on receiver. |
+| **Lease Fencing & Zombie Defense** | [JobClaimService.java#L358-L386](..\..\backend\src\main\java\com\queueforge\service\JobClaimService.java#L358-L386) | `ChaosLabFaultIntegrationTest.java` | 0 split-brain corruptions when expired worker resumes. |
+| **Automated Test Quality** | CI Pipeline `.github/workflows/ci.yml` | [GitHub Actions Run 44918650943](https://github.com/saipranav22-commits/queueforge/actions/runs/44918650943) | 264 automated tests + 8 smoke stages (100% green). |
