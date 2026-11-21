@@ -27,7 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "queueforge.worker.enabled=false",
         "queueforge.outbox.payment.client-type=DIRECT",
-        "queueforge.security.public-demo-mode=true"
+        "queueforge.security.public-demo-mode=true",
+        "spring.datasource.hikari.maximum-pool-size=3",
+        "spring.datasource.hikari.minimum-idle=1"
 })
 class AdminDemoModeSecurityTest {
 
@@ -45,7 +47,7 @@ class AdminDemoModeSecurityTest {
     void testAnonymousGetDlqSummaryAllowedInDemoMode() throws Exception {
         mockMvc.perform(get("/api/v1/admin/dlq"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
@@ -60,7 +62,7 @@ class AdminDemoModeSecurityTest {
     void testAnonymousGetOutboxEventsSummaryAllowedInDemoMode() throws Exception {
         mockMvc.perform(get("/api/v1/admin/outbox/events"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test

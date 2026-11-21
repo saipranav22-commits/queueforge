@@ -26,7 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "queueforge.worker.enabled=false",
         "queueforge.outbox.payment.client-type=DIRECT",
-        "queueforge.security.public-demo-mode=false"
+        "queueforge.security.public-demo-mode=false",
+        "spring.datasource.hikari.maximum-pool-size=3",
+        "spring.datasource.hikari.minimum-idle=1"
 })
 class AdminDefaultSecurityModeTest {
 
