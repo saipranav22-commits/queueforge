@@ -1,0 +1,25 @@
+# ==============================================================================
+# QueueForge V2 — GHCR Image-Based Production Override
+# Usage:
+#   docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml up -d --no-build
+# ==============================================================================
+name: queueforge-v2-prod
+
+services:
+  payment-receiver:
+    image: ${RECEIVER_IMAGE:-ghcr.io/saipranav22-commits/queueforge/payment-receiver:${IMAGE_TAG:-latest}}
+    build: !reset null
+
+  api-server:
+    image: ${BACKEND_IMAGE:-ghcr.io/saipranav22-commits/queueforge/backend:${IMAGE_TAG:-latest}}
+    build: !reset null
+
+  worker-1:
+    image: ${BACKEND_IMAGE:-ghcr.io/saipranav22-commits/queueforge/backend:${IMAGE_TAG:-latest}}
+
+  worker-2:
+    image: ${BACKEND_IMAGE:-ghcr.io/saipranav22-commits/queueforge/backend:${IMAGE_TAG:-latest}}
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/saipranav22-commits/queueforge/frontend:${IMAGE_TAG:-latest}}
+    build: !reset null
