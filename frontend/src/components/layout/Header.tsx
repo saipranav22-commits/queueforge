@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
   const sysStatus = getSystemStatus();
 
   return (
-    <header className="h-16 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between transition-colors z-20 select-none">
+    <header className="h-16 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between transition-colors z-20 select-none shadow-[0_4px_24px_rgba(11,11,24,0.6)]">
       {/* LEFT SECTION: Menu Toggle & Breadcrumbs */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         {onToggleMobileMenu && (
@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
         ) : (
           <button
             onClick={handleUnlockClick}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 min-h-[44px] min-w-[44px] text-xs font-semibold rounded-lg bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-base)] transition-all shadow-sm active:scale-95 cursor-pointer select-none"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 min-h-[44px] min-w-[44px] text-xs font-semibold rounded-lg bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-base)] transition-all shadow-[0_2px_12px_rgba(121,85,246,0.35)] hover:shadow-[0_4px_20px_rgba(121,85,246,0.5)] active:scale-95 cursor-pointer select-none"
             title="Unlock Administrator Console"
             aria-label="Unlock Administrator Console"
             data-testid="header-unlock-button"

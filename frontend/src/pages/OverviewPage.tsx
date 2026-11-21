@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Clock,
-  PlayCircle,
   CheckCircle2,
-  Flame,
   PlusCircle,
   ArrowRight,
   Cpu,
-  Layers,
   Activity,
   Scale,
   GitBranch,
   ShieldAlert,
   Radio,
-  Sliders,
   Sparkles,
 } from 'lucide-react';
 import {

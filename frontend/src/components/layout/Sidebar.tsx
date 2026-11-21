@@ -118,15 +118,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
     <aside className="w-64 h-full flex-shrink-0 border-r border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] flex flex-col justify-between select-none transition-colors">
       <div className="overflow-y-auto">
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-[var(--color-border-subtle)]">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-[var(--color-border-subtle)] bg-gradient-to-r from-[rgba(121,85,246,0.1)] via-transparent to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-interactive)] border border-[var(--color-border-interactive)] flex items-center justify-center shadow-sm">
-              <Shield className="w-4 h-4 text-[var(--color-text-primary)]" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7955F6] to-[#4546A8] flex items-center justify-center shadow-md shadow-[#7955F6]/20 border border-[rgba(255,255,255,0.15)]">
+              <Shield className="w-4 h-4 text-white" />
             </div>
             <div>
               <div className="text-sm font-bold tracking-tight text-[var(--color-text-primary)] flex items-center gap-1.5">
-                <span>QueueForge</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)] font-medium">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--color-text-primary)] to-[var(--color-accent)] font-extrabold">QueueForge</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[rgba(121,85,246,0.18)] text-[var(--color-accent)] border border-[rgba(167,139,250,0.3)] font-semibold">
                   V2
                 </span>
               </div>
@@ -148,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
         <div className="p-3 space-y-4">
           {sections.map((sec) => (
             <div key={sec.title} className="space-y-0.5">
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] font-mono opacity-80">
                 {sec.title}
               </div>
               {sec.items.map((item) => (
@@ -162,9 +162,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
                     }
                   }}
                   className={({ isActive }) =>
-                    `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-md transition-all duration-150 relative ${
+                    `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 relative ${
                       isActive
-                        ? 'bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] font-semibold border-l-2 border-[var(--color-accent)] pl-2.5 shadow-sm'
+                        ? 'bg-gradient-to-r from-[rgba(121,85,246,0.22)] via-[rgba(121,85,246,0.08)] to-transparent text-[var(--color-text-primary)] font-semibold border-l-2 border-[var(--qf-action-primary)] pl-2.5 shadow-sm'
                         : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)]/60'
                     }`
                   }
@@ -172,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
                   {({ isActive }) => (
                     <>
                       <div className="flex items-center gap-2.5">
-                        <item.icon className={`w-4 h-4 transition ${isActive ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]'}`} />
+                        <item.icon className={`w-4 h-4 transition ${isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]'}`} />
                         <span>{item.label}</span>
                       </div>
                       {item.count !== undefined && (
