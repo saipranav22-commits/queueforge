@@ -1,8 +1,10 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useScenario } from '../../context/ScenarioContext';
 import { useSystemHealth, useWorkerFleet } from '../../hooks/useQueueForgeData';
 import { Breadcrumbs } from '../ui/Breadcrumbs';
+import { ScenarioSelectorMenu } from '../common/ScenarioSelectorMenu';
 import {
   Lock,
   Unlock,
@@ -26,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { isAuthenticated, openUnlockModal, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isScenarioMode, activeScenario, scenarioHealth } = useScenario();
   const { data: health, isFetching, refetch } = useSystemHealth();
   const { data: workers } = useWorkerFleet();
 
@@ -35,19 +38,25 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   // Dynamic status evaluation
-  const dbUp = health?.dbStatus === 'UP';
-  const workerRunning = health?.workerStatus === 'RUNNING';
-  const hasStaleWorker = workers?.some((w) => {
-    if (!w.lastHeartbeat) return true;
-    const diff = (Date.now() - new Date(w.lastHeartbeat).getTime()) / 1000;
-    return diff > 15;
-  });
+  const effectiveHealth = isScenarioMode ? scenarioHealth : health;
+  const dbUp = isScenarioMode ? true : effectiveHealth?.dbStatus === 'UP';
+  const workerRunning = isScenarioMode ? true : effectiveHealth?.workerStatus === 'RUNNING';
+  const hasStaleWorker = isScenarioMode
+    ? false
+    : workers?.some((w) => {
+        if (!w.lastHeartbeat) return true;
+        const diff = (Date.now() - new Date(w.lastHeartbeat).getTime()) / 1000;
+        return diff > 15;
+      });
 
   const getSystemStatus = () => {
-    if (!health) return { label: 'CONNECTING', variant: 'muted' };
-    if (!dbUp) return { label: 'DB OFFLINE', variant: 'critical' };
-    if (!workerRunning || hasStaleWorker) return { label: 'DEGRADED', variant: 'warning' };
-    return { label: 'NOMINAL', variant: 'success' };
+    if (isScenarioMode && activeScenario) {
+      return { label: `SIM: ${activeScenario.badge}`, variant: 'warning' as const };
+    }
+    if (!health) return { label: 'CONNECTING', variant: 'muted' as const };
+    if (!dbUp) return { label: 'DB OFFLINE', variant: 'critical' as const };
+    if (!workerRunning || hasStaleWorker) return { label: 'DEGRADED', variant: 'warning' as const };
+    return { label: 'NOMINAL', variant: 'success' as const };
   };
 
   const sysStatus = getSystemStatus();
@@ -94,13 +103,16 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
           <span className="text-[var(--color-border-subtle)]">|</span>
           <span className="text-[var(--color-text-muted)]">
-            DB: <strong className={dbUp ? 'text-[var(--color-success)] font-semibold' : 'text-[var(--color-text-secondary)]'}>{health?.dbStatus || 'OFFLINE'}</strong>
+            DB: <strong className={dbUp ? 'text-[var(--color-success)] font-semibold' : 'text-[var(--color-text-secondary)]'}>{isScenarioMode ? 'SIMULATED (PG 16)' : health?.dbStatus || 'OFFLINE'}</strong>
           </span>
         </div>
       </div>
 
       {/* RIGHT SECTION: Operational Controls & Primary Auth Action */}
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {/* Scenario Explorer Selector */}
+        <ScenarioSelectorMenu />
+
         {/* Command Palette Trigger */}
         <button
           onClick={onOpenCommandPalette}

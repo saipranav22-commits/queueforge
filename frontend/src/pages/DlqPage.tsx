@@ -22,6 +22,7 @@ import {
   useDlqActions,
 } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
+import { useScenario } from '../context/ScenarioContext';
 import { Pagination } from '../components/common/Pagination';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { CopyableId } from '../components/ui/CopyableId';
@@ -53,6 +54,7 @@ export const DlqPage: React.FC = () => {
   });
 
   const { isAuthenticated, openUnlockModal } = useAuth();
+  const { isScenarioMode, activeScenarioId, scenarioDlqJobs, triggerSimulatedReplay } = useScenario();
   const { replayJob, discardJob, isReplaying, isDiscarding } = useDlqActions();
 
   // Selected job for slide-over drawer
@@ -71,13 +73,25 @@ export const DlqPage: React.FC = () => {
     setActionJobId(jobId);
     setActionType(action);
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isScenarioMode) {
       openUnlockModal();
     }
   };
 
   const handleConfirmAction = async () => {
     if (!actionJobId || !actionType) return;
+    if (isScenarioMode) {
+      if (actionType === 'replay') {
+        triggerSimulatedReplay(actionJobId);
+      }
+      setActionJobId(null);
+      setActionType(null);
+      if (inspectedJobId === actionJobId) {
+        setInspectedJobId(null);
+      }
+      return;
+    }
+
     try {
       if (actionType === 'replay') {
         await replayJob(actionJobId);
@@ -96,7 +110,17 @@ export const DlqPage: React.FC = () => {
     }
   };
 
-  const dlqContent = dlqData?.content;
+  const effectiveDlqJobs = isScenarioMode ? {
+    content: scenarioDlqJobs,
+    page: 0,
+    size: pageSize,
+    totalElements: scenarioDlqJobs.length,
+    totalPages: 1,
+    last: true,
+    first: true,
+  } : dlqData;
+
+  const dlqContent = effectiveDlqJobs?.content;
 
   // Client-side category filtering fallback if backend query returns unfiltered page
   const filteredJobs = useMemo(() => {

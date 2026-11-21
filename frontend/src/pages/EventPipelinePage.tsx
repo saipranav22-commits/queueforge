@@ -21,6 +21,7 @@ import {
   useOutboxEventDetail,
 } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
+import { useScenario } from '../context/ScenarioContext';
 import { MetricCard } from '../components/common/MetricCard';
 import { CopyableId } from '../components/ui/CopyableId';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
@@ -82,10 +83,14 @@ const PIPELINE_STAGES = [
 
 export const EventPipelinePage: React.FC = () => {
   const { isAuthenticated, openUnlockModal } = useAuth();
+  const { isScenarioMode, activeScenarioId, scenarioOutboxStats, scenarioOutboxEvents, triggerSimulatedDispatch } = useScenario();
   const dispatchMutation = useManualOutboxDispatch();
+
+  const isAuthOrScenario = isAuthenticated || isScenarioMode;
 
   // Outbox Stats
   const { data: stats, isLoading: statsLoading } = useOutboxStats(isAuthenticated);
+  const effectiveStats = isScenarioMode ? scenarioOutboxStats : stats;
 
   // Manual Dispatch State
   const [batchSize, setBatchSize] = useState<number>(25);
@@ -109,17 +114,37 @@ export const EventPipelinePage: React.FC = () => {
 
   // Outbox Events Data
   const { data: eventsData, isLoading: eventsLoading } = useOutboxEvents(filters, isAuthenticated);
+  const effectiveEvents = isScenarioMode ? {
+    content: scenarioOutboxEvents,
+    page: 0,
+    size: 15,
+    totalElements: scenarioOutboxEvents.length,
+    totalPages: 1,
+    last: true,
+    first: true,
+  } : eventsData;
 
   // Selected Event & Inspector Drawer
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const { data: eventDetail, isLoading: detailLoading } = useOutboxEventDetail(selectedEventId || undefined);
 
   const handleManualDispatchConfirm = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthOrScenario) {
       openUnlockModal();
       return;
     }
     setDispatchConfirmOpen(false);
+
+    if (isScenarioMode) {
+      const res = triggerSimulatedDispatch();
+      setDispatchResult({
+        dispatchedCount: res.dispatched,
+        batchSize,
+        leaseDurationSeconds: 30,
+      });
+      return;
+    }
+
     try {
       const res = await dispatchMutation.mutateAsync({ batchSize });
       setDispatchResult({
@@ -207,28 +232,28 @@ export const EventPipelinePage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Pending Events"
-          value={statsLoading ? '...' : (stats?.pendingCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.pendingCount ?? 0)}
           subtitle="Awaiting dispatcher pickup"
           icon={Clock}
           variant="amber"
         />
         <MetricCard
           title="In-Flight Dispatching"
-          value={statsLoading ? '...' : (stats?.dispatchingCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.dispatchingCount ?? 0)}
           subtitle="Currently leased by dispatchers"
           icon={Radio}
           variant="default"
         />
         <MetricCard
           title="Acknowledged Delivered"
-          value={statsLoading ? '...' : (stats?.deliveredCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.deliveredCount ?? 0)}
           subtitle="Verified payment receiver ack"
           icon={ShieldCheck}
           variant="emerald"
         />
         <MetricCard
           title="Dead Letter Events"
-          value={statsLoading ? '...' : (stats?.deadLetterCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.deadLetterCount ?? 0)}
           subtitle="Retry exhaustion / non-transient"
           icon={AlertTriangle}
           variant="rose"
@@ -364,9 +389,9 @@ export const EventPipelinePage: React.FC = () => {
                 Search, inspect delivery attempts, view error traces, and audit downstream receiver dispatches
               </p>
             </div>
-            {eventsData && (
+            {effectiveEvents && (
               <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                {eventsData.totalElements} events total
+                {effectiveEvents.totalElements} events total
               </span>
             )}
           </div>
@@ -435,7 +460,7 @@ export const EventPipelinePage: React.FC = () => {
                     Loading outbox events...
                   </td>
                 </tr>
-              ) : !isAuthenticated ? (
+              ) : !isAuthOrScenario ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-10 text-center space-y-3 font-sans">
                     <Lock className="w-6 h-6 text-[var(--color-accent)] mx-auto opacity-75" />
@@ -450,8 +475,8 @@ export const EventPipelinePage: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ) : eventsData && eventsData.content.length > 0 ? (
-                eventsData.content.map((evt: OutboxEventSummary) => {
+              ) : effectiveEvents && effectiveEvents.content.length > 0 ? (
+                effectiveEvents.content.map((evt: OutboxEventSummary) => {
                   const isSelected = selectedEventId === evt.id;
                   return (
                     <tr

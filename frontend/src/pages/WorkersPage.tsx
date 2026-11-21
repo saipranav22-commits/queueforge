@@ -12,27 +12,32 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useSystemHealth, useWorkerFleet } from '../hooks/useQueueForgeData';
+import { useScenario } from '../context/ScenarioContext';
 import { MetricCard } from '../components/common/MetricCard';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { formatDate, formatUptime } from '../lib/formatters';
 import type { WorkerInstance } from '../types/worker';
 
 export const WorkersPage: React.FC = () => {
+  const { isScenarioMode, activeScenarioId, scenarioWorkers, scenarioHealth } = useScenario();
   const { data: health, isLoading: healthLoading, refetch: refetchHealth } = useSystemHealth();
   const { data: fleet, isLoading: fleetLoading, refetch: refetchFleet, isFetching } = useWorkerFleet();
 
   const [selectedWorker, setSelectedWorker] = useState<WorkerInstance | null>(null);
+
+  const effectiveFleet = isScenarioMode ? scenarioWorkers : fleet;
+  const effectiveHealth = isScenarioMode ? scenarioHealth : health;
 
   const handleRefresh = () => {
     refetchHealth();
     refetchFleet();
   };
 
-  const onlineWorkers = fleet?.filter((w) => w.status === 'ONLINE').length ?? 0;
-  const staleWorkers = fleet?.filter((w) => w.status === 'STALE').length ?? 0;
-  const offlineWorkers = fleet?.filter((w) => w.status === 'OFFLINE').length ?? 0;
-  const totalConcurrency = fleet?.reduce((acc, w) => acc + w.concurrency, 0) ?? (health?.workerCapacity ?? 4);
-  const totalHeldLeases = fleet?.reduce((acc, w) => acc + w.heldLeasesCount, 0) ?? 0;
+  const onlineWorkers = effectiveFleet?.filter((w) => w.status === 'ONLINE').length ?? 0;
+  const staleWorkers = effectiveFleet?.filter((w) => w.status === 'STALE').length ?? 0;
+  const offlineWorkers = effectiveFleet?.filter((w) => w.status === 'OFFLINE').length ?? 0;
+  const totalConcurrency = effectiveFleet?.reduce((acc, w) => acc + w.concurrency, 0) ?? (effectiveHealth?.workerCapacity ?? 4);
+  const totalHeldLeases = effectiveFleet?.reduce((acc, w) => acc + w.heldLeasesCount, 0) ?? 0;
 
   return (
     <div className="space-y-6">
@@ -117,9 +122,9 @@ export const WorkersPage: React.FC = () => {
             <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[var(--color-amethyst)]" />
             <div>Querying worker instance heartbeats...</div>
           </div>
-        ) : fleet && fleet.length > 0 ? (
+        ) : effectiveFleet && effectiveFleet.length > 0 ? (
           <div className="divide-y divide-[var(--color-border-subtle)]">
-            {fleet.map((worker) => {
+            {effectiveFleet.map((worker) => {
               const isOnline = worker.status === 'ONLINE';
               const isStale = worker.status === 'STALE';
 

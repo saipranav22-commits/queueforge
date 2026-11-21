@@ -16,10 +16,10 @@ describe('SystemTopology', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('Interactive 7-Service Distributed Topology')).toBeInTheDocument();
-    expect(screen.getByText('ACID CLUSTER')).toBeInTheDocument();
+    expect(screen.getByText('Signature Distributed Topology & Boundary Canvas')).toBeInTheDocument();
+    expect(screen.getByText('7 CONTAINERS + 2 ENGINES')).toBeInTheDocument();
     expect(screen.getByText('CONTAINER INSPECTOR')).toBeInTheDocument();
     expect(screen.getByText('Job Ingestion & Admin Gateway')).toBeInTheDocument();
-    expect(screen.getByText('PORT BINDING & EXPOSURE')).toBeInTheDocument();
+    expect(screen.getByText('ZONE 1: EDGE & INGRESS')).toBeInTheDocument();
   });
 });
