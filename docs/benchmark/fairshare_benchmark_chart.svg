@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="100%" height="100%" style="background:#0b0f19; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; border-radius:12px; border:1px solid #1e293b;">
+  <defs>
+    <linearGradient id="gradFifo" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#f87171" />
+    </linearGradient>
+    <linearGradient id="gradDrr" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="gradNoisyFifo" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <linearGradient id="gradNoisyDrr" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#60a5fa" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title & Subtitle -->
+  <text x="40" y="45" font-size="20" font-weight="700" fill="#f8fafc">FairShare DRR vs FIFO: Noisy-Neighbor Benchmark</text>
+  <text x="40" y="70" font-size="13" fill="#94a3b8">Workload Profile 3: 1 Flood Tenant (1,000 jobs) vs 4 Quiet Tenants (20 jobs each) — 1,080 Total Jobs</text>
+
+  <!-- Metric Callout Badges -->
+  <rect x="580" y="25" width="280" height="58" rx="8" fill="#1e293b" stroke="#334155" />
+  <text x="595" y="48" font-size="11" font-weight="600" fill="#94a3b8" letter-spacing="0.5">QUIET-TENANT P50 LATENCY</text>
+  <text x="595" y="72" font-size="20" font-weight="800" fill="#10b981">89.8% REDUCTION</text>
+  <text x="765" y="71" font-size="12" fill="#64748b">(11.8s → 1.2s)</text>
+
+  <!-- Chart Grid -->
+  <line x1="220" y1="120" x2="840" y2="120" stroke="#1e293b" stroke-dasharray="4,4" />
+  <line x1="220" y1="180" x2="840" y2="180" stroke="#1e293b" stroke-dasharray="4,4" />
+  <line x1="220" y1="240" x2="840" y2="240" stroke="#1e293b" stroke-dasharray="4,4" />
+  <line x1="220" y1="300" x2="840" y2="300" stroke="#1e293b" stroke-dasharray="4,4" />
+  <line x1="220" y1="360" x2="840" y2="360" stroke="#334155" />
+
+  <!-- Y-Axis Labels -->
+  <text x="205" y="125" font-size="12" fill="#64748b" text-anchor="end">15,000 ms</text>
+  <text x="205" y="185" font-size="12" fill="#64748b" text-anchor="end">10,000 ms</text>
+  <text x="205" y="245" font-size="12" fill="#64748b" text-anchor="end">5,000 ms</text>
+  <text x="205" y="305" font-size="12" fill="#64748b" text-anchor="end">2,500 ms</text>
+  <text x="205" y="365" font-size="12" fill="#64748b" text-anchor="end">0 ms</text>
+
+  <!-- Scale: max 15000 ms = 240px height (360 - 120). 1 ms = 0.016 px -->
+  <!-- BAR 1: Quiet Tenant FIFO (11,868 ms) -> height = 189.9 px -> y = 360 - 190 = 170 -->
+  <rect x="260" y="170" width="75" height="190" rx="4" fill="url(#gradFifo)" />
+  <text x="297" y="160" font-size="12" font-weight="700" fill="#f87171" text-anchor="middle">11,868 ms</text>
+  <text x="297" y="380" font-size="11" font-weight="600" fill="#94a3b8" text-anchor="middle">FIFO / Priority</text>
+  <text x="297" y="395" font-size="10" fill="#64748b" text-anchor="middle">(Quiet Tenant B-E)</text>
+
+  <!-- BAR 2: Quiet Tenant DRR (1,210 ms) -> height = 19.4 px -> y = 360 - 19 = 341 -->
+  <rect x="360" y="341" width="75" height="19" rx="4" fill="url(#gradDrr)" />
+  <text x="397" y="330" font-size="12" font-weight="700" fill="#34d399" text-anchor="middle">1,210 ms</text>
+  <text x="397" y="380" font-size="11" font-weight="600" fill="#10b981" text-anchor="middle">FairShare DRR</text>
+  <text x="397" y="395" font-size="10" fill="#64748b" text-anchor="middle">(Quiet Tenant B-E)</text>
+
+  <!-- BAR 3: Flood Tenant FIFO (10,898 ms) -> height = 174.4 px -> y = 360 - 174 = 186 -->
+  <rect x="520" y="186" width="75" height="174" rx="4" fill="url(#gradNoisyFifo)" />
+  <text x="557" y="176" font-size="12" font-weight="600" fill="#cbd5e1" text-anchor="middle">10,898 ms</text>
+  <text x="557" y="380" font-size="11" font-weight="600" fill="#94a3b8" text-anchor="middle">FIFO / Priority</text>
+  <text x="557" y="395" font-size="10" fill="#64748b" text-anchor="middle">(Flood Tenant A)</text>
+
+  <!-- BAR 4: Flood Tenant DRR (13,700 ms) -> height = 219.2 px -> y = 360 - 219 = 141 -->
+  <rect x="620" y="141" width="75" height="219" rx="4" fill="url(#gradNoisyDrr)" />
+  <text x="657" y="131" font-size="12" font-weight="600" fill="#93c5fd" text-anchor="middle">13,700 ms</text>
+  <text x="657" y="380" font-size="11" font-weight="600" fill="#94a3b8" text-anchor="middle">FairShare DRR</text>
+  <text x="657" y="395" font-size="10" fill="#64748b" text-anchor="middle">(Flood Tenant A)</text>
+
+  <!-- Category Separators / Labels -->
+  <text x="347" y="420" font-size="13" font-weight="700" fill="#f8fafc" text-anchor="middle">QUIET TENANTS (Interactive)</text>
+  <text x="607" y="420" font-size="13" font-weight="700" fill="#94a3b8" text-anchor="middle">FLOOD TENANT (Batch Burst)</text>
+
+  <!-- Bottom Legend / Footnote -->
+  <rect x="40" y="442" width="820" height="26" rx="4" fill="#0f172a" />
+  <text x="50" y="459" font-size="11" fill="#64748b">Jain's Fairness under Contention: FIFO = 0.2329 | FairShare = 1.0000 (Perfect) • Throughput: 89.65 jobs/s (FIFO) vs 70.62 jobs/s (FairShare DRR) [~21% tradeoff]</text>
+</svg>
