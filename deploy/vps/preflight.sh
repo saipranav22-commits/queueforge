@@ -27,8 +27,8 @@ fi
 
 # 2. Verify Available Memory & Swap
 echo -n "[2/7] Checking system memory and swap... "
-TOTAL_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
-TOTAL_SWAP_MB=$(free -m | awk '/^Swap:/{print $2}')
+TOTAL_RAM_MB=$(free -m 2>/dev/null | awk '/^Mem:/{print $2}' || echo "0")
+TOTAL_SWAP_MB=$(free -m 2>/dev/null | awk '/^Swap:/{print $2}' || echo "0")
 if [[ $TOTAL_RAM_MB -ge 3500 ]]; then
     echo "OK (RAM: ${TOTAL_RAM_MB} MB, Swap: ${TOTAL_SWAP_MB} MB)"
 else
@@ -38,7 +38,7 @@ fi
 
 # 3. Verify Disk Space (Need >= 10 GB free)
 echo -n "[3/7] Checking available disk space... "
-FREE_DISK_GB=$(df -BG "${PROJECT_ROOT}" | awk 'NR==2 {gsub("G","",$4); print $4}')
+FREE_DISK_GB=$(df -BG "${PROJECT_ROOT}" 2>/dev/null | awk 'NR==2 {gsub("G","",$4); print $4}' || echo "0")
 if [[ $FREE_DISK_GB -ge 10 ]]; then
     echo "OK (${FREE_DISK_GB} GB available)"
 else
@@ -90,24 +90,33 @@ if [[ -f .env ]]; then
     fi
 fi
 
-# 6. Validate Compose Syntax (Zero Output on Success)
-echo -n "[6/7] Validating docker-compose.prod.v2.yml schema... "
-if docker compose -f docker-compose.prod.v2.yml config --quiet 2>/dev/null; then
-    echo "OK (Compose schema and variable interpolation valid)"
+# 6. Validate Compose Schemas (Both Base and GHCR Override)
+echo -n "[6/7] Validating Compose schemas... "
+if docker compose -f docker-compose.prod.v2.yml config --quiet 2>/dev/null && \
+   docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml config --quiet 2>/dev/null; then
+    echo "OK (docker-compose.prod.v2.yml and docker-compose.prod.ghcr.yml valid)"
 else
     echo "FAILED"
-    echo "  [ERROR] docker-compose.prod.v2.yml syntax or variable validation failed:"
+    echo "  [ERROR] Compose validation failed:"
     docker compose -f docker-compose.prod.v2.yml config --quiet || true
+    docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml config --quiet || true
     FAILED=1
 fi
 
 # 7. Check Loopback Port Availability (8088)
 echo -n "[7/7] Checking loopback port 8088 availability... "
-if ! ss -tuln 2>/dev/null | grep -q ':8088 '; then
+PORT_BOUND=false
+if command -v ss &>/dev/null; then
+    ss -tuln 2>/dev/null | grep -q ':8088 ' && PORT_BOUND=true || true
+elif command -v netstat &>/dev/null; then
+    netstat -tuln 2>/dev/null | grep -q ':8088 ' && PORT_BOUND=true || true
+fi
+
+if [[ "$PORT_BOUND" == "false" ]]; then
     echo "OK (Port 8088 is free)"
 else
     echo "WARNING"
-    echo "  [WARN] Port 8088 is already bound. Check existing services: ss -tuln | grep 8088"
+    echo "  [WARN] Port 8088 appears to be in use. Check: ss -tuln | grep 8088"
 fi
 
 echo "================================================================="

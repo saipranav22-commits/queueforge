@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# QueueForge V2 — Coordinated Dual-Database Backup Script
-# Performs atomic backups of sender-db and receiver-db with checksums & retention
+# QueueForge V2 — Sequential Dual-Database Backup Script
+# Performs sequential pg_dump exports of sender-db and receiver-db
+# ==============================================================================
+# ARCHITECTURAL NOTE ON CONSISTENCY:
+# Because sender-db and receiver-db are separate PostgreSQL instances, running
+# pg_dump on each sequentially produces two internally consistent snapshots,
+# but NOT an atomic cross-database distributed transaction snapshot.
+# QueueForge's transactional outbox pattern guarantees eventual consistency
+# via idempotent replay keys during recovery.
 # ==============================================================================
 set -euo pipefail
 
@@ -21,15 +28,16 @@ SENDER_BACKUP="${BACKUP_DIR}/sender_db_${TIMESTAMP}.sql.gz"
 RECEIVER_BACKUP="${BACKUP_DIR}/receiver_db_${TIMESTAMP}.sql.gz"
 
 # 1. Backup Sender Database (Jobs, Heartbeats, Outbox Events)
+# Use docker exec -i (WITHOUT -t) to prevent pseudo-TTY CRLF mangling of binary stream
 echo "[1/4] Exporting Primary Sender Database..."
-docker exec -t qf-prod-sender-db pg_dump -U queueforge_app --clean --if-exists queueforge | gzip -c > "${SENDER_BACKUP}"
+docker exec -i qf-prod-sender-db pg_dump -U queueforge_app --clean --if-exists queueforge | gzip -c > "${SENDER_BACKUP}"
 chmod 600 "${SENDER_BACKUP}"
 sha256sum "${SENDER_BACKUP}" > "${SENDER_BACKUP}.sha256"
 echo "  ✓ Sender backup created: $(du -h "${SENDER_BACKUP}" | cut -f1)"
 
 # 2. Backup Receiver Database (Charges, Idempotency Records)
 echo "[2/4] Exporting Payment Receiver Database..."
-docker exec -t qf-prod-receiver-db pg_dump -U queueforge_app --clean --if-exists queueforge_payment_receiver | gzip -c > "${RECEIVER_BACKUP}"
+docker exec -i qf-prod-receiver-db pg_dump -U queueforge_app --clean --if-exists queueforge_payment_receiver | gzip -c > "${RECEIVER_BACKUP}"
 chmod 600 "${RECEIVER_BACKUP}"
 sha256sum "${RECEIVER_BACKUP}" > "${RECEIVER_BACKUP}.sha256"
 echo "  ✓ Receiver backup created: $(du -h "${RECEIVER_BACKUP}" | cut -f1)"
@@ -46,5 +54,5 @@ find "${BACKUP_DIR}" -type f -name "*.sql.gz*" -mtime "+${RETENTION_DAYS}" -dele
 echo "  ✓ Backup retention policy enforced."
 
 echo "================================================================="
-echo " [SUCCESS] Dual-database backup complete."
+echo " [SUCCESS] Sequential dual-database backup complete."
 echo "================================================================="

@@ -1,0 +1,99 @@
+name: Publish QueueForge V2 Container Images to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: 'Publish container images to GitHub Container Registry (ghcr.io)'
+        required: true
+        type: boolean
+        default: false
+      image_tag:
+        description: 'Additional custom image tag (e.g. v2.0.0, rc1)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============================================================================
+  # Build and conditionally push multi-container images for QueueForge V2
+  # ============================================================================
+  build-and-push:
+    name: Build & Publish Container Images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - name: backend
+            context: ./backend
+            image: ghcr.io/${{ github.repository }}/backend
+          - name: payment-receiver
+            context: ./simulated-payment-receiver
+            image: ghcr.io/${{ github.repository }}/payment-receiver
+          - name: frontend
+            context: ./frontend
+            image: ghcr.io/${{ github.repository }}/frontend
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute Short Commit SHA
+        id: vars
+        run: |
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Extract Docker Metadata & OpenContainers Labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.component.image }}
+          tags: |
+            type=raw,value=${{ github.sha }}
+            type=raw,value=sha-${{ steps.vars.outputs.short_sha }}
+            type=raw,value=latest,enable=${{ inputs.push_images == true }}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ inputs.image_tag != '' }}
+          labels: |
+            org.opencontainers.image.title=QueueForge ${{ matrix.component.name }}
+            org.opencontainers.image.description=QueueForge V2 Multi-Tenant Control Plane - ${{ matrix.component.name }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=Apache-2.0
+
+      - name: Log in to GitHub Container Registry (ghcr.io)
+        if: ${{ inputs.push_images == true }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component.context }}
+          file: ${{ matrix.component.context }}/Dockerfile
+          platforms: linux/amd64
+          push: ${{ inputs.push_images == true }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output Image Digest and Verification Summary
+        run: |
+          echo "========================================================"
+          echo "Component:     ${{ matrix.component.name }}"
+          echo "Pushed:        ${{ inputs.push_images }}"
+          echo "Image Digest:  ${{ steps.build-push.outputs.digest }}"
+          echo "Tags Built:    ${{ steps.meta.outputs.tags }}"
+          echo "========================================================"

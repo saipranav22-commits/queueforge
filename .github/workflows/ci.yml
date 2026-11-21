@@ -2,9 +2,9 @@ name: QueueForge V2 CI
 
 on:
   push:
-    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui, feature/v2-public-demo-hardening ]
+    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui, feature/v2-public-demo-hardening, feature/v2-deployment-preparation ]
   pull_request:
-    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui, feature/v2-public-demo-hardening ]
+    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui, feature/v2-public-demo-hardening, feature/v2-deployment-preparation ]
   workflow_dispatch:
     inputs:
       run_destructive_chaos:
@@ -308,3 +308,53 @@ jobs:
         if: always()
         run: |
           docker compose -f docker-compose.v2.yml down -v
+
+  # ----------------------------------------------------------------------------
+  # 7. Production Deployment Pipeline & VPS Configuration Verification
+  # ----------------------------------------------------------------------------
+  deploy-config-verify:
+    name: Production Deployment Pipeline Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Validate Shell Scripts Syntax (bash -n)
+        run: |
+          for script in deploy/vps/*.sh; do
+            echo "Checking syntax: $script"
+            bash -n "$script"
+          done
+
+      - name: Validate Production Compose Schema with Dummy Secrets
+        env:
+          DB_PASSWORD: ci_dummy_production_db_password_1234
+          ADMIN_API_KEY: ci_dummy_admin_api_key_12345678901234567890123456789012
+          RECEIVER_SERVICE_KEY: ci_dummy_receiver_key_12345678901234567890123456789012
+          FRONTEND_PORT: 8088
+          IMAGE_TAG: latest
+        run: |
+          echo "Validating base docker-compose.prod.v2.yml..."
+          docker compose -f docker-compose.prod.v2.yml config --quiet
+          echo "Validating GHCR override docker-compose.prod.ghcr.yml..."
+          docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml config --quiet
+
+      - name: Verify Missing Required Secrets Fail Fast
+        run: |
+          echo "Verifying fail-fast validation when required secrets are missing..."
+          if docker compose -f docker-compose.prod.v2.yml config --quiet 2>/dev/null; then
+            echo "ERROR: Compose unexpectedly succeeded without required secrets!"
+            exit 1
+          else
+            echo "SUCCESS: Compose correctly rejected missing production secrets."
+          fi
+
+      - name: Audit Template Environment File
+        run: |
+          test -f .env.production.example
+          grep -q "DB_PASSWORD=" .env.production.example
+          grep -q "ADMIN_API_KEY=" .env.production.example
+          grep -q "RECEIVER_SERVICE_KEY=" .env.production.example
+          # Ensure no real secrets are embedded
+          ! grep -E "DB_PASSWORD=[a-zA-Z0-9]{16,}" .env.production.example || exit 1

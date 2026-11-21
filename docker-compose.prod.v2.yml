@@ -101,7 +101,7 @@ services:
     build:
       context: ./simulated-payment-receiver
       dockerfile: Dockerfile
-    image: queueforge-payment-receiver:latest
+    image: ${RECEIVER_IMAGE:-queueforge-payment-receiver:latest}
     container_name: qf-prod-payment-receiver
     restart: unless-stopped
     environment:
@@ -144,7 +144,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: queueforge-backend:latest
+    image: ${BACKEND_IMAGE:-queueforge-backend:latest}
     container_name: qf-prod-api-server
     restart: unless-stopped
     environment:
@@ -191,7 +191,7 @@ services:
   # 5. Worker Instance 1 (Job Execution & Outbox Dispatcher)
   # ----------------------------------------------------------------------------
   worker-1:
-    image: queueforge-backend:latest
+    image: ${BACKEND_IMAGE:-queueforge-backend:latest}
     container_name: qf-prod-worker-1
     restart: unless-stopped
     environment:
@@ -246,7 +246,7 @@ services:
   # 6. Worker Instance 2 (Concurrent Claims, Failover & Fencing Verification)
   # ----------------------------------------------------------------------------
   worker-2:
-    image: queueforge-backend:latest
+    image: ${BACKEND_IMAGE:-queueforge-backend:latest}
     container_name: qf-prod-worker-2
     restart: unless-stopped
     environment:
@@ -304,7 +304,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: queueforge-frontend:latest
+    image: ${FRONTEND_IMAGE:-queueforge-frontend:latest}
     container_name: qf-prod-frontend
     restart: unless-stopped
     ports:
