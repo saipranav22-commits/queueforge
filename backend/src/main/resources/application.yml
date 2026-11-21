@@ -1,6 +1,7 @@
 server:
   port: ${SERVER_PORT:8085}
   shutdown: graceful
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -83,6 +84,10 @@ logging:
 queueforge:
   mode: ${QUEUEFORGE_MODE:COMBINED}
   instance-id: ${QUEUEFORGE_INSTANCE_ID:}
+  security:
+    allow-anonymous-default: ${QUEUEFORGE_ALLOW_ANONYMOUS_DEFAULT:true}
+    enforce-strong-admin-key: ${QUEUEFORGE_ENFORCE_STRONG_ADMIN_KEY:false}
+    public-demo-mode: ${QUEUEFORGE_PUBLIC_DEMO_MODE:false}
   worker:
     enabled: ${WORKER_ENABLED:true}
     concurrency: ${WORKER_CONCURRENCY:4}

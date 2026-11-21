@@ -1,7 +1,11 @@
 # Production configuration profile for QueueForge Backend
+server:
+  forward-headers-strategy: framework
+
 queueforge:
   security:
     allow-anonymous-default: false
     enforce-strong-admin-key: true
+    public-demo-mode: ${QUEUEFORGE_PUBLIC_DEMO_MODE:false}
   worker:
     chaos-payloads-enabled: false

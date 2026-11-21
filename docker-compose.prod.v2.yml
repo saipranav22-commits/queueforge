@@ -1,0 +1,333 @@
+# ==============================================================================
+# QueueForge V2 Production Compose Topology (Obsidian Pulse V2)
+# Hardened for Low-Cost VPS Hosting (4 GB RAM, 2 vCPU, 40+ GB SSD/NVMe)
+# ==============================================================================
+# Security & Operational Guarantees:
+# 1. Zero external database port exposure (all DB ports confined to bridge networks).
+# 2. Strict required environment variables for DB_PASSWORD, ADMIN_API_KEY, RECEIVER_SERVICE_KEY.
+# 3. Aggregated container memory bounded to ~2.3 GB (leaves 1.7 GB headroom for OS/Docker).
+# 4. JSON-file logging limits (10MB max, 3 files) prevent unbounded disk consumption.
+# 5. Reverse proxy binding: Frontend binds only to 127.0.0.1:8088 for upstream TLS termination (Caddy/Nginx).
+# ==============================================================================
+name: queueforge-v2-prod
+
+networks:
+  qf-prod-backend-net:
+    driver: bridge
+    internal: false
+  qf-prod-receiver-net:
+    driver: bridge
+    internal: false
+  qf-prod-frontend-net:
+    driver: bridge
+
+volumes:
+  qf-prod-sender-data:
+    driver: local
+  qf-prod-receiver-data:
+    driver: local
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Primary Sender PostgreSQL (Durable Queuing & Outbox Events)
+  # ----------------------------------------------------------------------------
+  sender-db:
+    image: postgres:16.8-alpine
+    container_name: qf-prod-sender-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-queueforge}
+      POSTGRES_USER: ${DB_USERNAME:-queueforge_app}
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?FATAL_DB_PASSWORD must be configured in production environment}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - qf-prod-sender-data:/var/lib/postgresql/data
+    networks:
+      - qf-prod-backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-queueforge_app} -d ${DB_NAME:-queueforge}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 384M
+
+  # ----------------------------------------------------------------------------
+  # 2. Receiver PostgreSQL (Idempotent Payment Inbox & Ledger)
+  # ----------------------------------------------------------------------------
+  receiver-db:
+    image: postgres:16.8-alpine
+    container_name: qf-prod-receiver-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${RECEIVER_DB_NAME:-queueforge_payment_receiver}
+      POSTGRES_USER: ${DB_USERNAME:-queueforge_app}
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?FATAL_DB_PASSWORD must be configured in production environment}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - qf-prod-receiver-data:/var/lib/postgresql/data
+    networks:
+      - qf-prod-receiver-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-queueforge_app} -d ${RECEIVER_DB_NAME:-queueforge_payment_receiver}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 3. Simulated Payment Receiver Service (Independent JVM)
+  # ----------------------------------------------------------------------------
+  payment-receiver:
+    build:
+      context: ./simulated-payment-receiver
+      dockerfile: Dockerfile
+    image: queueforge-payment-receiver:latest
+    container_name: qf-prod-payment-receiver
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8098
+      DB_HOST: receiver-db
+      DB_PORT: 5432
+      DB_NAME: ${RECEIVER_DB_NAME:-queueforge_payment_receiver}
+      DB_USERNAME: ${DB_USERNAME:-queueforge_app}
+      DB_PASSWORD: "${DB_PASSWORD:?FATAL_DB_PASSWORD must be configured}"
+      RECEIVER_SERVICE_AUTH_ENABLED: "true"
+      RECEIVER_SERVICE_KEY: "${RECEIVER_SERVICE_KEY:?FATAL_RECEIVER_SERVICE_KEY must be configured}"
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_OPTS: "-XX:+UseSerialGC -Xmx160m -Xms32m -Xss256k"
+    networks:
+      - qf-prod-receiver-net
+    depends_on:
+      receiver-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8098/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 25s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 4. API Server Node (Handles Ingestion, Mission Control API, Dual-Mode Auth)
+  # ----------------------------------------------------------------------------
+  api-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: queueforge-backend:latest
+    container_name: qf-prod-api-server
+    restart: unless-stopped
+    environment:
+      QUEUEFORGE_MODE: API_ONLY
+      QUEUEFORGE_INSTANCE_ID: api-prod-01
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8085
+      DB_HOST: sender-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-queueforge}
+      DB_USERNAME: ${DB_USERNAME:-queueforge_app}
+      DB_PASSWORD: "${DB_PASSWORD:?FATAL_DB_PASSWORD must be configured}"
+      ADMIN_API_KEY: "${ADMIN_API_KEY:?FATAL_ADMIN_API_KEY must be configured}"
+      QUEUEFORGE_PUBLIC_DEMO_MODE: ${QUEUEFORGE_PUBLIC_DEMO_MODE:-false}
+      QUEUEFORGE_CORS_ALLOWED_ORIGINS: ${QUEUEFORGE_CORS_ALLOWED_ORIGINS:-https://queueforge.example.com}
+      WORKER_ENABLED: "false"
+      JAVA_OPTS: "-XX:+UseSerialGC -Xmx280m -Xms64m -Xss256k"
+    networks:
+      qf-prod-backend-net:
+      qf-prod-frontend-net:
+        aliases:
+          - backend
+    depends_on:
+      sender-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8085/actuator/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # ----------------------------------------------------------------------------
+  # 5. Worker Instance 1 (Job Execution & Outbox Dispatcher)
+  # ----------------------------------------------------------------------------
+  worker-1:
+    image: queueforge-backend:latest
+    container_name: qf-prod-worker-1
+    restart: unless-stopped
+    environment:
+      QUEUEFORGE_MODE: WORKER_ONLY
+      QUEUEFORGE_INSTANCE_ID: worker-prod-01
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8086
+      DB_HOST: sender-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-queueforge}
+      DB_USERNAME: ${DB_USERNAME:-queueforge_app}
+      DB_PASSWORD: "${DB_PASSWORD:?FATAL_DB_PASSWORD must be configured}"
+      ADMIN_API_KEY: "${ADMIN_API_KEY:?FATAL_ADMIN_API_KEY must be configured}"
+      WORKER_ENABLED: "true"
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-250}
+      WORKER_LEASE_DURATION_SECONDS: ${WORKER_LEASE_DURATION_SECONDS:-30}
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-5}
+      WORKER_RECOVERY_POLL_INTERVAL_MS: ${WORKER_RECOVERY_POLL_INTERVAL_MS:-5000}
+      QUEUEFORGE_OUTBOX_DISPATCHER_ENABLED: "true"
+      QUEUEFORGE_OUTBOX_PAYMENT_URL: "http://payment-receiver:8098/api/v1/payments/charges"
+      QUEUEFORGE_OUTBOX_PAYMENT_SERVICE_KEY: "${RECEIVER_SERVICE_KEY:?FATAL_RECEIVER_SERVICE_KEY must be configured}"
+      JAVA_OPTS: "-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k"
+    networks:
+      - qf-prod-backend-net
+      - qf-prod-receiver-net
+    depends_on:
+      sender-db:
+        condition: service_healthy
+      api-server:
+        condition: service_healthy
+      payment-receiver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8086/actuator/health/liveness || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.8"
+          memory: 384M
+
+  # ----------------------------------------------------------------------------
+  # 6. Worker Instance 2 (Concurrent Claims, Failover & Fencing Verification)
+  # ----------------------------------------------------------------------------
+  worker-2:
+    image: queueforge-backend:latest
+    container_name: qf-prod-worker-2
+    restart: unless-stopped
+    environment:
+      QUEUEFORGE_MODE: WORKER_ONLY
+      QUEUEFORGE_INSTANCE_ID: worker-prod-02
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8087
+      DB_HOST: sender-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-queueforge}
+      DB_USERNAME: ${DB_USERNAME:-queueforge_app}
+      DB_PASSWORD: "${DB_PASSWORD:?FATAL_DB_PASSWORD must be configured}"
+      ADMIN_API_KEY: "${ADMIN_API_KEY:?FATAL_ADMIN_API_KEY must be configured}"
+      WORKER_ENABLED: "true"
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-250}
+      WORKER_LEASE_DURATION_SECONDS: ${WORKER_LEASE_DURATION_SECONDS:-30}
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-5}
+      WORKER_RECOVERY_POLL_INTERVAL_MS: ${WORKER_RECOVERY_POLL_INTERVAL_MS:-5000}
+      QUEUEFORGE_OUTBOX_DISPATCHER_ENABLED: "true"
+      QUEUEFORGE_OUTBOX_PAYMENT_URL: "http://payment-receiver:8098/api/v1/payments/charges"
+      QUEUEFORGE_OUTBOX_PAYMENT_SERVICE_KEY: "${RECEIVER_SERVICE_KEY:?FATAL_RECEIVER_SERVICE_KEY must be configured}"
+      JAVA_OPTS: "-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k"
+    networks:
+      - qf-prod-backend-net
+      - qf-prod-receiver-net
+    depends_on:
+      sender-db:
+        condition: service_healthy
+      api-server:
+        condition: service_healthy
+      payment-receiver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8087/actuator/health/liveness || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.8"
+          memory: 384M
+
+  # ----------------------------------------------------------------------------
+  # 7. Frontend Operations Console (Nginx Reverse Proxy to api-server)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: queueforge-frontend:latest
+    container_name: qf-prod-frontend
+    restart: unless-stopped
+    ports:
+      # Bound strictly to localhost so an outer TLS reverse proxy (Caddy/Nginx) handles SSL
+      - "127.0.0.1:${FRONTEND_PORT:-8088}:80"
+    networks:
+      - qf-prod-frontend-net
+    depends_on:
+      api-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M

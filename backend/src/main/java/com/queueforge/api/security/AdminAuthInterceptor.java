@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.queueforge.api.controller.AuthController;
 import com.queueforge.api.dto.ErrorResponse;
 import com.queueforge.config.AdminProperties;
+import com.queueforge.config.TenantSecurityProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -34,16 +36,39 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     public static final String CSRF_HEADER = "X-CSRF-Token";
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
 
+    /**
+     * Strict explicit allowlist of read-only endpoints permitted in Public Demo Mode.
+     * Nested detail routes (/dlq/{jobId}, /outbox/events/{id}, /tenants/{id}) are STRICTLY EXCLUDED
+     * to protect raw job payloads, internal stack traces, payment details, and API keys.
+     */
+    public static final Set<String> DEMO_ALLOWED_EXACT_PATHS = Set.of(
+            "/api/v1/admin/dlq",
+            "/api/v1/admin/outbox/stats",
+            "/api/v1/admin/outbox/events",
+            "/api/v1/admin/tenants",
+            "/api/v1/admin/tenants/scheduler-config"
+    );
+
     private final AdminProperties adminProperties;
     private final AuthSessionService sessionService;
     private final ObjectMapper objectMapper;
+    private final TenantSecurityProperties tenantSecurityProperties;
 
     public AdminAuthInterceptor(AdminProperties adminProperties,
                                 AuthSessionService sessionService,
                                 ObjectMapper objectMapper) {
+        this(adminProperties, sessionService, objectMapper, null);
+    }
+
+    @Autowired
+    public AdminAuthInterceptor(AdminProperties adminProperties,
+                                AuthSessionService sessionService,
+                                ObjectMapper objectMapper,
+                                @Autowired(required = false) TenantSecurityProperties tenantSecurityProperties) {
         this.adminProperties = adminProperties;
         this.sessionService = sessionService;
         this.objectMapper = objectMapper;
+        this.tenantSecurityProperties = tenantSecurityProperties;
     }
 
     @Override
@@ -81,6 +106,26 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
                 }
 
                 return true;
+            }
+        }
+
+        // 4. Public Demo Mode: Allow read-only GET requests strictly on safe, allowlisted summary endpoints
+        if (tenantSecurityProperties != null && tenantSecurityProperties.isPublicDemoMode()) {
+            String method = request.getMethod().toUpperCase();
+            String methodOverride = request.getHeader("X-HTTP-Method-Override");
+            boolean hasOverride = methodOverride != null && !methodOverride.trim().equalsIgnoreCase("GET");
+            boolean hasParamOverride = request.getParameter("_method") != null;
+
+            if ("GET".equals(method) && !hasOverride && !hasParamOverride) {
+                String uri = request.getRequestURI();
+                String normalizedUri = (uri != null && uri.length() > 1 && uri.endsWith("/"))
+                        ? uri.substring(0, uri.length() - 1)
+                        : uri;
+
+                if (DEMO_ALLOWED_EXACT_PATHS.contains(normalizedUri)) {
+                    log.debug("Permitting anonymous read access under public demo mode: {} {}", method, normalizedUri);
+                    return true;
+                }
             }
         }
 
