@@ -36,6 +36,19 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     public static final String CSRF_HEADER = "X-CSRF-Token";
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
 
+    /**
+     * Strict explicit allowlist of read-only endpoints permitted in Public Demo Mode.
+     * Nested detail routes (/dlq/{jobId}, /outbox/events/{id}, /tenants/{id}) are STRICTLY EXCLUDED
+     * to protect raw job payloads, internal stack traces, payment details, and API keys.
+     */
+    public static final Set<String> DEMO_ALLOWED_EXACT_PATHS = Set.of(
+            "/api/v1/admin/dlq",
+            "/api/v1/admin/outbox/stats",
+            "/api/v1/admin/outbox/events",
+            "/api/v1/admin/tenants",
+            "/api/v1/admin/tenants/scheduler-config"
+    );
+
     private final AdminProperties adminProperties;
     private final AuthSessionService sessionService;
     private final ObjectMapper objectMapper;
@@ -96,14 +109,21 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             }
         }
 
-        // 4. Public Demo Mode: Allow read-only GET requests on allowlisted monitoring endpoints
+        // 4. Public Demo Mode: Allow read-only GET requests strictly on safe, allowlisted summary endpoints
         if (tenantSecurityProperties != null && tenantSecurityProperties.isPublicDemoMode()) {
-            if ("GET".equalsIgnoreCase(request.getMethod())) {
+            String method = request.getMethod().toUpperCase();
+            String methodOverride = request.getHeader("X-HTTP-Method-Override");
+            boolean hasOverride = methodOverride != null && !methodOverride.trim().equalsIgnoreCase("GET");
+            boolean hasParamOverride = request.getParameter("_method") != null;
+
+            if ("GET".equals(method) && !hasOverride && !hasParamOverride) {
                 String uri = request.getRequestURI();
-                if (uri.startsWith("/api/v1/admin/dlq") ||
-                    uri.startsWith("/api/v1/admin/outbox") ||
-                    uri.startsWith("/api/v1/admin/tenants")) {
-                    log.debug("Permitting anonymous read access under public demo mode: {} {}", request.getMethod(), uri);
+                String normalizedUri = (uri != null && uri.length() > 1 && uri.endsWith("/"))
+                        ? uri.substring(0, uri.length() - 1)
+                        : uri;
+
+                if (DEMO_ALLOWED_EXACT_PATHS.contains(normalizedUri)) {
+                    log.debug("Permitting anonymous read access under public demo mode: {} {}", method, normalizedUri);
                     return true;
                 }
             }

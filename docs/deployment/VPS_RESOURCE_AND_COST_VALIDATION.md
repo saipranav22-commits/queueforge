@@ -9,29 +9,32 @@
 
 ## 1. Executive Summary & Sizing Objectives
 
-To present QueueForge V2 as an active, live demonstration for recruiters and engineering leads without incurring prohibitive cloud expenses, we evaluated the complete hardware footprint and billing realities across major cloud infrastructure providers.
+To present QueueForge V2 as an active demonstration for recruiters and engineering leads without incurring prohibitive cloud expenses, we evaluated the hardware footprint and billing realities across major cloud infrastructure providers.
+
+> [!IMPORTANT]
+> **Measurement Status**: All resident memory (RSS) figures in this document represent **configured deployment caps and theoretical estimates derived from JVM heap flags and DB buffer parameters**. They have **NOT yet been measured on live hosted Linux hardware under synthetic load**. A 4 GB VPS is therefore designated as a **Candidate Host Specification** pending hosted verification.
 
 Key findings:
-1. **Aggregated Memory Limits**: The 7-container topology is hard-capped at **2,304 MB (~2.3 GB)**, operating with a typical active resident memory set of **~1,250 MB (~1.25 GB)**. This leaves **~1.7 GB** of unallocated RAM on a 4 GB VPS for OS kernel, Docker engine, page cache, and SSH.
-2. **The Build-Time Memory Hazard**: Running `docker compose build` directly on a 4 GB VPS will exhaust physical RAM due to simultaneous Maven compilation and Vite bundling. Images should be pre-built in CI or provisioned with a 2 GB swapfile.
-3. **The "Stopped Instance" Billing Trap**: Cloud providers (Hetzner, DigitalOcean, AWS) continue billing for stopped instances because NVMe storage and IPv4 addresses remain reserved. True zero-cost pause requires server destruction or Git-based ephemeral rebuilds.
+1. **Aggregated Container Deployment Limits**: The 7-container topology is hard-capped at **2,304 MB (~2.3 GB)**, with an estimated active resident memory set of **~1,250 MB (~1.25 GB)**. On a 4 GB VPS, this theoretically provides **~1.7 GB** of unallocated RAM for OS kernel, Docker daemon, page cache, and SSH.
+2. **The Build-Time Memory Hazard**: Running `docker compose build` directly on a 4 GB VPS will exhaust physical RAM due to simultaneous Maven compilation and Vite bundling. Images must be pre-built in CI or provisioned with a 3 GB swapfile.
+3. **The "Stopped Instance" Billing Trap**: Cloud providers (Hetzner, DigitalOcean, AWS) continue billing for stopped instances because NVMe storage, RAM allocation, and IPv4 addresses remain reserved. True zero-cost pause requires server destruction or Git-based ephemeral rebuilds.
 
 ---
 
-## 2. Granular Memory Allocation & Runtime Footprint
+## 2. Granular Memory Allocation & Deployment Caps (Theoretical vs Limits)
 
-The following table details the runtime memory consumption vs container deploy limits in `docker-compose.prod.v2.yml`:
+The following table details the estimated runtime memory consumption vs container deploy limits configured in `docker-compose.prod.v2.yml`:
 
-| Service Container | Base Technology | JVM / DB Configuration | Typical Resident Memory (RSS) | Docker Memory Limit | Safety Headroom |
+| Service Container | Base Technology | JVM / DB Configuration | Estimated Resident Memory (Unmeasured) | Docker Memory Limit | Safety Headroom |
 |:---|:---|:---|:---|:---|:---|
-| **`sender-db`** | PostgreSQL 16.8 Alpine | `shared_buffers=64MB, work_mem=4MB` | ~140 MB | **384 MB** | +244 MB |
-| **`receiver-db`** | PostgreSQL 16.8 Alpine | `shared_buffers=64MB, work_mem=4MB` | ~95 MB | **256 MB** | +161 MB |
-| **`payment-receiver`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx160m -Xms32m -Xss256k` | ~175 MB | **256 MB** | +81 MB |
-| **`api-server`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx280m -Xms64m -Xss256k` | ~310 MB | **512 MB** | +202 MB |
-| **`worker-1`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k` | ~235 MB | **384 MB** | +149 MB |
-| **`worker-2`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k` | ~235 MB | **384 MB** | +149 MB |
-| **`frontend`** | Nginx 1.27 Alpine | Static SPA assets + reverse proxy worker | ~25 MB | **128 MB** | +103 MB |
-| **Total Stack** | | | **~1,215 MB (~1.2 GB)** | **2,304 MB (~2.3 GB)** | **~1.7 GB (to 4GB Host)** |
+| **`sender-db`** | PostgreSQL 16.8 Alpine | `shared_buffers=64MB, work_mem=4MB` | ~140 MB (est.) | **384 MB** | +244 MB |
+| **`receiver-db`** | PostgreSQL 16.8 Alpine | `shared_buffers=64MB, work_mem=4MB` | ~95 MB (est.) | **256 MB** | +161 MB |
+| **`payment-receiver`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx160m -Xms32m -Xss256k` | ~175 MB (est.) | **256 MB** | +81 MB |
+| **`api-server`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx280m -Xms64m -Xss256k` | ~310 MB (est.) | **512 MB** | +202 MB |
+| **`worker-1`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k` | ~235 MB (est.) | **384 MB** | +149 MB |
+| **`worker-2`** | Temurin 21 Alpine | `-XX:+UseSerialGC -Xmx220m -Xms64m -Xss256k` | ~235 MB (est.) | **384 MB** | +149 MB |
+| **`frontend`** | Nginx 1.27 Alpine | Static SPA assets + reverse proxy worker | ~25 MB (est.) | **128 MB** | +103 MB |
+| **Total Stack** | | | **~1,215 MB (~1.2 GB est.)** | **2,304 MB (~2.3 GB)** | **~1.7 GB (to 4GB Host)** |
 
 ```mermaid
 pie title 4 GB VPS Memory Distribution at Peak Load (MB)
@@ -85,13 +88,22 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 For a portfolio demonstration running 24/7 or on-demand, hosting costs were benchmarked across leading cloud providers:
 
-| Cloud Provider | Plan / Tier | vCPU | RAM | Storage | Bandwidth | Monthly Cost | Cost / Hour |
+| Cloud Provider | Plan / Tier | vCPU | RAM | Storage | Bandwidth | Monthly Cost (Excl. VAT) | Cost / Hour |
 |:---|:---|:---|:---|:---|:---|:---|:---|
-| **Hetzner Cloud** | **CX23** (Falkenstein/Nuremberg) | 2 vCPU (AMD) | 4 GB | 40 GB NVMe | 20 TB | **€4.35 (~$4.75)** | **~$0.007** |
-| **Hetzner Cloud** | **CX22** (Budget Tier) | 2 vCPU (Intel) | 4 GB | 40 GB NVMe | 20 TB | **€3.79 (~$4.15)** | **~$0.006** |
+| **Hetzner Cloud** | **CX23** (AMD EPYC, Falkenstein/Nuremberg) | 2 vCPU | 4 GB | 40 GB NVMe | 20 TB | **€4.35 (~$4.75)** (+€0.60 for IPv4 if applicable) | **~$0.007** |
+| **Hetzner Cloud** | **CX22** (Intel Xeon) | 2 vCPU | 4 GB | 40 GB NVMe | 20 TB | **€3.79 (~$4.15)** (+€0.60 for IPv4 if applicable) | **~$0.006** |
 | **DigitalOcean** | Basic Droplet | 2 vCPU | 4 GB | 80 GB SSD | 4 TB | **$24.00** | **~$0.036** |
 | **Linode / Akamai** | Shared Linode | 2 vCPU | 4 GB | 80 GB SSD | 4 TB | **$24.00** | **~$0.036** |
 | **AWS EC2** | `t4g.medium` (Graviton ARM) | 2 vCPU | 4 GB | EBS (gp3 40GB) | 100 GB free | **~$28.50** | **~$0.040** |
+
+### 4.1 Hetzner Line-Item Billing Breakdown
+Official Hetzner Cloud pricing (dated late 2026 / current catalog):
+- **Base Server (CX23)**: €4.35 / month (€0.007 / hour) excl. VAT (€5.18 incl. 19% VAT).
+- **Primary IPv4 Address**: €0.60 / month excl. VAT (€0.71 incl. VAT). Note: IPv6-only servers omit this charge, but public web demos generally require an IPv4 address for global accessibility.
+- **Automated Daily Backups**: +20% of base server price (~€0.87 / month).
+- **Manual Snapshots**: €0.054 / GB / month.
+- **Traffic**: 20 TB included per month; excess traffic billed at €1.19 / TB.
+- **Billing Cadence**: Billed by the minute until the monthly price cap is reached.
 
 **Recommendation**: **Hetzner CX23** offers the highest performance-to-cost ratio ($4.75/month for 4 GB RAM and fast NVMe storage), costing less than 1 hour of typical enterprise developer time.
 

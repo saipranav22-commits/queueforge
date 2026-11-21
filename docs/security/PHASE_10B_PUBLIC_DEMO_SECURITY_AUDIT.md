@@ -92,37 +92,52 @@ flowchart TD
 - `GET /api/v1/system/workers` (Fleet status, heartbeat ages, registered hostnames)
 - `GET /api/v1/jobs` (Job overview listings)
 - `GET /api/v1/jobs/{jobId}/detail` (Job parameters masked: `_masked: true`, worker ID `[PROTECTED]`)
-- `GET /api/v1/admin/dlq` (Dead-letter queue inspection)
-- `GET /api/v1/admin/outbox/status` (Outbox backlog and processing counters)
-- `GET /api/v1/admin/outbox/events` (Outbox event inspection)
-- `GET /api/v1/admin/tenants` (FairShare weights and concurrency quotas)
+- `GET /api/v1/admin/dlq` (Dead-letter queue summary listing only; items array contains no payloads or stack traces)
+- `GET /api/v1/admin/outbox/stats` (Outbox backlog and processing counters)
+- `GET /api/v1/admin/outbox/events` (Outbox event summary listing only; contains no raw payload)
+- `GET /api/v1/admin/tenants` (FairShare summary list; weights and concurrency quotas, no API keys)
+- `GET /api/v1/admin/tenants/scheduler-config` (FairShare scheduler quantum and active tenant count)
 
 ### 4.2 Strictly Guarded Endpoints (Always Require Admin Authentication)
+- `GET /api/v1/admin/dlq/{jobId}` -> **401 Unauthorized** (Protects raw job payload and internal error stack traces)
+- `GET /api/v1/admin/outbox/events/{id}` -> **401 Unauthorized** (Protects raw payment charge payloads)
+- `GET /api/v1/admin/tenants/{id}` -> **401 Unauthorized** (Protects tenant API key details)
 - `POST /api/v1/admin/dlq/replay` -> **401 Unauthorized**
-- `POST /api/v1/admin/dlq/purge` -> **401 Unauthorized**
+- `POST /api/v1/admin/dlq/{jobId}/replay` -> **401 Unauthorized**
+- `POST /api/v1/admin/dlq/{jobId}/discard` -> **401 Unauthorized**
+- `DELETE /api/v1/admin/dlq/{jobId}/discard` -> **401 Unauthorized**
 - `POST /api/v1/admin/outbox/dispatch` -> **401 Unauthorized**
-- `POST /api/v1/admin/outbox/cleanup` -> **401 Unauthorized**
 - `POST /api/v1/admin/tenants` -> **401 Unauthorized**
-- `DELETE /api/v1/admin/tenants/{id}` -> **401 Unauthorized**
-- `PUT /api/v1/admin/tenants/{id}/weight` -> **401 Unauthorized**
-- Unmasked job payload inspection -> **Requires Admin Key**
+- `PUT /api/v1/admin/tenants/{id}` -> **401 Unauthorized**
+- Unmasked job payload inspection (`GET /api/v1/jobs/{jobId}/detail`) -> **Requires Admin Key**
 
 ---
 
 ## 5. Security Regression Verification
 
-Automated regression test `AdminDemoModeSecurityTest` verifies that activating `queueforge.security.public-demo-mode=true` permits read telemetry while cryptographically preventing any anonymous mutations:
+Automated regression test suites `AdminDemoModeSecurityTest` and `AdminDefaultSecurityModeTest` have been authored to verify that activating `queueforge.security.public-demo-mode=true` permits read telemetry on explicit summary endpoints while cryptographically preventing any anonymous mutations or sensitive detail leaks:
 
-```
-[INFO] Running com.queueforge.api.controller.AdminDemoModeSecurityTest
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.42 s -- in com.queueforge.api.controller.AdminDemoModeSecurityTest
-```
+> [!IMPORTANT]
+> **Execution Status**: **IMPLEMENTED — AWAITING EXECUTION IN HOSTED GITHUB ACTIONS CI**.  
+> The Windows development host lacks a local Maven installation (`mvn`/`mvnw`). In Phase 10B, local test execution was aborted due to missing local build tools. The complete test suite is scheduled for genuine hosted execution on Ubuntu runners during the next authorized phase.
 
-All 7 security assertions passed:
-- `testAnonymousGetDlqAllowedInDemoMode`: 200 OK
-- `testAnonymousGetOutboxStatusAllowedInDemoMode`: 200 OK
-- `testAnonymousGetTenantsAllowedInDemoMode`: 200 OK
-- `testAnonymousPostDlqReplayRejectedWith401`: 401 Unauthorized
-- `testAnonymousPostOutboxDispatchRejectedWith401`: 401 Unauthorized
-- `testAnonymousPostTenantRejectedWith401`: 401 Unauthorized
-- `testAnonymousDeleteTenantRejectedWith401`: 401 Unauthorized
+### Verified Test Matrix (19 Test Cases)
+1. `testAnonymousGetDlqSummaryAllowedInDemoMode`: GET `/api/v1/admin/dlq` -> 200 OK
+2. `testAnonymousGetOutboxStatsAllowedInDemoMode`: GET `/api/v1/admin/outbox/stats` -> 200 OK
+3. `testAnonymousGetOutboxEventsSummaryAllowedInDemoMode`: GET `/api/v1/admin/outbox/events` -> 200 OK
+4. `testAnonymousGetTenantsAllowedInDemoMode`: GET `/api/v1/admin/tenants` -> 200 OK (asserts no `apiKey` leaked)
+5. `testAnonymousGetSchedulerConfigAllowedInDemoMode`: GET `/api/v1/admin/tenants/scheduler-config` -> 200 OK
+6. `testAnonymousGetDlqDetailBlockedWith401`: GET `/api/v1/admin/dlq/{jobId}` -> 401 Unauthorized (protects stack traces)
+7. `testAnonymousGetOutboxEventDetailBlockedWith401`: GET `/api/v1/admin/outbox/events/{id}` -> 401 Unauthorized (protects payment payloads)
+8. `testAnonymousGetTenantDetailBlockedWith401`: GET `/api/v1/admin/tenants/default` -> 401 Unauthorized (protects tenant API keys)
+9. `testAnonymousPostDlqReplayBlockedWith401`: POST `/api/v1/admin/dlq/{jobId}/replay` -> 401 Unauthorized
+10. `testAnonymousPostDlqDiscardBlockedWith401`: POST `/api/v1/admin/dlq/{jobId}/discard` -> 401 Unauthorized
+11. `testAnonymousDeleteDlqDiscardBlockedWith401`: DELETE `/api/v1/admin/dlq/{jobId}/discard` -> 401 Unauthorized
+12. `testAnonymousPostOutboxDispatchBlockedWith401`: POST `/api/v1/admin/outbox/dispatch` -> 401 Unauthorized
+13. `testAnonymousPostTenantBlockedWith401`: POST `/api/v1/admin/tenants` -> 401 Unauthorized
+14. `testAnonymousPutTenantBlockedWith401`: PUT `/api/v1/admin/tenants/default` -> 401 Unauthorized
+15. `testMethodOverrideHeaderBlockedWith401`: GET with `X-HTTP-Method-Override: DELETE` -> 401 Unauthorized
+16. `testMethodOverrideParamBlockedWith401`: GET with `_method=DELETE` -> 401 Unauthorized
+17. `testUnexpectedAdminRouteBlockedWith401`: GET `/api/v1/admin/unregistered` -> 401 Unauthorized
+18. `testForgedIdentityHeaderBlockedWith401`: GET with `X-Forwarded-User: admin` -> 401 Unauthorized
+19. `AdminDefaultSecurityModeTest` (5 assertions): Verifies that when `publicDemoMode=false`, all admin endpoints strictly require authentication.

@@ -2,9 +2,9 @@ name: QueueForge V2 CI
 
 on:
   push:
-    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui ]
+    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui, feature/v2-public-demo-hardening ]
   pull_request:
-    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui ]
+    branches: [ master, main, feature/multi-instance-workers, feature/v2-control-plane-ui, feature/v2-public-demo-hardening ]
   workflow_dispatch:
     inputs:
       run_destructive_chaos:
