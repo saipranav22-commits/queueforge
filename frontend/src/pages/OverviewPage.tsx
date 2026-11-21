@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Clock,
@@ -7,62 +7,70 @@ import {
   Flame,
   PlusCircle,
   ArrowRight,
-  Database,
   Cpu,
-  Server,
-  Zap,
-  AlertTriangle,
-  Send,
-  ExternalLink,
+  Shield,
+  Layers,
+  Activity,
+  Scale,
+  GitBranch,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   useDashboardStats,
   useJobs,
-  useSystemHealth,
-  useSystemMetricsSummary,
-  useTenants,
-  useManualOutboxDispatch,
   useCreateJob,
   useJobDetail,
   useWorkerFleet,
 } from '../hooks/useQueueForgeData';
-import { useAuth } from '../context/AuthContext';
 import { MetricCard } from '../components/common/MetricCard';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { StatusIndicator } from '../components/ui/StatusIndicator';
 import { CopyableId } from '../components/ui/CopyableId';
-import { TenantQuotaProgress } from '../components/ui/TenantQuotaProgress';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
+import { SystemTopology } from '../components/topology/SystemTopology';
+import { OperatorIntelligence } from '../components/ui/OperatorIntelligence';
 import { formatDate } from '../lib/formatters';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+
+interface SessionObservation {
+  time: string;
+  pending: number;
+  running: number;
+  completed: number;
+}
 
 export const OverviewPage: React.FC = () => {
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: health } = useSystemHealth();
-  const { data: metrics } = useSystemMetricsSummary();
-  const { data: tenants } = useTenants();
-  const { data: workerFleet, isLoading: fleetLoading } = useWorkerFleet();
-  const { isAuthenticated, openUnlockModal } = useAuth();
-  const outboxMutation = useManualOutboxDispatch();
+  const { data: stats, dataUpdatedAt } = useDashboardStats();
+  const { data: workerFleet } = useWorkerFleet();
   const createJobMutation = useCreateJob();
 
-  // Filters & Drawer State
+  // Drawer & Filter State
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
-  const [outboxSuccess, setOutboxSuccess] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h'>('1h');
+
+  // Bounded Client-Side Observation Ring Buffer (Task 13: strictly labeled "Observed in this browser session")
+  const [observations, setObservations] = useState<SessionObservation[]>([]);
+  const lastUpdateRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (stats && dataUpdatedAt !== lastUpdateRef.current) {
+      lastUpdateRef.current = dataUpdatedAt;
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      setObservations((prev) => {
+        const next = [...prev, {
+          time: timeStr,
+          pending: stats.pendingJobs ?? 0,
+          running: stats.runningJobs ?? 0,
+          completed: stats.completedJobs ?? 0,
+        }];
+        return next.slice(-12); // keep last 12 observation ticks
+      });
+    }
+  }, [stats, dataUpdatedAt]);
 
   const { data: recentJobs, isLoading: jobsLoading } = useJobs({
     page: 0,
-    size: 6,
+    size: 7,
     status: (statusFilter as any) || undefined,
     sortBy: 'createdAt',
     sortDirection: 'DESC',
@@ -74,13 +82,13 @@ export const OverviewPage: React.FC = () => {
 
   const handleCreateTestJob = async () => {
     try {
-      const idempotencyKey = `manual-${Date.now()}`;
+      const idempotencyKey = `cmd-${Date.now()}`;
       const res = await createJobMutation.mutateAsync({
         jobType: 'GENERATE_REPORT',
         payload: {
-          reportName: 'mission-control-dispatch',
+          reportName: 'command-center-dispatch',
           format: 'PDF',
-          triggeredBy: 'Obsidian Pulse Console',
+          triggeredBy: 'QueueForge Command Mission Control',
           timestamp: new Date().toISOString(),
         },
         priority: 60,
@@ -88,392 +96,356 @@ export const OverviewPage: React.FC = () => {
         idempotencyKey,
       });
 
-      setSubmitSuccess(`Job ${res.jobId.slice(0, 8)} created successfully!`);
+      setSubmitSuccess(`Job ${res.jobId.slice(0, 8)} queued successfully!`);
       setTimeout(() => setSubmitSuccess(null), 4000);
     } catch (err: any) {
       alert(`Job submission failed: ${err.message}`);
     }
   };
 
-  const handleTriggerOutbox = async () => {
-    if (!isAuthenticated) {
-      openUnlockModal();
-      return;
-    }
-    try {
-      const result = await outboxMutation.mutateAsync({ batchSize: 25 });
-      setOutboxSuccess(`Dispatched ${result.dispatchedCount} events (batch limit: ${result.batchSize})`);
-      setTimeout(() => setOutboxSuccess(null), 4000);
-    } catch (err: any) {
-      alert(`Outbox dispatch failed: ${err.message}`);
-    }
-  };
-
-  // Activity chart representation using real state breakdown metrics
-  const pending = stats?.pendingJobs ?? 0;
-  const running = stats?.runningJobs ?? 0;
-  const completed = stats?.completedJobs ?? 0;
-  const deadLetter = stats?.deadLetterJobs ?? 0;
-
-  const activityData = [
-    { time: 'T -4m', pending: Math.max(0, pending - 2), running: Math.max(0, running - 1), completed: Math.max(0, completed - 8), deadLetter },
-    { time: 'T -3m', pending: Math.max(0, pending - 1), running: Math.max(0, running), completed: Math.max(0, completed - 5), deadLetter },
-    { time: 'T -2m', pending: Math.max(0, pending + 1), running: Math.max(0, running + 1), completed: Math.max(0, completed - 3), deadLetter },
-    { time: 'T -1m', pending: Math.max(0, pending), running: Math.max(0, running), completed: Math.max(0, completed - 1), deadLetter },
-    { time: 'Now', pending, running, completed, deadLetter },
-  ];
+  const activeWorkerCount = workerFleet ? workerFleet.filter(w => w.status === 'ONLINE').length : (stats?.activeWorkers ? Math.round(stats.activeWorkers) : 0);
+  const workerCapacity = stats?.workerCapacity ?? (workerFleet ? workerFleet.length : 2);
 
   return (
     <div className="space-y-6">
-      {/* SECTION A: SYSTEM STATUS BANNER */}
+      {/* SECTION A: MISSION CONTROL STATUS BANNER */}
       <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight">
-                Mission Control
-              </h2>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)] border border-[var(--color-amethyst-border)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-amethyst)] animate-ping" />
-                V2 ACTIVE
-              </span>
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[var(--color-cyan)] to-[var(--color-blue)] flex items-center justify-center shadow-lg shadow-[var(--color-cyan-glow)] flex-shrink-0">
+              <Shield className="w-6 h-6 text-gray-950 font-bold" />
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              Cluster-wide distributed orchestration, lease fencing, and FairShare multi-tenant scheduling
-            </p>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">
+                  Mission Control
+                </h2>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)] font-semibold">
+                  V2 ACTIVE
+                </span>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)] font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
+                  ACID PROTECTED
+                </span>
+              </div>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                Real-time operational dashboard, multi-instance worker coordinator, and transactional outbox.
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {submitSuccess && (
-              <span className="text-xs font-mono text-[var(--color-success)] bg-[var(--color-success-bg)] border border-[var(--color-success-border)] px-3 py-1 rounded-lg">
-                {submitSuccess}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <div className="px-3 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs font-mono">
+              <span className="text-[var(--color-text-muted)] text-[11px] block">REFRESH INTERVAL</span>
+              <span className="text-[var(--color-cyan)] font-semibold">3s TanStack Poll</span>
+            </div>
+
+            <div className="px-3 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs font-mono">
+              <span className="text-[var(--color-text-muted)] text-[11px] block">LAST HARVEST</span>
+              <span className="text-[var(--color-text-secondary)]">
+                {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : 'Connecting...'}
               </span>
-            )}
+            </div>
+
             <button
               onClick={handleCreateTestJob}
               disabled={createJobMutation.isPending}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-amethyst)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-[var(--color-cyan-hover)] text-gray-950 hover:brightness-110 shadow-md shadow-[var(--color-cyan-glow)] transition disabled:opacity-50"
             >
               <PlusCircle className="w-4 h-4" />
-              {createJobMutation.isPending ? 'Queuing...' : 'Submit Job'}
+              <span>{createJobMutation.isPending ? 'Ingesting...' : 'Submit Job'}</span>
             </button>
           </div>
         </div>
 
-        {/* Live Cluster Grid Pills */}
-        <div className="mt-4 pt-4 border-t border-[var(--color-border-subtle)] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-            <Database className="w-4 h-4 text-[var(--color-cyan)]" />
-            <div>
-              <div className="text-[10px] uppercase font-mono text-[var(--color-text-muted)]">PostgreSQL</div>
-              <div className="font-semibold font-mono flex items-center gap-1">
-                <StatusIndicator status={health?.dbStatus === 'UP' ? 'healthy' : 'critical'} size="sm" />
-                <span className={health?.dbStatus === 'UP' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
-                  {health?.dbStatus || 'UNKNOWN'}
-                </span>
-              </div>
-            </div>
+        {submitSuccess && (
+          <div className="mt-3 p-2.5 rounded-lg bg-[var(--color-success-bg)] border border-[var(--color-success-border)] text-xs text-[var(--color-success)] flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{submitSuccess}</span>
           </div>
+        )}
+      </div>
 
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-            <Cpu className="w-4 h-4 text-[var(--color-amethyst)]" />
-            <div>
-              <div className="text-[10px] uppercase font-mono text-[var(--color-text-muted)]">Coordinator</div>
-              <div className="font-semibold font-mono flex items-center gap-1">
-                <StatusIndicator status={health?.workerStatus === 'RUNNING' ? 'healthy' : 'warning'} size="sm" />
-                <span className={health?.workerStatus === 'RUNNING' ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'}>
-                  {health?.workerStatus || 'UNKNOWN'}
-                </span>
-              </div>
-            </div>
-          </div>
+      {/* SECTION B: INTERACTIVE SYSTEM TOPOLOGY */}
+      <SystemTopology />
 
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-            <Server className="w-4 h-4 text-[var(--color-text-secondary)]" />
-            <div>
-              <div className="text-[10px] uppercase font-mono text-[var(--color-text-muted)]">Architecture</div>
-              <div className="font-semibold font-mono text-[var(--color-text-primary)]">
-                Multi-Worker V2
-              </div>
-            </div>
+      {/* SECTION C: QUEUE OPERATIONS HUD */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-[var(--color-cyan)]" />
+            <h3 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-text-muted)]">
+              Cluster Queue Telemetry
+            </h3>
           </div>
+          <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
+            Total Completed: <strong className="text-[var(--color-cyan)]">{stats?.completedTotal ?? stats?.completedJobs ?? 0} jobs</strong>
+          </span>
+        </div>
 
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-            <Zap className="w-4 h-4 text-[var(--color-cyan)]" />
-            <div>
-              <div className="text-[10px] uppercase font-mono text-[var(--color-text-muted)]">Lease Fencing</div>
-              <div className="font-semibold font-mono text-[var(--color-cyan)]">
-                SKIP LOCKED
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Pending Queue"
+            value={stats?.pendingJobs ?? 0}
+            icon={Clock}
+            variant="cyan"
+            subtitle="Waiting for DRR worker claim"
+          />
+          <MetricCard
+            title="Active Running"
+            value={stats?.runningJobs ?? 0}
+            icon={PlayCircle}
+            variant="amethyst"
+            subtitle="Time-bounded 30s lease execution"
+          />
+          <MetricCard
+            title="Completed Total"
+            value={stats?.completedJobs ?? 0}
+            icon={CheckCircle2}
+            variant="emerald"
+            subtitle="Successfully executed jobs"
+          />
+          <MetricCard
+            title="Dead-Letter Queue"
+            value={stats?.deadLetterJobs ?? 0}
+            icon={Flame}
+            variant={stats?.deadLetterJobs && stats.deadLetterJobs > 0 ? 'rose' : 'cyan'}
+            subtitle="Exhausted poison jobs isolated"
+          />
         </div>
       </div>
 
-      {/* SECTION B: PRIMARY KPIS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Pending Queue"
-          value={statsLoading ? '...' : (stats?.pendingJobs ?? 0)}
-          subtitle="Durable jobs awaiting lease claim"
-          icon={Clock}
-          variant="amber"
-        />
-        <MetricCard
-          title="Active Running"
-          value={statsLoading ? '...' : (stats?.runningJobs ?? 0)}
-          subtitle={`${Math.round(stats?.activeWorkers ?? 0)} / ${stats?.workerCapacity ?? 4} threads active`}
-          icon={PlayCircle}
-          variant="cyan"
-        />
-        <MetricCard
-          title="Completed Total"
-          value={statsLoading ? '...' : (stats?.completedJobs ?? 0)}
-          subtitle="Processed & committed"
-          icon={CheckCircle2}
-          variant="emerald"
-        />
-        <MetricCard
-          title="Dead-Letter Queue"
-          value={statsLoading ? '...' : (stats?.deadLetterJobs ?? 0)}
-          subtitle="Max retries exhausted"
-          icon={Flame}
-          variant="rose"
-        />
-      </div>
+      {/* SECTION D: OPERATOR INTELLIGENCE ENGINE */}
+      <OperatorIntelligence />
 
-      {/* SECTION C: EXECUTION ACTIVITY CHART & CLUSTER UTILIZATION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-                Cluster Execution Activity
-              </h3>
-              <p className="text-xs text-[var(--color-text-secondary)]">Real-time throughput and queue state dynamics</p>
-            </div>
-            <div className="flex items-center gap-1 bg-[var(--color-bg-deep)] p-1 rounded-lg border border-[var(--color-border-subtle)]">
-              {(['1h', '6h', '24h'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setTimeRange(r)}
-                  className={`px-2 py-0.5 text-[10px] font-mono rounded font-medium transition ${
-                    timeRange === r
-                      ? 'bg-[var(--color-amethyst)] text-white'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* SECTION E: OPERATIONAL SUBSYSTEMS & REAL TREND OBSERVATIONS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Subsystems Navigation Cards (7 cols) */}
+        <div className="lg:col-span-7 space-y-3">
+          <h3 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-text-muted)]">
+            Core Distributed Subsystems
+          </h3>
 
-          <div className="h-52 w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <AreaChart data={activityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="amethystGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#9B70F5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#9B70F5" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#35D8F5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#35D8F5" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="time" stroke="#64748B" fontSize={10} tickLine={false} />
-                <YAxis stroke="#64748B" fontSize={10} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--color-bg-deep)',
-                    borderColor: 'var(--color-border-subtle)',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    color: 'var(--color-text-primary)',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="completed"
-                  name="Completed"
-                  stroke="#47D6AD"
-                  fillOpacity={0.15}
-                  fill="#47D6AD"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="running"
-                  name="Running"
-                  stroke="#35D8F5"
-                  fillOpacity={1}
-                  fill="url(#cyanGradient)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="pending"
-                  name="Pending"
-                  stroke="#9B70F5"
-                  fillOpacity={1}
-                  fill="url(#amethystGradient)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--color-border-subtle)] text-xs font-mono text-[var(--color-text-muted)]">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#9B70F5]" /> Pending
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#35D8F5]" /> Running
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#47D6AD]" /> Completed
-              </span>
-            </div>
-            <span>P95 Queue Latency: {metrics?.queueWaitLatencyP95Ms ?? 0}ms</span>
-          </div>
-        </div>
-
-        {/* SECTION D: DISTRIBUTED WORKER FLEET SNAPSHOT */}
-        <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-                Distributed Worker Fleet
-              </span>
-              <Link to="/workers" className="text-xs text-[var(--color-cyan)] hover:underline flex items-center gap-1">
-                Fleet Details <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {fleetLoading ? (
-                <div className="py-6 text-center text-xs font-mono text-[var(--color-text-muted)]">
-                  Discovering worker nodes...
-                </div>
-              ) : workerFleet && workerFleet.length > 0 ? (
-                workerFleet.map((w) => (
-                  <div
-                    key={w.instanceId}
-                    className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 rounded-md bg-[var(--color-cyan-bg)] text-[var(--color-cyan)]">
-                        <Server className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold font-mono text-[var(--color-text-primary)]">
-                          {w.instanceId}
-                        </div>
-                        <div className="text-[10px] text-[var(--color-text-secondary)] font-mono">
-                          {w.mode} • {w.concurrency} slots ({w.heldLeasesCount} held)
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
-                          w.status === 'ONLINE'
-                            ? 'bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]'
-                            : w.status === 'STALE'
-                            ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-warning-border)]'
-                            : 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border border-[var(--color-danger-border)]'
-                        }`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            w.status === 'ONLINE'
-                              ? 'bg-[var(--color-success)]'
-                              : w.status === 'STALE'
-                              ? 'bg-[var(--color-warning)]'
-                              : 'bg-[var(--color-danger)]'
-                          }`}
-                        />
-                        {w.status}
-                      </span>
-                      <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5 font-mono">
-                        {w.status === 'ONLINE'
-                          ? `Heartbeat ${w.heartbeatAgeSeconds}s ago`
-                          : w.status === 'STALE'
-                          ? `Stale (${w.heartbeatAgeSeconds}s)`
-                          : 'Unresponsive'}
-                      </div>
-                    </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Worker Fleet Card */}
+            <Link
+              to="/workers"
+              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] flex items-center justify-center text-[var(--color-cyan)]">
+                    <Cpu className="w-4 h-4" />
                   </div>
-                ))
-              ) : (
-                <div className="py-6 text-center text-xs text-[var(--color-text-muted)] font-sans">
-                  No independent worker processes currently registered.
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-cyan)] border border-[var(--color-border-subtle)]">
+                    {activeWorkerCount}/{workerCapacity} Active
+                  </span>
                 </div>
-              )}
+                <h4 className="text-sm font-bold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-cyan)] transition">
+                  Distributed Worker Fleet
+                </h4>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
+                  PostgreSQL SKIP LOCKED concurrent claiming, 30-second lease fencing, and zombie crash recovery.
+                </p>
+              </div>
+              <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-xs font-semibold text-[var(--color-cyan)]">
+                <span>Inspect Fleet</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+
+            {/* FairShare Card */}
+            <Link
+              to="/fairshare"
+              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--color-amethyst-bg)] border border-[var(--color-amethyst-border)] flex items-center justify-center text-[var(--color-amethyst)]">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-amethyst)] border border-[var(--color-border-subtle)]">
+                    DRR Engine
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-amethyst)] transition">
+                  FairShare Scheduler
+                </h4>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
+                  Deficit Round Robin eliminates quiet-tenant head-of-line blocking under noisy-neighbor contention.
+                </p>
+              </div>
+              <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-xs font-semibold text-[var(--color-amethyst)]">
+                <span>Scheduler Lab</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+
+            {/* Event Pipeline Card */}
+            <Link
+              to="/pipeline"
+              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--color-success-bg)] border border-[var(--color-success-border)] flex items-center justify-center text-[var(--color-success)]">
+                    <GitBranch className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-success)] border border-[var(--color-border-subtle)]">
+                    At-Least-Once
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-success)] transition">
+                  Transactional Outbox
+                </h4>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
+                  Atomic domain + outbox table commits and durable SHA-256 idempotency deduplication.
+                </p>
+              </div>
+              <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-xs font-semibold text-[var(--color-success)]">
+                <span>View Pipeline</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+
+            {/* Reliability & DLQ Card */}
+            <Link
+              to="/dlq"
+              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] flex items-center justify-center text-[var(--color-danger)]">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-danger)] border border-[var(--color-border-subtle)]">
+                    {stats?.deadLetterJobs ?? 0} Isolated
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-danger)] transition">
+                  Reliability & DLQ
+                </h4>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
+                  Poison job quarantine, transient error classification, exponential backoff, and authenticated replay.
+                </p>
+              </div>
+              <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-xs font-semibold text-[var(--color-danger)]">
+                <span>Manage Recovery</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Real Session Trend Observations (5 cols) */}
+        <div className="lg:col-span-5 p-5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--color-border-subtle)]">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[var(--color-cyan)]" />
+                <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-text-muted)]">
+                  Session Observation Buffer
+                </h4>
+              </div>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+                {observations.length} Samples
+              </span>
             </div>
+
+            <p className="text-xs text-[var(--color-text-muted)] mt-2">
+              Bounded client observations sampled from consecutive 3-second polls in this browser session.
+            </p>
+
+            {observations.length === 0 ? (
+              <div className="py-12 text-center text-xs text-[var(--color-text-muted)] font-mono">
+                Accumulating session observations...
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                <div className="text-[11px] font-mono text-[var(--color-text-muted)] flex justify-between px-2">
+                  <span>TIME</span>
+                  <span>PENDING / RUNNING / COMPLETED</span>
+                </div>
+                <div className="space-y-1 font-mono text-xs max-h-[170px] overflow-y-auto">
+                  {observations.slice(-5).map((obs, i) => (
+                    <div
+                      key={i}
+                      className="p-2 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between text-[11px]"
+                    >
+                      <span className="text-[var(--color-text-muted)]">{obs.time}</span>
+                      <div className="flex items-center gap-2 font-bold">
+                        <span className="text-[var(--color-cyan)]">{obs.pending}</span>
+                        <span className="text-[var(--color-text-muted)]">/</span>
+                        <span className="text-[var(--color-amethyst)]">{obs.running}</span>
+                        <span className="text-[var(--color-text-muted)]">/</span>
+                        <span className="text-[var(--color-success)]">{obs.completed}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] flex items-center justify-between">
-            <span>Cluster Capacity</span>
-            <span className="font-mono text-[var(--color-text-primary)] font-semibold">
-              {stats?.activeWorkers ?? 0} active / {stats?.workerCapacity ?? 4} allocated
-            </span>
+          <div className="pt-3 border-t border-[var(--color-border-subtle)] text-[10px] font-mono text-[var(--color-text-dim)]">
+            * Strictly client-sampled telemetry. Does not represent external persistent timeseries.
           </div>
         </div>
       </div>
 
-      {/* SECTION E: RECENT JOBS WITH SLIDE-OVER DRAWER */}
-      <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] shadow-lg overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-[var(--color-border-subtle)] gap-3">
+      {/* SECTION F: RECENT OPERATOR ACTIVITY TABLE */}
+      <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] overflow-hidden shadow-lg">
+        <div className="p-4 sm:p-5 border-b border-[var(--color-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Job Activity & Audit Trail</h3>
-            <p className="text-xs text-[var(--color-text-secondary)]">Click any row to inspect execution metadata and payloads</p>
+            <h3 className="text-sm font-bold tracking-tight text-[var(--color-text-primary)]">
+              Recent Job Ingestion & Execution Activity
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+              Live task ledger showing priority, lease status, and tenant allocation.
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Status Filter */}
+          <div className="flex items-center gap-2">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-mono bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg px-2.5 py-1 text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-amethyst)]"
+              className="px-2.5 py-1 text-xs font-mono rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] focus:border-[var(--color-cyan)] outline-none"
             >
-              <option value="">All Statuses</option>
+              <option value="">All Execution Statuses</option>
               <option value="PENDING">PENDING</option>
               <option value="RUNNING">RUNNING</option>
               <option value="COMPLETED">COMPLETED</option>
+              <option value="FAILED">FAILED</option>
               <option value="DEAD_LETTER">DEAD_LETTER</option>
             </select>
-
             <Link
               to="/jobs"
-              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-amethyst)] hover:underline"
+              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-subtle)] transition"
             >
-              Job Explorer
+              <span>Explore All</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[var(--color-bg-deep)] text-[var(--color-text-muted)] uppercase font-mono text-[10px] tracking-wider border-b border-[var(--color-border-subtle)]">
-              <tr>
-                <th className="px-6 py-3">Job ID</th>
-                <th className="px-6 py-3">Tenant ID</th>
-                <th className="px-6 py-3">Type</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Retries</th>
-                <th className="px-6 py-3">Created</th>
-                <th className="px-6 py-3 text-right">Inspect</th>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/60 text-[10px] font-mono uppercase text-[var(--color-text-muted)] tracking-wider">
+                <th className="py-2.5 px-4 font-semibold">Job ID</th>
+                <th className="py-2.5 px-4 font-semibold">Type</th>
+                <th className="py-2.5 px-4 font-semibold">Tenant</th>
+                <th className="py-2.5 px-4 font-semibold">Priority</th>
+                <th className="py-2.5 px-4 font-semibold">Status</th>
+                <th className="py-2.5 px-4 font-semibold">Created At</th>
+                <th className="py-2.5 px-4 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-border-subtle)] font-mono">
+            <tbody className="divide-y divide-[var(--color-border-subtle)]">
               {jobsLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-[var(--color-text-muted)]">
-                    Loading job logs...
+                  <td colSpan={7} className="py-8 text-center text-xs text-[var(--color-text-muted)] font-mono">
+                    Polling jobs ledger...
                   </td>
                 </tr>
               ) : recentJobs?.content && recentJobs.content.length > 0 ? (
@@ -481,47 +453,45 @@ export const OverviewPage: React.FC = () => {
                   <tr
                     key={job.jobId}
                     onClick={() => setSelectedJobId(job.jobId)}
-                    className="hover:bg-[var(--color-bg-interactive)] transition cursor-pointer"
+                    className="hover:bg-[var(--color-bg-interactive)] cursor-pointer transition"
                   >
-                    <td className="px-6 py-3 font-semibold text-[var(--color-text-primary)]">
-                      <CopyableId id={job.jobId} prefixLen={10} />
+                    <td className="py-2.5 px-4 font-mono font-medium text-[var(--color-cyan)]">
+                      <CopyableId id={job.jobId} prefixLen={8} />
                     </td>
-                    <td className="px-6 py-3 text-[var(--color-text-secondary)]">
-                      {job.tenantId ? (
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[11px] text-[var(--color-cyan)]">
-                          {job.tenantId}
-                        </span>
-                      ) : (
-                        <span className="text-[var(--color-text-muted)]">global</span>
-                      )}
+                    <td className="py-2.5 px-4 font-medium text-[var(--color-text-primary)]">
+                      {job.jobType}
                     </td>
-                    <td className="px-6 py-3 text-[var(--color-text-secondary)]">{job.jobType}</td>
-                    <td className="px-6 py-3">
-                      <StatusBadge status={job.status} size="sm" />
+                    <td className="py-2.5 px-4 font-mono text-[var(--color-text-muted)]">
+                      {job.tenantId}
                     </td>
-                    <td className="px-6 py-3 text-[var(--color-text-muted)]">
-                      {job.retryCount} / {job.maxRetries}
+                    <td className="py-2.5 px-4 font-mono">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)]">
+                        P{job.priority}
+                      </span>
                     </td>
-                    <td className="px-6 py-3 text-[var(--color-text-secondary)] font-sans">
+                    <td className="py-2.5 px-4">
+                      <StatusBadge status={job.status} />
+                    </td>
+                    <td className="py-2.5 px-4 text-[var(--color-text-muted)] font-mono text-[11px]">
                       {formatDate(job.createdAt)}
                     </td>
-                    <td className="px-6 py-3 text-right font-sans">
+                    <td className="py-2.5 px-4 text-right">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedJobId(job.jobId);
                         }}
-                        className="text-xs text-[var(--color-amethyst)] hover:underline font-medium"
+                        className="text-xs text-[var(--color-cyan)] hover:underline font-mono"
                       >
-                        Drawer
+                        Inspect
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-[var(--color-text-muted)] font-sans">
-                    No matching jobs found in queue. Click "Submit Job" to create an active test job.
+                  <td colSpan={7} className="py-8 text-center text-xs text-[var(--color-text-muted)] font-mono">
+                    No matching jobs in current execution slice. Click "Submit Job" to queue a task.
                   </td>
                 </tr>
               )}
@@ -530,237 +500,61 @@ export const OverviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* LOWER SECTION: RELIABILITY, FAIRSHARE & TRANSACTIONAL OUTBOX */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* SECTION F: RELIABILITY SNAPSHOT */}
-        <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-                Reliability & DLQ
-              </span>
-              <div className="flex items-center gap-2">
-                <Link to="/reliability" className="text-xs text-[var(--color-cyan)] hover:underline flex items-center gap-1 font-mono">
-                  Lab <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
+      {/* DETAIL INSPECTION DRAWER */}
+      {selectedJobId && (
+        <DetailDrawer
+          isOpen={Boolean(selectedJobId)}
+          onClose={() => setSelectedJobId(null)}
+          title={`Job Inspector — #${selectedJobId.slice(0, 8)}`}
+        >
+          {drawerLoading || !drawerJob ? (
+            <div className="py-12 text-center text-xs text-[var(--color-text-muted)] font-mono">
+              Loading job detail and execution trace...
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-              Dead-letter partition & failure classification
-            </p>
-
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-xs p-2 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[var(--color-text-secondary)] font-mono">Dead-Letter Count</span>
-                <span className="font-mono font-bold text-[var(--color-danger)]">
-                  {stats?.deadLetterJobs ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs p-2 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[var(--color-text-secondary)] font-mono">Lifetime Retries</span>
-                <span className="font-mono font-bold text-[var(--color-warning)]">
-                  {metrics?.retriedTotal ?? stats?.retriedTotal ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs p-2 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[var(--color-text-secondary)] font-mono">Recovered Jobs</span>
-                <span className="font-mono font-bold text-[var(--color-success)]">
-                  {metrics?.recoveredTotal ?? stats?.recoveredTotal ?? 0}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)] text-right">
-            <Link
-              to="/dlq"
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[var(--color-crimson)] hover:brightness-110 rounded-md transition"
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              Open DLQ Manager
-            </Link>
-          </div>
-        </div>
-
-        {/* SECTION G: FAIRSHARE MULTI-TENANT SNAPSHOT */}
-        <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-                FairShare Scheduler
-              </span>
-              <Link to="/fairshare" className="text-xs text-[var(--color-amethyst)] hover:underline flex items-center gap-1 font-mono">
-                Tenants <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-              Weighted DRR concurrency & deficit round-robin
-            </p>
-
-            <div className="mt-3 space-y-2">
-              {tenants && tenants.length > 0 ? (
-                tenants.slice(0, 2).map((t) => (
-                  <TenantQuotaProgress
-                    key={t.id}
-                    tenantId={t.id}
-                    tenantName={t.name}
-                    weight={t.weight}
-                    maxConcurrency={t.maxConcurrency}
-                    activeRunning={t.activeRunningJobs ?? 0}
-                    deficit={t.deficitCounter ?? 0}
-                  />
-                ))
-              ) : (
-                <div className="text-xs text-[var(--color-text-muted)] py-4 text-center">
-                  Authenticate as admin to inspect active tenant quotas
+          ) : (
+            <div className="space-y-4 text-xs">
+              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] space-y-2">
+                <div className="flex justify-between font-mono">
+                  <span className="text-[var(--color-text-muted)]">Job Type:</span>
+                  <span className="font-bold text-[var(--color-text-primary)]">{drawerJob.jobType}</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)] text-right">
-            <Link
-              to="/fairshare"
-              className="text-xs text-[var(--color-amethyst)] hover:underline font-medium"
-            >
-              View all tenant quotas →
-            </Link>
-          </div>
-        </div>
-
-        {/* SECTION H: TRANSACTIONAL OUTBOX SNAPSHOT */}
-        <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-                Transactional Outbox
-              </span>
-              <Link to="/pipeline" className="text-xs text-[var(--color-cyan)] hover:underline flex items-center gap-1 font-mono">
-                Pipeline <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-              Durable event relay to simulated payment receiver
-            </p>
-
-            <div className="mt-4 space-y-2 text-xs">
-              <div className="p-2.5 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] flex items-center justify-between font-mono">
-                <span className="text-[var(--color-text-secondary)]">Outbox Relayer</span>
-                <span className="text-[var(--color-success)] font-semibold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-[var(--color-success)]" />
-                  ACTIVE
-                </span>
-              </div>
-
-              {outboxSuccess && (
-                <div className="p-2 rounded bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)] text-[11px] font-mono">
-                  {outboxSuccess}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
-            <span className="text-[11px] text-[var(--color-text-muted)] font-mono">Manual Trigger</span>
-            <button
-              onClick={handleTriggerOutbox}
-              disabled={outboxMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[var(--color-cyan)] text-black hover:brightness-110 rounded-md transition disabled:opacity-50"
-            >
-              <Send className="w-3 h-3" />
-              {outboxMutation.isPending ? 'Relaying...' : 'Dispatch Outbox'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* DETAIL DRAWER SLIDE-OVER */}
-      <DetailDrawer
-        isOpen={!!selectedJobId}
-        onClose={() => setSelectedJobId(null)}
-        title="Job Inspection Drawer"
-        subtitle={selectedJobId ? `Details for ${selectedJobId}` : ''}
-        width="xl"
-      >
-        {drawerLoading ? (
-          <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">
-            Loading job details...
-          </div>
-        ) : drawerJob ? (
-          <div className="space-y-6">
-            {/* Top metadata grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Job ID</span>
-                <CopyableId id={drawerJob.jobId} />
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Status</span>
-                <div className="mt-1">
+                <div className="flex justify-between font-mono">
+                  <span className="text-[var(--color-text-muted)]">Status:</span>
                   <StatusBadge status={drawerJob.status} />
                 </div>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Job Type</span>
-                <span className="text-[var(--color-text-primary)] font-semibold">{drawerJob.jobType}</span>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Tenant</span>
-                <span className="text-[var(--color-cyan)]">{drawerJob.tenantId || 'global'}</span>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Retries</span>
-                <span className="text-[var(--color-text-primary)]">
-                  {drawerJob.retryCount} / {drawerJob.maxRetries}
-                </span>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
-                <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Priority</span>
-                <span className="text-[var(--color-amethyst)] font-bold">{drawerJob.priority}</span>
-              </div>
-            </div>
-
-            {/* Error Message if Present */}
-            {drawerJob.lastErrorMessage && (
-              <div className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] text-xs text-[var(--color-danger)] font-mono">
-                <div className="font-bold mb-1 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4" /> Error Description:
+                <div className="flex justify-between font-mono">
+                  <span className="text-[var(--color-text-muted)]">Tenant ID:</span>
+                  <span className="text-[var(--color-cyan)]">{drawerJob.tenantId}</span>
                 </div>
-                <div>{drawerJob.lastErrorMessage}</div>
+                <div className="flex justify-between font-mono">
+                  <span className="text-[var(--color-text-muted)]">Retries:</span>
+                  <span>{drawerJob.retryCount} / {drawerJob.maxRetries}</span>
+                </div>
               </div>
-            )}
 
-            {/* Payload JSON Viewer */}
-            <div className="space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-                Job Payload
-              </span>
-              <pre className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs font-mono text-[var(--color-text-primary)] overflow-x-auto max-h-60">
-                {JSON.stringify(drawerJob.payload, null, 2)}
-              </pre>
-            </div>
+              <div>
+                <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-text-muted)] mb-1">
+                  Payload Preview (Redacted in Public Mode)
+                </h4>
+                <pre className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] font-mono text-[11px] overflow-x-auto text-[var(--color-text-secondary)]">
+                  {JSON.stringify(drawerJob.payload, null, 2)}
+                </pre>
+              </div>
 
-            <div className="pt-4 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
-              <Link
-                to={`/jobs/${drawerJob.jobId}`}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-amethyst)] hover:underline"
-              >
-                Open Full Dedicated Job Page <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
-              <button
-                onClick={() => setSelectedJobId(null)}
-                className="px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg transition"
-              >
-                Close Drawer
-              </button>
+              {drawerJob.lastErrorMessage && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-[var(--color-danger)] mb-1">
+                    Captured Error Diagnostic
+                  </h4>
+                  <pre className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] font-mono text-[11px] overflow-x-auto text-[var(--color-danger)]">
+                    {drawerJob.lastErrorMessage}
+                  </pre>
+                </div>
+              )}
             </div>
-          </div>
-        ) : (
-          <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">
-            Job details not found.
-          </div>
-        )}
-      </DetailDrawer>
+          )}
+        </DetailDrawer>
+      )}
     </div>
   );
 };

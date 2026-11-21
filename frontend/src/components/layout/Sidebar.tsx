@@ -13,151 +13,201 @@ import {
   Settings,
   ExternalLink,
   X,
+  Radio,
 } from 'lucide-react';
-import { useDashboardStats } from '../../hooks/useQueueForgeData';
+import { useDashboardStats, useWorkerFleet } from '../../hooks/useQueueForgeData';
 
 interface SidebarProps {
   onClose?: () => void;
   isMobile?: boolean;
 }
 
+interface NavSection {
+  title: string;
+  items: Array<{
+    to: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    end?: boolean;
+    count?: number;
+    countVariant?: 'default' | 'danger' | 'warning' | 'cyan';
+    badge?: string;
+  }>;
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) => {
   const { data: stats } = useDashboardStats();
+  const { data: workers } = useWorkerFleet();
 
-  const navItems = [
+  const activeWorkerCount = workers ? workers.filter(w => w.status === 'ONLINE').length : (stats?.activeWorkers ? Math.round(stats.activeWorkers) : 0);
+  const totalWorkerCapacity = stats?.workerCapacity ?? (workers ? workers.length : 2);
+
+  const sections: NavSection[] = [
     {
-      to: '/',
-      label: 'Mission Control',
-      icon: LayoutDashboard,
-      end: true,
+      title: 'MISSION CONTROL',
+      items: [
+        {
+          to: '/',
+          label: 'Overview',
+          icon: LayoutDashboard,
+          end: true,
+        },
+      ],
     },
     {
-      to: '/jobs',
-      label: 'Job Explorer',
-      icon: Layers,
-      count: stats?.totalJobs,
+      title: 'WORKLOADS',
+      items: [
+        {
+          to: '/jobs',
+          label: 'Job Explorer',
+          icon: Layers,
+          count: stats?.totalJobs,
+        },
+        {
+          to: '/workers',
+          label: 'Worker Fleet',
+          icon: Cpu,
+          badge: `${activeWorkerCount}/${totalWorkerCapacity}`,
+        },
+        {
+          to: '/fairshare',
+          label: 'FairShare Scheduler',
+          icon: Scale,
+        },
+      ],
     },
     {
-      to: '/workers',
-      label: 'Worker Fleet',
-      icon: Cpu,
-      badge: stats ? `${Math.round(stats.activeWorkers)}/${stats.workerCapacity}` : undefined,
+      title: 'RELIABILITY',
+      items: [
+        {
+          to: '/pipeline',
+          label: 'Event Pipeline',
+          icon: GitBranch,
+        },
+        {
+          to: '/dlq',
+          label: 'Dead-Letter Queue',
+          icon: ShieldAlert,
+          count: stats?.deadLetterJobs,
+          countVariant: stats?.deadLetterJobs && stats.deadLetterJobs > 0 ? 'danger' : 'default',
+        },
+        {
+          to: '/reliability',
+          label: 'Reliability Lab',
+          icon: Flame,
+        },
+      ],
     },
     {
-      to: '/fairshare',
-      label: 'FairShare Multi-Tenant',
-      icon: Scale,
-    },
-    {
-      to: '/pipeline',
-      label: 'Event Pipeline',
-      icon: GitBranch,
-    },
-    {
-      to: '/reliability',
-      label: 'Reliability Lab',
-      icon: Flame,
-    },
-    {
-      to: '/dlq',
-      label: 'Dead-Letter Queue',
-      icon: ShieldAlert,
-      count: stats?.deadLetterJobs,
-      countVariant: stats?.deadLetterJobs && stats.deadLetterJobs > 0 ? 'danger' : 'default',
-    },
-    {
-      to: '/monitoring',
-      label: 'Observability',
-      icon: Activity,
-    },
-    {
-      to: '/admin',
-      label: 'Administration',
-      icon: Settings,
+      title: 'OPERATIONS',
+      items: [
+        {
+          to: '/monitoring',
+          label: 'Observability',
+          icon: Activity,
+        },
+        {
+          to: '/admin',
+          label: 'Administration',
+          icon: Settings,
+        },
+      ],
     },
   ];
 
   return (
     <aside className="w-64 h-full flex-shrink-0 border-r border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] flex flex-col justify-between select-none transition-colors">
-      <div>
+      <div className="overflow-y-auto">
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-[var(--color-border-subtle)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[var(--color-amethyst)] to-[var(--color-cyan)] flex items-center justify-center shadow-lg shadow-[var(--color-amethyst)]/20">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[var(--color-cyan)] to-[var(--color-blue)] flex items-center justify-center shadow-lg shadow-[var(--color-cyan-glow)]">
+              <Shield className="w-5 h-5 text-gray-950 font-bold" />
             </div>
             <div>
               <div className="text-sm font-bold tracking-tight text-[var(--color-text-primary)] flex items-center gap-1.5">
                 <span>QueueForge</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)] font-semibold">
                   V2
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--color-text-secondary)] font-medium">Control Plane</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] font-mono tracking-wide">COMMAND CENTER</p>
             </div>
           </div>
           {isMobile && (
             <button
               onClick={onClose}
               className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)]"
+              aria-label="Close Sidebar"
             >
               <X className="w-5 h-5" />
             </button>
           )}
         </div>
 
-        {/* Navigation Items */}
-        <div className="p-3 space-y-1">
-          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-            Navigation
-          </div>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={() => {
-                if (isMobile && onClose) {
-                  onClose();
-                }
-              }}
-              className={({ isActive }) =>
-                `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)] border border-[var(--color-amethyst-border)] shadow-sm'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] border border-transparent'
-                }`
-              }
-            >
-              <div className="flex items-center gap-2.5">
-                <item.icon className="w-4 h-4 transition group-hover:text-[var(--color-amethyst)]" />
-                <span>{item.label}</span>
+        {/* Structured Command Sections */}
+        <div className="p-3 space-y-4">
+          {sections.map((sec) => (
+            <div key={sec.title} className="space-y-1">
+              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] font-mono flex items-center justify-between">
+                <span>{sec.title}</span>
+                {sec.title === 'MISSION CONTROL' && (
+                  <Radio className="w-2.5 h-2.5 text-[var(--color-cyan)] animate-pulse" />
+                )}
               </div>
-              {item.count !== undefined && (
-                <span
-                  className={`px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded-full ${
-                    item.countVariant === 'danger'
-                      ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border border-[var(--color-danger-border)]'
-                      : 'bg-[var(--color-bg-interactive)] text-[var(--color-text-muted)]'
-                  }`}
+              {sec.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={() => {
+                    if (isMobile && onClose) {
+                      onClose();
+                    }
+                  }}
+                  className={({ isActive }) =>
+                    `group flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 relative ${
+                      isActive
+                        ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)] shadow-sm'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] border border-transparent'
+                    }`
+                  }
                 >
-                  {item.count}
-                </span>
-              )}
-              {item.badge && (
-                <span className="px-1.5 py-0.5 text-[10px] font-mono text-[var(--color-cyan)] bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] rounded">
-                  {item.badge}
-                </span>
-              )}
-            </NavLink>
+                  {({ isActive }) => (
+                    <>
+                      <div className="flex items-center gap-2.5">
+                        <item.icon className={`w-4 h-4 transition ${isActive ? 'text-[var(--color-cyan)]' : 'group-hover:text-[var(--color-cyan)] text-[var(--color-text-muted)]'}`} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.count !== undefined && (
+                        <span
+                          className={`px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded-full ${
+                            item.countVariant === 'danger'
+                              ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] border border-[var(--color-danger-border)] animate-pulse'
+                              : 'bg-[var(--color-bg-interactive)] text-[var(--color-text-muted)]'
+                          }`}
+                        >
+                          {item.count}
+                        </span>
+                      )}
+                      {item.badge && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono text-[var(--color-cyan)] bg-[var(--color-cyan-bg)] border border-[var(--color-cyan-border)] rounded">
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </div>
       </div>
 
-      {/* External Observability Links */}
-      <div className="p-3 border-t border-[var(--color-border-subtle)] space-y-1.5">
+      {/* Observability Endpoints Footer */}
+      <div className="p-3 border-t border-[var(--color-border-subtle)] space-y-1.5 flex-shrink-0">
         <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
-          Telemetry & Observability
+          METRICS INTERFACES
         </div>
         <a
           href="http://127.0.0.1:3000"
@@ -166,8 +216,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
           className="flex items-center justify-between px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded-lg transition group"
         >
           <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-400" />
-            Grafana Dashboard
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            Grafana Control
           </span>
           <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
         </a>
@@ -178,8 +228,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
           className="flex items-center justify-between px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded-lg transition group"
         >
           <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-400" />
-            Prometheus Metrics
+            <span className="w-2 h-2 rounded-full bg-rose-400" />
+            Prometheus Engine
           </span>
           <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
         </a>
