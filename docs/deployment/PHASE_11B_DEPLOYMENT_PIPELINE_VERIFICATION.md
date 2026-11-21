@@ -47,7 +47,7 @@ All seven operational scripts located in `deploy/vps/` were audited for POSIX co
 ## 3. Production Docker Compose Parameterization & Memory Protection
 
 ### 3.1 The 4 GB VPS RAM Constraint
-On a cost-optimized 2 vCPU / 4 GB RAM VPS (such as Hetzner CX23), compiling Spring Boot Java artifacts via Maven (`./mvnw clean package`) and building Vite React frontend bundles consumes significant CPU bursts and up to 2.5 GB of resident RAM. Running a Maven multi-threaded compilation concurrently with active PostgreSQL and Redis containers inevitably triggers Linux kernel Out-Of-Memory (OOM) killer terminations.
+On a cost-optimized 2 vCPU / 4 GB RAM VPS (such as Hetzner CX23), compiling Spring Boot Java artifacts via Maven (`./mvnw clean package`) and building Vite React frontend bundles consumes significant CPU bursts and up to 2.5 GB of resident RAM. Running a Maven multi-threaded compilation concurrently with active PostgreSQL database and Java containers inevitably triggers Linux kernel Out-Of-Memory (OOM) killer terminations.
 
 ### 3.2 Dual-Compose Registry Architecture
 To guarantee that the VPS never performs local compilation, the configuration has been divided:

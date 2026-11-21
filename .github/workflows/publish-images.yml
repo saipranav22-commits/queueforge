@@ -43,6 +43,12 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Validate Branch Restriction for Publishing
+        if: ${{ inputs.push_images == true && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "ERROR: Publishing container images to GHCR is strictly restricted to the main branch. Current ref: ${{ github.ref }}"
+          exit 1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

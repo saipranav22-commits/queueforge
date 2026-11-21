@@ -320,6 +320,13 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Verify Presence of Operational VPS Scripts
+        run: |
+          for script in preflight.sh deploy.sh healthcheck.sh backup.sh restore-test.sh seed-demo-data.sh prepare-host.sh; do
+            test -f "deploy/vps/$script" || { echo "Missing script: $script"; exit 1; }
+          done
+          echo "All 7 operational VPS scripts verified present."
+
       - name: Validate Shell Scripts Syntax (bash -n)
         run: |
           for script in deploy/vps/*.sh; do
@@ -339,6 +346,30 @@ jobs:
           docker compose -f docker-compose.prod.v2.yml config --quiet
           echo "Validating GHCR override docker-compose.prod.ghcr.yml..."
           docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml config --quiet
+
+      - name: Assert Topology & Port Isolation via Config Inspection
+        env:
+          DB_PASSWORD: ci_dummy_production_db_password_1234
+          ADMIN_API_KEY: ci_dummy_admin_api_key_12345678901234567890123456789012
+          RECEIVER_SERVICE_KEY: ci_dummy_receiver_key_12345678901234567890123456789012
+          FRONTEND_PORT: 8088
+          IMAGE_TAG: latest
+        run: |
+          python3 -c "
+          import subprocess, json, os
+          env = os.environ.copy()
+          out = subprocess.check_output(['docker', 'compose', '-f', 'docker-compose.prod.v2.yml', '-f', 'docker-compose.prod.ghcr.yml', 'config', '--format', 'json'], env=env)
+          cfg = json.loads(out)
+          services = cfg.get('services', {})
+          assert len(services) == 7, f'Expected 7 services, got {len(services)}'
+          for name, s_cfg in services.items():
+              ports = s_cfg.get('ports', [])
+              if name != 'frontend':
+                  assert len(ports) == 0, f'Service {name} unexpectedly exposes host ports: {ports}'
+              else:
+                  assert len(ports) == 1 and str(ports[0].get('published')) == '8088', f'Frontend ports unexpected: {ports}'
+          print('Verified: Exactly 7 services, zero exposed database/worker ports, frontend on 127.0.0.1:8088.')
+          "
 
       - name: Verify Missing Required Secrets Fail Fast
         run: |

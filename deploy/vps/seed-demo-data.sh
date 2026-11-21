@@ -54,36 +54,39 @@ echo "  ✓ Demo tenants active: NovaPay Global (weight=3) and Starlight Retail 
 echo "[2/4] Submitting sample synthetic workloads with valid job types..."
 for i in {1..4}; do
     curl -s -f -X POST "${API_URL}/api/v1/jobs" \
-        -H "X-Tenant-Key: default" \
+        -H "X-Admin-Key: ${ADMIN_KEY}" \
         -H "Content-Type: application/json" \
         -d "{
             \"jobType\": \"WEBHOOK_DISPATCH\",
             \"priority\": 1,
             \"maxRetries\": 3,
+            \"tenantId\": \"tenant-fintech\",
             \"payload\": {\"demo\": true, \"batch\": $i, \"action\": \"NOTIFY_PARTNER\", \"destination\": \"partner-$i\"}
         }" >/dev/null || true
 done
 
 for i in {1..3}; do
     curl -s -f -X POST "${API_URL}/api/v1/jobs" \
-        -H "X-Tenant-Key: default" \
+        -H "X-Admin-Key: ${ADMIN_KEY}" \
         -H "Content-Type: application/json" \
         -d "{
             \"jobType\": \"GENERATE_REPORT\",
             \"priority\": 2,
             \"maxRetries\": 2,
+            \"tenantId\": \"tenant-fintech\",
             \"payload\": {\"demo\": true, \"reportType\": \"QUARTERLY_SUMMARY\", \"tenant\": \"NovaPay\"}
         }" >/dev/null || true
 done
 
 for i in {1..2}; do
     curl -s -f -X POST "${API_URL}/api/v1/jobs" \
-        -H "X-Tenant-Key: default" \
+        -H "X-Admin-Key: ${ADMIN_KEY}" \
         -H "Content-Type: application/json" \
         -d "{
             \"jobType\": \"DATA_EXPORT\",
             \"priority\": 3,
             \"maxRetries\": 1,
+            \"tenantId\": \"tenant-ecommerce\",
             \"payload\": {\"demo\": true, \"format\": \"PARQUET\", \"records\": 5000}
         }" >/dev/null || true
 done
@@ -112,10 +115,12 @@ echo "  ✓ Outbox event dispatch sweep completed."
 
 # 4. Verify Anonymous Read-Only Demo Access
 echo "[4/4] Verifying anonymous read-only access to demonstration telemetry..."
+DASHBOARD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/api/v1/dashboard/stats")
 DLQ_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/api/v1/admin/dlq")
 OUTBOX_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/api/v1/admin/outbox/stats")
 TENANTS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/api/v1/admin/tenants")
 
+echo "  Anonymous Dashboard stats status: HTTP ${DASHBOARD_STATUS}"
 echo "  Anonymous DLQ summary status:    HTTP ${DLQ_STATUS}"
 echo "  Anonymous Outbox stats status:   HTTP ${OUTBOX_STATUS}"
 echo "  Anonymous Tenants status:        HTTP ${TENANTS_STATUS}"
