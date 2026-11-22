@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { AdminUnlockModal } from '../common/AdminUnlockModal';
 import { CommandPalette } from '../ui/CommandPalette';
+import { ScenarioBanner } from '../common/ScenarioBanner';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,7 +47,8 @@ export const AppLayout: React.FC = () => {
           onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 qf-atmosphere-glow">
+          <ScenarioBanner />
           <Outlet />
         </main>
       </div>

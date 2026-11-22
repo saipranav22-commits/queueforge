@@ -66,8 +66,8 @@ export const TenantQuotaProgress: React.FC<TenantQuotaProgressProps> = ({
             isAtLimit
               ? 'bg-[var(--qf-status-warning)]'
               : isNearLimit
-              ? 'bg-[var(--qf-cyan)]'
-              : 'bg-[var(--qf-amethyst)]'
+              ? 'bg-[var(--qf-status-info)]'
+              : 'bg-[var(--qf-accent-primary)]'
           )}
           style={{ width: `${percentage}%` }}
         />

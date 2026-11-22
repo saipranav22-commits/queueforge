@@ -2,25 +2,25 @@ import { test, expect } from '@playwright/test';
 
 const ADMIN_KEY = process.env.ADMIN_API_KEY || 'qf_v2_release_candidate_admin_key_2026';
 
-test.describe('QueueForge Obsidian Pulse Control Plane E2E Suite', () => {
-  test('Flow 1: Mission Control Overview loads with Obsidian Pulse theme', async ({ page }) => {
+test.describe('QueueForge Control Plane E2E Suite', () => {
+  test('Flow 1: Mission Control Overview loads with theme', async ({ page }) => {
     await page.goto('/');
 
     // Check title / brand header
     await expect(page).toHaveTitle(/QueueForge/i);
-    await expect(page.getByRole('heading', { name: /Mission Control/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /QUEUEFORGE COMMAND|Mission Control/i }).first()).toBeVisible();
 
     // Verify presence of primary KPI cards
-    await expect(page.locator('text=Pending Queue').first()).toBeVisible();
-    await expect(page.locator('text=Active Running').first()).toBeVisible();
-    await expect(page.locator('text=Completed Total').first()).toBeVisible();
+    await expect(page.getByText(/Backlog Queue|Pending Queue/i).first()).toBeVisible();
+    await expect(page.getByText(/Active Leases|Active Running/i).first()).toBeVisible();
+    await expect(page.getByText(/Fleet Health|Completed Total/i).first()).toBeVisible();
   });
 
   test('Flow 2: Admin Unlock Authentication and Double-Submit CSRF Lifecycle', async ({ page }) => {
     await page.goto('/');
 
     // Open unlock modal via header button
-    const unlockBtn = page.getByRole('button', { name: /^Unlock$/i }).first();
+    const unlockBtn = page.locator('[data-testid="header-unlock-button"]').or(page.getByRole('button', { name: /Unlock/i })).first();
     await unlockBtn.click();
 
     const modalTitle = page.locator('#admin-unlock-title');

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ScenarioProvider } from './context/ScenarioContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Route-based code splitting for optimal production bundle performance
@@ -60,7 +61,8 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
+          <ScenarioProvider>
+            <BrowserRouter>
             <Routes>
               <Route path="/" element={<AppLayout />}>
                 <Route
@@ -149,6 +151,7 @@ export const App: React.FC = () => {
               </Route>
             </Routes>
           </BrowserRouter>
+          </ScenarioProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -21,6 +21,7 @@ import {
   useOutboxEventDetail,
 } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
+import { useScenario } from '../context/ScenarioContext';
 import { MetricCard } from '../components/common/MetricCard';
 import { CopyableId } from '../components/ui/CopyableId';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
@@ -82,10 +83,14 @@ const PIPELINE_STAGES = [
 
 export const EventPipelinePage: React.FC = () => {
   const { isAuthenticated, openUnlockModal } = useAuth();
+  const { isScenarioMode, activeScenarioId, scenarioOutboxStats, scenarioOutboxEvents, triggerSimulatedDispatch } = useScenario();
   const dispatchMutation = useManualOutboxDispatch();
+
+  const isAuthOrScenario = isAuthenticated || isScenarioMode;
 
   // Outbox Stats
   const { data: stats, isLoading: statsLoading } = useOutboxStats(isAuthenticated);
+  const effectiveStats = isScenarioMode ? scenarioOutboxStats : stats;
 
   // Manual Dispatch State
   const [batchSize, setBatchSize] = useState<number>(25);
@@ -109,17 +114,37 @@ export const EventPipelinePage: React.FC = () => {
 
   // Outbox Events Data
   const { data: eventsData, isLoading: eventsLoading } = useOutboxEvents(filters, isAuthenticated);
+  const effectiveEvents = isScenarioMode ? {
+    content: scenarioOutboxEvents,
+    page: 0,
+    size: 15,
+    totalElements: scenarioOutboxEvents.length,
+    totalPages: 1,
+    last: true,
+    first: true,
+  } : eventsData;
 
   // Selected Event & Inspector Drawer
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const { data: eventDetail, isLoading: detailLoading } = useOutboxEventDetail(selectedEventId || undefined);
 
   const handleManualDispatchConfirm = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthOrScenario) {
       openUnlockModal();
       return;
     }
     setDispatchConfirmOpen(false);
+
+    if (isScenarioMode) {
+      const res = triggerSimulatedDispatch();
+      setDispatchResult({
+        dispatchedCount: res.dispatched,
+        batchSize,
+        leaseDurationSeconds: 30,
+      });
+      return;
+    }
+
     try {
       const res = await dispatchMutation.mutateAsync({ batchSize });
       setDispatchResult({
@@ -158,7 +183,7 @@ export const EventPipelinePage: React.FC = () => {
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
               Transactional Outbox Event Pipeline
             </h2>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
               AT-LEAST-ONCE
             </span>
             <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)] border border-[var(--color-amethyst-border)]">
@@ -180,7 +205,7 @@ export const EventPipelinePage: React.FC = () => {
                 onClick={() => setBatchSize(size)}
                 className={`px-2 py-0.5 rounded font-mono text-xs transition ${
                   batchSize === size
-                    ? 'bg-[var(--color-cyan)] text-black font-bold'
+                    ? 'bg-[var(--color-action-bg)] text-[var(--color-action-text)] font-semibold'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
@@ -195,7 +220,7 @@ export const EventPipelinePage: React.FC = () => {
               else setDispatchConfirmOpen(true);
             }}
             disabled={dispatchMutation.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[var(--color-cyan)] text-black hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-cyan)]/20 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] disabled:opacity-50"
           >
             <Send className="w-3.5 h-3.5" />
             {dispatchMutation.isPending ? 'Relaying Batch...' : 'Trigger Dispatch'}
@@ -207,28 +232,28 @@ export const EventPipelinePage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Pending Events"
-          value={statsLoading ? '...' : (stats?.pendingCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.pendingCount ?? 0)}
           subtitle="Awaiting dispatcher pickup"
           icon={Clock}
           variant="amber"
         />
         <MetricCard
           title="In-Flight Dispatching"
-          value={statsLoading ? '...' : (stats?.dispatchingCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.dispatchingCount ?? 0)}
           subtitle="Currently leased by dispatchers"
           icon={Radio}
-          variant="cyan"
+          variant="default"
         />
         <MetricCard
           title="Acknowledged Delivered"
-          value={statsLoading ? '...' : (stats?.deliveredCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.deliveredCount ?? 0)}
           subtitle="Verified payment receiver ack"
           icon={ShieldCheck}
           variant="emerald"
         />
         <MetricCard
           title="Dead Letter Events"
-          value={statsLoading ? '...' : (stats?.deadLetterCount ?? 0)}
+          value={statsLoading && !isScenarioMode ? '...' : (effectiveStats?.deadLetterCount ?? 0)}
           subtitle="Retry exhaustion / non-transient"
           icon={AlertTriangle}
           variant="rose"
@@ -237,9 +262,9 @@ export const EventPipelinePage: React.FC = () => {
 
       {/* Dispatch Feedback Banner */}
       {dispatchResult && (
-        <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-cyan-border)] flex items-center justify-between shadow-lg">
+        <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-[var(--color-cyan)]" />
+            <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />
             <div>
               <div className="text-sm font-semibold text-[var(--color-text-primary)]">
                 Outbox Batch Dispatched Successfully
@@ -267,7 +292,7 @@ export const EventPipelinePage: React.FC = () => {
                 End-to-End Business Flow & Idempotent Delivery Pipeline
               </h3>
               {selectedEventId && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-bg-hover)] text-[var(--color-text-primary)] border border-[var(--color-border-subtle)]">
                   INSPECTING: {selectedEventId.substring(0, 8)}...
                 </span>
               )}
@@ -300,8 +325,8 @@ export const EventPipelinePage: React.FC = () => {
               borderColor = 'border-[var(--color-crimson)]';
               bgBadge = 'bg-[var(--color-crimson-bg)] text-[var(--color-crimson)] font-bold';
             } else if (isCurrent) {
-              borderColor = 'border-[var(--color-cyan)] ring-1 ring-[var(--color-cyan)]';
-              bgBadge = 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] font-bold';
+              borderColor = 'border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]';
+              bgBadge = 'bg-[var(--color-bg-interactive)] text-[var(--color-accent)] font-semibold';
             } else if (isCompleted) {
               borderColor = 'border-[var(--color-success-border)]';
               bgBadge = 'bg-[var(--color-success-bg)] text-[var(--color-success)]';
@@ -319,7 +344,7 @@ export const EventPipelinePage: React.FC = () => {
                     </span>
                     {isCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)]" />}
                     {isCurrent && !isDeadLetter && (
-                      <span className="w-2 h-2 rounded-full bg-[var(--color-cyan)] animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
                     )}
                     {isDeadLetter && (
                       <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-crimson)]" />
@@ -339,7 +364,7 @@ export const EventPipelinePage: React.FC = () => {
                     s.tier === 'VERIFIED'
                       ? 'bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)]'
                       : s.tier.includes('ACTIVE')
-                      ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]'
+                      ? 'bg-[var(--color-bg-interactive)] text-[var(--color-accent)] border border-[var(--color-border-subtle)]'
                       : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]'
                   }`}>
                     {s.tier}
@@ -364,9 +389,9 @@ export const EventPipelinePage: React.FC = () => {
                 Search, inspect delivery attempts, view error traces, and audit downstream receiver dispatches
               </p>
             </div>
-            {eventsData && (
+            {effectiveEvents && (
               <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                {eventsData.totalElements} events total
+                {effectiveEvents.totalElements} events total
               </span>
             )}
           </div>
@@ -381,7 +406,7 @@ export const EventPipelinePage: React.FC = () => {
                 placeholder="Search aggregate ID, idempotency key, or UUID..."
                 value={filters.search || ''}
                 onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value, page: 0 }))}
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] font-mono placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-cyan)]"
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] font-mono placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
               />
             </div>
 
@@ -391,7 +416,7 @@ export const EventPipelinePage: React.FC = () => {
               placeholder="Filter Event Type (e.g. ORDER_CREATED)"
               value={filters.eventType || ''}
               onChange={(e) => setFilters((prev) => ({ ...prev, eventType: e.target.value, page: 0 }))}
-              className="w-56 px-3 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] font-mono placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-cyan)]"
+              className="w-56 px-3 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] font-mono placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)]"
             />
 
             {/* Status Pills */}
@@ -402,7 +427,7 @@ export const EventPipelinePage: React.FC = () => {
                   onClick={() => setFilters((prev) => ({ ...prev, status: st, page: 0 }))}
                   className={`px-2.5 py-1 rounded text-[11px] border transition ${
                     filters.status === st
-                      ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border-[var(--color-cyan-border)] font-bold'
+                      ? 'bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-[var(--color-accent)] font-bold'
                       : 'bg-[var(--color-bg-deep)] text-[var(--color-text-muted)] border-[var(--color-border-subtle)] hover:text-[var(--color-text-primary)]'
                   }`}
                 >
@@ -435,29 +460,29 @@ export const EventPipelinePage: React.FC = () => {
                     Loading outbox events...
                   </td>
                 </tr>
-              ) : !isAuthenticated ? (
+              ) : !isAuthOrScenario ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-10 text-center space-y-3 font-sans">
-                    <Lock className="w-6 h-6 text-[var(--color-cyan)] mx-auto opacity-75" />
+                    <Lock className="w-6 h-6 text-[var(--color-accent)] mx-auto opacity-75" />
                     <div className="text-xs text-[var(--color-text-secondary)]">
                       Outbox event telemetry requires authenticated administrator mode.
                     </div>
                     <button
                       onClick={() => openUnlockModal()}
-                      className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[var(--color-cyan)] text-black rounded-lg hover:brightness-110 transition"
+                      className="px-3.5 py-1.5 text-xs font-semibold rounded-lg transition bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)]"
                     >
                       Unlock Admin Mode
                     </button>
                   </td>
                 </tr>
-              ) : eventsData && eventsData.content.length > 0 ? (
-                eventsData.content.map((evt: OutboxEventSummary) => {
+              ) : effectiveEvents && effectiveEvents.content.length > 0 ? (
+                effectiveEvents.content.map((evt: OutboxEventSummary) => {
                   const isSelected = selectedEventId === evt.id;
                   return (
                     <tr
                       key={evt.id}
                       className={`hover:bg-[var(--color-bg-interactive)] transition ${
-                        isSelected ? 'bg-[var(--color-bg-interactive)] border-l-2 border-[var(--color-cyan)]' : ''
+                        isSelected ? 'bg-[var(--color-bg-interactive)] border-l-2 border-[var(--color-accent)]' : ''
                       }`}
                     >
                       <td className="px-5 py-3 font-semibold text-[var(--color-text-primary)]">
@@ -492,7 +517,7 @@ export const EventPipelinePage: React.FC = () => {
                       <td className="px-5 py-3 text-right">
                         <button
                           onClick={() => setSelectedEventId(evt.id)}
-                          className="px-2.5 py-1 text-[11px] font-semibold text-[var(--color-cyan)] bg-[var(--color-cyan-bg)] hover:brightness-110 border border-[var(--color-cyan-border)] rounded transition"
+                          className="px-2.5 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded transition"
                         >
                           Inspect
                         </button>
@@ -548,8 +573,8 @@ export const EventPipelinePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs text-[var(--color-text-secondary)]">
           <div className="p-4 rounded-xl bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] space-y-2">
-            <div className="font-bold text-[var(--color-cyan)] flex items-center gap-2">
-              <Layers className="w-4 h-4" /> 1. At-Least-Once Delivery
+            <div className="font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[var(--color-accent)]" /> 1. At-Least-Once Delivery
             </div>
             <p className="text-[11px] leading-relaxed">
               If an HTTP response drops due to network partition or worker crash after the charge was accepted, the dispatcher lease expires and the event is retried. Network delivery is inherently at-least-once.
@@ -621,13 +646,13 @@ export const EventPipelinePage: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[var(--color-text-muted)]">Order ID:</span>
-                  <span className="text-[var(--color-cyan)] font-mono text-[11px] truncate max-w-[200px]" title={eventDetail.aggregateId}>
+                  <span className="text-[var(--color-accent)] font-mono text-[11px] truncate max-w-[200px]" title={eventDetail.aggregateId}>
                     {eventDetail.aggregateId}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--color-text-muted)]">Event Type:</span>
-                  <span className="text-[var(--color-cyan)] font-bold">{eventDetail.eventType}</span>
+                  <span className="text-[var(--color-text-primary)] font-bold">{eventDetail.eventType}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--color-text-muted)]">Idempotency Key:</span>
@@ -678,7 +703,7 @@ export const EventPipelinePage: React.FC = () => {
             <div className="pt-4 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
               <Link
                 to={`/jobs?search=${encodeURIComponent(eventDetail.idempotencyKey || eventDetail.aggregateId)}`}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-cyan)] hover:underline"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-accent)] hover:underline"
                 title="Search Job Queue by Idempotency Key"
               >
                 Search Job Queue by Idempotency Key <ArrowRight className="w-3.5 h-3.5" />
@@ -714,7 +739,7 @@ export const EventPipelinePage: React.FC = () => {
               </button>
               <button
                 onClick={handleManualDispatchConfirm}
-                className="px-4 py-1.5 font-semibold text-white bg-[var(--color-cyan)] text-black rounded-lg hover:brightness-110 transition shadow-md shadow-[var(--color-cyan)]/20"
+                className="px-4 py-1.5 font-semibold rounded-lg transition bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)]"
               >
                 Confirm Dispatch
               </button>

@@ -1,87 +1,142 @@
 /* ==============================================================================
-   QUEUEFORGE — OBSIDIAN PULSE DESIGN SYSTEM TOKENS
-   Official Theme Specification: Dark (Signature) & Light Modes
+   QUEUEFORGE COMMAND — TITANIUM × EMBER DESIGN SYSTEM TOKENS (PHASE 13F)
+   Precision Engineering Meets Luxury Industrial Instrumentation
+   Dark Base: #0C0D0E (Carbon Black) | #17191B (Graphite) | #292B2D (Titanium)
+   Surface:   #292B2D (Titanium) | #45494D (Machined Steel) | Border: #35383C
+   Accent:    #E66B35 (Ember Orange) | #A94D2C (Burnished Copper) | #C5A16A (Champagne Brass)
+   Light:     #F0EDE5 (Warm Ivory Canvas) | #FFFFFF (White Surfaces) | #17191B (Titanium Ink)
+   Semantics: #65A884 (Success) | #D9A052 (Warning) | #D65D58 (Critical) | #81858A (Unavailable)
    ============================================================================== */
 
 :root {
-  /* Foundations */
-  --qf-obsidian: #08090E;
-  --qf-graphite: #11131B;
-  --qf-surface-elevated: #171922;
-  --qf-surface-interactive: #202330;
-  --qf-surface-hover: #262A3B;
-  --qf-border-subtle: #2A2D3B;
-  --qf-border-strong: #3B4054;
+  /* Foundations — Carbon & Graphite (Dark Theme) */
+  --qf-canvas-primary: #0C0D0E;           /* Carbon Black */
+  --qf-canvas-secondary: #17191B;         /* Deep Graphite */
+  --qf-panel-raised: #1C1E21;             /* Layered Graphite Surface */
+  --qf-panel-elevated: #24272A;           /* Precision Titanium Plate */
+  --qf-surface-interactive: #2D3035;      /* Machined Surface */
+  --qf-surface-hover: #373B40;            /* Surface Hover State */
+  --qf-surface-active: #45494D;           /* Machined Steel Active */
 
-  /* Typography */
-  --qf-text-frost: #F2F4FA;
-  --qf-text-chrome: #BBC3D1;
-  --qf-text-muted: #9099AC;
+  /* Borders & Mechanical Seams */
+  --qf-border-subtle: #24272A;            /* Recessed Panel Seam */
+  --qf-border-standard: #33373B;          /* Machined Steel Border */
+  --qf-border-interactive: #4A4F55;       /* Calibrated Component Rim */
+  --qf-border-strong: #61676E;            /* High-Contrast Bezel Edge */
+  --qf-border-brass: #C5A16A;             /* Champagne Brass Rule */
+  --qf-border-ember: #E66B35;             /* Ember Focus Rim */
 
-  /* Brand Colors */
-  --qf-amethyst: #9B70F5;
-  --qf-amethyst-hover: #AE8AFF;
-  --qf-amethyst-subtle: rgba(155, 112, 245, 0.12);
-  --qf-amethyst-border: rgba(155, 112, 245, 0.32);
+  /* Typography — Dark Theme */
+  --qf-text-primary: #F0EDE5;             /* Warm Ivory - High Contrast */
+  --qf-text-secondary: #C8C7C3;           /* Polished Silver - Body */
+  --qf-text-muted: #8E9297;               /* Muted Steel - Engineering Spec */
+  --qf-text-dim: #60646A;                 /* Recessed Captions & Ticks */
 
-  /* Operational Accent */
-  --qf-cyan: #35D8F5;
-  --qf-cyan-subtle: rgba(53, 216, 245, 0.12);
-  --qf-cyan-border: rgba(53, 216, 245, 0.32);
+  /* Primary Brand Action — Ember */
+  --qf-action-primary: #E66B35;           /* Ember Orange */
+  --qf-action-primary-text: #FFFFFF;      /* High-Contrast Crisp White */
+  --qf-action-primary-hover: #F27C47;     /* High-Heat Ember Hover */
+  --qf-action-primary-active: #D45A24;    /* Burnished Ember Active */
 
-  /* Semantic Colors */
-  --qf-status-success: #47D6AD;
-  --qf-status-success-subtle: rgba(71, 214, 173, 0.12);
-  --qf-status-success-border: rgba(71, 214, 173, 0.32);
+  /* Luxury Industrial Accents */
+  --qf-accent-ember: #E66B35;             /* Ember Orange */
+  --qf-accent-copper: #A94D2C;            /* Burnished Copper */
+  --qf-accent-brass: #C5A16A;             /* Champagne Brass */
+  --qf-accent-steel: #81858A;             /* Machined Steel */
 
-  --qf-status-active: #35D8F5;
-  --qf-status-active-subtle: rgba(53, 216, 245, 0.12);
-  --qf-status-active-border: rgba(53, 216, 245, 0.32);
+  --qf-accent-ember-subtle: rgba(230, 107, 53, 0.12);
+  --qf-accent-ember-border: rgba(230, 107, 53, 0.32);
+  --qf-accent-brass-subtle: rgba(197, 161, 106, 0.12);
+  --qf-accent-brass-border: rgba(197, 161, 106, 0.30);
+  --qf-accent-copper-subtle: rgba(169, 77, 44, 0.15);
+  --qf-accent-copper-border: rgba(169, 77, 44, 0.35);
 
-  --qf-status-warning: #F4B860;
-  --qf-status-warning-subtle: rgba(244, 184, 96, 0.12);
-  --qf-status-warning-border: rgba(244, 184, 96, 0.32);
+  /* Calibrated Semantic Status */
+  --qf-status-critical: #D65D58;          /* Precision Critical Red */
+  --qf-status-critical-subtle: rgba(214, 93, 88, 0.14);
+  --qf-status-critical-border: rgba(214, 93, 88, 0.35);
 
-  /* Laser Crimson: Strictly reserved for failures, incidents, and destructive actions */
-  --qf-status-critical: #F04455;
-  --qf-status-critical-subtle: rgba(240, 68, 85, 0.12);
-  --qf-status-critical-border: rgba(240, 68, 85, 0.35);
+  --qf-status-warning: #D9A052;           /* Calibrated Amber */
+  --qf-status-warning-subtle: rgba(217, 160, 82, 0.14);
+  --qf-status-warning-border: rgba(217, 160, 82, 0.35);
 
-  /* Surface Mappings (Dark Mode Signature) */
-  --bg-app: var(--qf-obsidian);
-  --bg-sidebar: var(--qf-graphite);
-  --bg-header: rgba(17, 19, 27, 0.85);
-  --bg-card: var(--qf-surface-elevated);
+  --qf-status-success: #65A884;           /* Precision Instrument Green */
+  --qf-status-success-subtle: rgba(101, 168, 132, 0.14);
+  --qf-status-success-border: rgba(101, 168, 132, 0.35);
+
+  --qf-status-info: #C5A16A;              /* Champagne Brass Indicator */
+  --qf-status-info-subtle: rgba(197, 161, 106, 0.14);
+  --qf-status-info-border: rgba(197, 161, 106, 0.35);
+
+  --qf-status-unavailable: #81858A;       /* Unavailable Steel */
+
+  /* Compatibility & Semantic Aliases (Dark) */
+  --bg-app: var(--qf-canvas-primary);
+  --bg-sidebar: var(--qf-canvas-secondary);
+  --bg-header: rgba(12, 13, 14, 0.94);
+  --bg-card: var(--qf-panel-raised);
   --bg-card-hover: var(--qf-surface-interactive);
-  --bg-input: #0D0E15;
-  --border-color: var(--qf-border-subtle);
-  --border-color-focus: var(--qf-amethyst);
-  
-  --text-primary: var(--qf-text-frost);
-  --text-secondary: var(--qf-text-chrome);
+  --bg-input: #17191B;
+  --border-color: var(--qf-border-standard);
+  --border-color-focus: var(--qf-action-primary);
+
+  --text-primary: var(--qf-text-primary);
+  --text-secondary: var(--qf-text-secondary);
   --text-tertiary: var(--qf-text-muted);
 
-  /* Standardized Color Aliases */
-  --color-bg-base: var(--qf-obsidian);
-  --color-bg-deep: var(--qf-graphite);
-  --color-bg-elevated: var(--qf-surface-elevated);
+  --color-bg-base: var(--qf-canvas-primary);
+  --color-bg-deep: var(--qf-canvas-secondary);
+  --color-bg-elevated: var(--qf-panel-raised);
+  --color-bg-surface: var(--qf-panel-raised);
   --color-bg-interactive: var(--qf-surface-interactive);
   --color-bg-hover: var(--qf-surface-hover);
+  --color-bg-inspector: var(--qf-panel-elevated);
+
   --color-border-subtle: var(--qf-border-subtle);
-  --color-border-interactive: var(--qf-border-strong);
+  --color-border-standard: var(--qf-border-standard);
+  --color-border-interactive: var(--qf-border-interactive);
+  --color-border-strong: var(--qf-border-strong);
+  --color-border-brass: var(--qf-border-brass);
 
-  --color-text-primary: var(--qf-text-frost);
-  --color-text-secondary: var(--qf-text-chrome);
+  --color-text-primary: var(--qf-text-primary);
+  --color-text-secondary: var(--qf-text-secondary);
   --color-text-muted: var(--qf-text-muted);
+  --color-text-dim: var(--qf-text-dim);
 
-  --color-amethyst: var(--qf-amethyst);
-  --color-amethyst-bg: var(--qf-amethyst-subtle);
-  --color-amethyst-border: var(--qf-amethyst-border);
+  /* Primary Action */
+  --color-action-bg: var(--qf-action-primary);
+  --color-action-text: var(--qf-action-primary-text);
+  --color-action-hover: var(--qf-action-primary-hover);
+  --color-action-active: var(--qf-action-primary-active);
 
-  --color-cyan: var(--qf-cyan);
-  --color-cyan-bg: var(--qf-cyan-subtle);
-  --color-cyan-border: var(--qf-cyan-border);
+  /* Accent (Ember Orange) */
+  --color-accent: var(--qf-accent-ember);
+  --color-accent-bg: var(--qf-accent-ember-subtle);
+  --color-accent-border: var(--qf-accent-ember-border);
+  --color-accent-hover: var(--qf-action-primary-hover);
 
+  /* Mappings to eliminate all purple/violet/cyan/blue */
+  --color-amethyst: var(--qf-accent-ember);
+  --color-amethyst-bg: var(--qf-accent-ember-subtle);
+  --color-amethyst-border: var(--qf-accent-ember-border);
+
+  --color-cyan: var(--qf-accent-brass);
+  --color-cyan-bg: var(--qf-accent-brass-subtle);
+  --color-cyan-border: var(--qf-accent-brass-border);
+  --color-cyan-hover: #D4B584;
+  --color-cyan-glow: rgba(197, 161, 106, 0.2);
+
+  --color-blue: var(--qf-accent-brass);
+  --color-blue-icy: var(--qf-accent-brass);
+  --color-coral-rose: var(--qf-status-critical);
+  --color-accent-iris: var(--qf-accent-copper);
+  --color-champagne-gold: var(--qf-accent-brass);
+
+  --color-emerald: var(--qf-status-success);
+  --color-emerald-bg: var(--qf-status-success-subtle);
+  --color-emerald-border: var(--qf-status-success-border);
+
+  /* Semantics */
   --color-success: var(--qf-status-success);
   --color-success-bg: var(--qf-status-success-subtle);
   --color-success-border: var(--qf-status-success-border);
@@ -89,7 +144,6 @@
   --color-warning: var(--qf-status-warning);
   --color-warning-bg: var(--qf-status-warning-subtle);
   --color-warning-border: var(--qf-status-warning-border);
-
   --color-amber: var(--qf-status-warning);
   --color-amber-bg: var(--qf-status-warning-subtle);
   --color-amber-border: var(--qf-status-warning-border);
@@ -97,119 +151,195 @@
   --color-danger: var(--qf-status-critical);
   --color-danger-bg: var(--qf-status-critical-subtle);
   --color-danger-border: var(--qf-status-critical-border);
-
   --color-crimson: var(--qf-status-critical);
   --color-crimson-bg: var(--qf-status-critical-subtle);
   --color-crimson-border: var(--qf-status-critical-border);
 
-  /* Shadows */
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
-  --shadow-elevated: 0 10px 30px -4px rgba(0, 0, 0, 0.65);
-  --shadow-amethyst: 0 0 16px -2px rgba(155, 112, 245, 0.25);
-  --shadow-cyan: 0 0 16px -2px rgba(53, 216, 245, 0.25);
+  --color-unavailable: var(--qf-status-unavailable);
+
+  /* Legacy qf- tokens (mapped to Titanium/Ember) */
+  --qf-obsidian: var(--qf-canvas-primary);
+  --qf-graphite: var(--qf-canvas-secondary);
+  --qf-surface-elevated: var(--qf-panel-elevated);
+  --qf-text-frost: var(--qf-text-primary);
+  --qf-text-silver: var(--qf-text-secondary);
+  --qf-text-chrome: var(--qf-text-muted);
+  --qf-cyan: var(--qf-accent-brass);
+  --qf-cyan-subtle: var(--qf-accent-brass-subtle);
+  --qf-cyan-border: var(--qf-accent-brass-border);
+  --qf-cyan-glow: rgba(197, 161, 106, 0.15);
+  --qf-amethyst: var(--qf-accent-ember);
+  --qf-amethyst-subtle: var(--qf-accent-ember-subtle);
+  --qf-amethyst-border: var(--qf-accent-ember-border);
+  --qf-amethyst-hover: var(--qf-action-primary-hover);
 }
 
+/* ==============================================================================
+   LIGHT THEME: WARM IVORY & TITANIUM
+   Warm Ivory Base: #F0EDE5 | Surfaces: #FFFFFF | Text: #17191B
+   Separators: #D8CFBC | Accents: #E66B35 (Ember) & #C5A16A (Brass)
+   ============================================================================== */
+
+:root[data-theme="light"],
 [data-theme="light"] {
-  /* Foundations (Professionally Tailored Light Mode) */
-  --qf-obsidian: #F5F7FB;
-  --qf-graphite: #FFFFFF;
-  --qf-surface-elevated: #FFFFFF;
-  --qf-surface-interactive: #F0F2F8;
-  --qf-surface-hover: #E8EBF4;
-  --qf-border-subtle: #D8DEEC;
-  --qf-border-strong: #B8C2D8;
+  --qf-canvas-primary: #F0EDE5;           /* Warm Ivory Canvas */
+  --qf-canvas-secondary: #E7E3D8;         /* Subtly Deepened Ivory */
+  --qf-panel-raised: #FFFFFF;             /* Crisp Premium White */
+  --qf-panel-elevated: #F9F7F2;           /* Tactile Ivory Plate */
+  --qf-surface-interactive: #EFECE3;      /* Interactive Selection */
+  --qf-surface-hover: #E5E1D5;            /* Hover Surface */
+  --qf-surface-active: #DDD8CA;           /* Pressed State */
 
-  /* Typography */
-  --qf-text-frost: #0B0E17;
-  --qf-text-chrome: #364052;
-  --qf-text-muted: #64748B;
+  --qf-border-subtle: #E2DDD0;            /* Soft Ivory Boundary */
+  --qf-border-standard: #D3CCC0;          /* Warm Titanium Border */
+  --qf-border-interactive: #B8B0A2;       /* Defined Edge */
+  --qf-border-strong: #9C9486;            /* High-Contrast Frame */
+  --qf-border-brass: #B38E54;             /* Calibrated Brass Rule */
+  --qf-border-ember: #E66B35;             /* Ember Focus Rim */
 
-  /* Brand Colors (Adjusted Contrast for Light Mode) */
-  --qf-amethyst: #7E4EE6;
-  --qf-amethyst-hover: #6C3BD4;
-  --qf-amethyst-subtle: rgba(126, 78, 230, 0.08);
-  --qf-amethyst-border: rgba(126, 78, 230, 0.28);
+  /* Typography — Light Theme */
+  --qf-text-primary: #17191B;             /* Deep Titanium Ink */
+  --qf-text-secondary: #45494D;           /* Machined Steel Body */
+  --qf-text-muted: #72777E;               /* Technical Metadata */
+  --qf-text-dim: #9C9EA3;                 /* Secondary Ticks */
 
-  /* Operational Accent */
-  --qf-cyan: #0796B4;
-  --qf-cyan-subtle: rgba(7, 150, 180, 0.08);
-  --qf-cyan-border: rgba(7, 150, 180, 0.28);
+  /* Primary Action */
+  --qf-action-primary: #E66B35;           /* Ember Orange */
+  --qf-action-primary-text: #FFFFFF;      /* High-Contrast White */
+  --qf-action-primary-hover: #D45A24;     /* Deepened Ember */
+  --qf-action-primary-active: #B84B1B;    /* Burnished Ember */
 
-  /* Semantic Colors */
-  --qf-status-success: #16A374;
-  --qf-status-success-subtle: rgba(22, 163, 116, 0.08);
-  --qf-status-success-border: rgba(22, 163, 116, 0.25);
+  /* Accents */
+  --qf-accent-ember: #E66B35;
+  --qf-accent-copper: #A94D2C;
+  --qf-accent-brass: #B38E54;
+  --qf-accent-steel: #5E636A;
 
-  --qf-status-active: #0796B4;
-  --qf-status-active-subtle: rgba(7, 150, 180, 0.08);
-  --qf-status-active-border: rgba(7, 150, 180, 0.28);
+  --qf-accent-ember-subtle: rgba(230, 107, 53, 0.10);
+  --qf-accent-ember-border: rgba(230, 107, 53, 0.28);
+  --qf-accent-brass-subtle: rgba(179, 142, 84, 0.12);
+  --qf-accent-brass-border: rgba(179, 142, 84, 0.28);
+  --qf-accent-copper-subtle: rgba(169, 77, 44, 0.12);
+  --qf-accent-copper-border: rgba(169, 77, 44, 0.28);
 
-  --qf-status-warning: #D98218;
-  --qf-status-warning-subtle: rgba(217, 130, 24, 0.08);
-  --qf-status-warning-border: rgba(217, 130, 24, 0.25);
+  /* Semantics */
+  --qf-status-critical: #C94843;          /* Refined Red */
+  --qf-status-critical-subtle: rgba(201, 72, 67, 0.10);
+  --qf-status-critical-border: rgba(201, 72, 67, 0.28);
 
-  --qf-status-critical: #E02B3D;
-  --qf-status-critical-subtle: rgba(224, 43, 61, 0.08);
-  --qf-status-critical-border: rgba(224, 43, 61, 0.30);
+  --qf-status-warning: #C28734;           /* Warm Amber */
+  --qf-status-warning-subtle: rgba(194, 135, 52, 0.10);
+  --qf-status-warning-border: rgba(194, 135, 52, 0.28);
 
-  /* Surface Mappings */
-  --bg-app: #F5F7FB;
-  --bg-sidebar: #FFFFFF;
-  --bg-header: rgba(255, 255, 255, 0.90);
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #F8FAFD;
+  --qf-status-success: #448965;           /* Deep Instrument Green */
+  --qf-status-success-subtle: rgba(68, 137, 101, 0.10);
+  --qf-status-success-border: rgba(68, 137, 101, 0.28);
+
+  --qf-status-info: #B38E54;
+  --qf-status-info-subtle: rgba(179, 142, 84, 0.10);
+  --qf-status-info-border: rgba(179, 142, 84, 0.28);
+
+  --qf-status-unavailable: #8E9297;
+
+  /* Surface & Component Mappings (Light) */
+  --bg-app: var(--qf-canvas-primary);
+  --bg-sidebar: var(--qf-canvas-secondary);
+  --bg-header: rgba(240, 237, 229, 0.94);
+  --bg-card: var(--qf-panel-raised);
+  --bg-card-hover: var(--qf-surface-interactive);
   --bg-input: #FFFFFF;
-  --border-color: #D8DEEC;
-  --border-color-focus: #7E4EE6;
-  
-  --text-primary: #0B0E17;
-  --text-secondary: #364052;
-  --text-tertiary: #64748B;
+  --border-color: var(--qf-border-standard);
+  --border-color-focus: var(--qf-action-primary);
 
-  /* Standardized Color Aliases (Light) */
-  --color-bg-base: #F5F7FB;
-  --color-bg-deep: #FFFFFF;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-interactive: #F0F2F8;
-  --color-bg-hover: #E8EBF4;
-  --color-border-subtle: #D8DEEC;
-  --color-border-interactive: #B8C2D8;
+  --text-primary: var(--qf-text-primary);
+  --text-secondary: var(--qf-text-secondary);
+  --text-tertiary: var(--qf-text-muted);
 
-  --color-text-primary: #0B0E17;
-  --color-text-secondary: #364052;
-  --color-text-muted: #64748B;
+  --color-bg-base: var(--qf-canvas-primary);
+  --color-bg-deep: var(--qf-canvas-secondary);
+  --color-bg-elevated: var(--qf-panel-raised);
+  --color-bg-surface: var(--qf-panel-raised);
+  --color-bg-interactive: var(--qf-surface-interactive);
+  --color-bg-hover: var(--qf-surface-hover);
+  --color-bg-inspector: var(--qf-panel-elevated);
 
-  --color-amethyst: #7E4EE6;
-  --color-amethyst-bg: rgba(126, 78, 230, 0.08);
-  --color-amethyst-border: rgba(126, 78, 230, 0.28);
+  --color-border-subtle: var(--qf-border-subtle);
+  --color-border-standard: var(--qf-border-standard);
+  --color-border-interactive: var(--qf-border-interactive);
+  --color-border-strong: var(--qf-border-strong);
+  --color-border-brass: var(--qf-border-brass);
 
-  --color-cyan: #0796B4;
-  --color-cyan-bg: rgba(7, 150, 180, 0.08);
-  --color-cyan-border: rgba(7, 150, 180, 0.28);
+  --color-text-primary: var(--qf-text-primary);
+  --color-text-secondary: var(--qf-text-secondary);
+  --color-text-muted: var(--qf-text-muted);
+  --color-text-dim: var(--qf-text-dim);
 
-  --color-success: #16A374;
-  --color-success-bg: rgba(22, 163, 116, 0.08);
-  --color-success-border: rgba(22, 163, 116, 0.25);
+  /* Primary Action */
+  --color-action-bg: var(--qf-action-primary);
+  --color-action-text: var(--qf-action-primary-text);
+  --color-action-hover: var(--qf-action-primary-hover);
+  --color-action-active: var(--qf-action-primary-active);
 
-  --color-warning: #D98218;
-  --color-warning-bg: rgba(217, 130, 24, 0.08);
-  --color-warning-border: rgba(217, 130, 24, 0.25);
+  /* Accent */
+  --color-accent: var(--qf-accent-ember);
+  --color-accent-bg: var(--qf-accent-ember-subtle);
+  --color-accent-border: var(--qf-accent-ember-border);
+  --color-accent-hover: var(--qf-action-primary-hover);
 
-  --color-amber: #D98218;
-  --color-amber-bg: rgba(217, 130, 24, 0.08);
-  --color-amber-border: rgba(217, 130, 24, 0.25);
+  --color-amethyst: var(--qf-accent-ember);
+  --color-amethyst-bg: var(--qf-accent-ember-subtle);
+  --color-amethyst-border: var(--qf-accent-ember-border);
 
-  --color-danger: #E02B3D;
-  --color-danger-bg: rgba(224, 43, 61, 0.08);
-  --color-danger-border: rgba(224, 43, 61, 0.30);
+  --color-cyan: var(--qf-accent-brass);
+  --color-cyan-bg: var(--qf-accent-brass-subtle);
+  --color-cyan-border: var(--qf-accent-brass-border);
+  --color-cyan-hover: #A07D45;
+  --color-cyan-glow: rgba(179, 142, 84, 0.15);
 
-  --color-crimson: #E02B3D;
-  --color-crimson-bg: rgba(224, 43, 61, 0.08);
-  --color-crimson-border: rgba(224, 43, 61, 0.30);
+  --color-blue: var(--qf-accent-brass);
+  --color-blue-icy: var(--qf-accent-brass);
+  --color-coral-rose: var(--qf-status-critical);
+  --color-accent-iris: var(--qf-accent-copper);
+  --color-champagne-gold: var(--qf-accent-brass);
 
-  /* Shadows */
-  --shadow-card: 0 2px 10px -2px rgba(15, 23, 42, 0.06);
-  --shadow-elevated: 0 10px 25px -4px rgba(15, 23, 42, 0.10);
-  --shadow-amethyst: 0 0 12px -2px rgba(126, 78, 230, 0.20);
-  --shadow-cyan: 0 0 12px -2px rgba(7, 150, 180, 0.20);
+  --color-emerald: var(--qf-status-success);
+  --color-emerald-bg: var(--qf-status-success-subtle);
+  --color-emerald-border: var(--qf-status-success-border);
+
+  /* Semantics */
+  --color-success: var(--qf-status-success);
+  --color-success-bg: var(--qf-status-success-subtle);
+  --color-success-border: var(--qf-status-success-border);
+
+  --color-warning: var(--qf-status-warning);
+  --color-warning-bg: var(--qf-status-warning-subtle);
+  --color-warning-border: var(--qf-status-warning-border);
+  --color-amber: var(--qf-status-warning);
+  --color-amber-bg: var(--qf-status-warning-subtle);
+  --color-amber-border: var(--qf-status-warning-border);
+
+  --color-danger: var(--qf-status-critical);
+  --color-danger-bg: var(--qf-status-critical-subtle);
+  --color-danger-border: var(--qf-status-critical-border);
+  --color-crimson: var(--qf-status-critical);
+  --color-crimson-bg: var(--qf-status-critical-subtle);
+  --color-crimson-border: var(--qf-status-critical-border);
+
+  --color-unavailable: var(--qf-status-unavailable);
+
+  /* Legacy qf- tokens for light mode */
+  --qf-obsidian: var(--qf-canvas-primary);
+  --qf-graphite: var(--qf-canvas-secondary);
+  --qf-surface-elevated: var(--qf-panel-elevated);
+  --qf-text-frost: var(--qf-text-primary);
+  --qf-text-silver: var(--qf-text-secondary);
+  --qf-text-chrome: var(--qf-text-muted);
+  --qf-cyan: var(--qf-accent-brass);
+  --qf-cyan-subtle: var(--qf-accent-brass-subtle);
+  --qf-cyan-border: var(--qf-accent-brass-border);
+  --qf-cyan-glow: rgba(179, 142, 84, 0.1);
+  --qf-amethyst: var(--qf-accent-ember);
+  --qf-amethyst-subtle: var(--qf-accent-ember-subtle);
+  --qf-amethyst-border: var(--qf-accent-ember-border);
+  --qf-amethyst-hover: var(--qf-action-primary-hover);
 }

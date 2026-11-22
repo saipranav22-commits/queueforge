@@ -35,12 +35,13 @@ describe('Mission Control (OverviewPage)', () => {
     );
 
     // Check title and sections
-    expect(screen.getByText('Mission Control')).toBeInTheDocument();
-    expect(screen.getByText('V2 ACTIVE')).toBeInTheDocument();
-    expect(screen.getByText('Pending Queue')).toBeInTheDocument();
-    expect(screen.getByText('Active Running')).toBeInTheDocument();
-    expect(screen.getByText('Completed Total')).toBeInTheDocument();
-    expect(screen.getByText('Dead-Letter Queue')).toBeInTheDocument();
+    expect(screen.getByText('QUEUEFORGE COMMAND')).toBeInTheDocument();
+    expect(screen.getByText('V2 DISTRIBUTED INTELLIGENCE')).toBeInTheDocument();
+    expect(screen.getByText('Backlog Queue')).toBeInTheDocument();
+    expect(screen.getByText('Active Leases')).toBeInTheDocument();
+    expect(screen.getByText('Fleet Health')).toBeInTheDocument();
+    expect(screen.getByText('Outbox Delivery')).toBeInTheDocument();
+    expect(screen.getByText('Poison DLQ')).toBeInTheDocument();
     expect(screen.getByText('Distributed Worker Fleet')).toBeInTheDocument();
     expect(screen.getByText('Reliability & DLQ')).toBeInTheDocument();
     expect(screen.getByText('FairShare Scheduler')).toBeInTheDocument();

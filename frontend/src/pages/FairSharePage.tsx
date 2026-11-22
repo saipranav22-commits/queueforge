@@ -17,6 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useTenants, useSchedulerConfig, useUpdateTenant } from '../hooks/useQueueForgeData';
 import { useAuth } from '../context/AuthContext';
+import { useScenario } from '../context/ScenarioContext';
 import { TenantQuotaProgress } from '../components/ui/TenantQuotaProgress';
 import { MetricCard } from '../components/common/MetricCard';
 import { CopyableId } from '../components/ui/CopyableId';
@@ -52,8 +53,13 @@ export const FairSharePage: React.FC = () => {
   const { data: tenants, isLoading } = useTenants();
   const { data: schedulerConfig } = useSchedulerConfig();
   const { isAuthenticated, openUnlockModal } = useAuth();
+  const { isScenarioMode, activeScenarioId, scenarioTenants, scenarioSchedulerConfig } = useScenario();
   const queryClient = useQueryClient();
   const updateTenantMutation = useUpdateTenant();
+
+  const effectiveTenants = isScenarioMode ? scenarioTenants : tenants;
+  const effectiveConfig = isScenarioMode ? scenarioSchedulerConfig : schedulerConfig;
+  const isAuthOrScenario = isAuthenticated || isScenarioMode;
 
   // Create Tenant Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -101,7 +107,7 @@ export const FairSharePage: React.FC = () => {
       deficit: 0,
       running: 0,
       completed: 0,
-      color: 'var(--color-cyan)',
+      color: 'var(--color-accent)',
     },
     {
       id: 'tenant-standard-api',
@@ -212,9 +218,9 @@ export const FairSharePage: React.FC = () => {
   };
 
   // Calculations
-  const totalWeight = schedulerConfig?.totalConfiguredWeight ?? (tenants?.reduce((sum, t) => sum + t.weight, 0) ?? 0);
-  const totalConcurrency = schedulerConfig?.totalMaxConcurrency ?? (tenants?.reduce((sum, t) => sum + t.maxConcurrency, 0) ?? 0);
-  const activeTenantsCount = schedulerConfig?.activeTenantsCount ?? (tenants?.filter((t) => t.status === 'ACTIVE').length ?? 0);
+  const totalWeight = effectiveConfig?.totalConfiguredWeight ?? (effectiveTenants?.reduce((sum, t) => sum + t.weight, 0) ?? 0);
+  const totalConcurrency = effectiveConfig?.totalMaxConcurrency ?? (effectiveTenants?.reduce((sum, t) => sum + t.maxConcurrency, 0) ?? 0);
+  const activeTenantsCount = effectiveConfig?.activeTenantsCount ?? (effectiveTenants?.filter((t) => t.status === 'ACTIVE').length ?? 0);
 
   const handleCreateTenant = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +312,7 @@ export const FairSharePage: React.FC = () => {
                 setCreateModalOpen(true);
               }
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-amethyst)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/20"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[var(--qf-action-primary)] hover:bg-[var(--qf-action-primary-hover)] rounded-md transition shadow-md shadow-[rgba(230,107,53,0.3)] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Provision Tenant
@@ -348,7 +354,7 @@ export const FairSharePage: React.FC = () => {
 
       {/* Distinction Notice Strip */}
       <div className="p-3.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] flex items-start gap-3">
-        <Sliders className="w-4 h-4 text-[var(--color-cyan)] shrink-0 mt-0.5" />
+        <Sliders className="w-4 h-4 text-[var(--color-accent)] shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold text-[var(--color-text-primary)]">
             Algorithmic Service Share Semantics:
@@ -378,7 +384,7 @@ export const FairSharePage: React.FC = () => {
           <div className="py-8 text-center text-xs text-[var(--color-text-muted)] font-mono">
             Loading FairShare multi-tenant state...
           </div>
-        ) : !isAuthenticated ? (
+        ) : !isAuthOrScenario ? (
           <div className="py-10 text-center space-y-3">
             <Lock className="w-8 h-8 text-[var(--color-amethyst)] mx-auto opacity-75" />
             <div className="text-xs text-[var(--color-text-secondary)] max-w-sm mx-auto">
@@ -391,9 +397,9 @@ export const FairSharePage: React.FC = () => {
               Unlock Admin Mode
             </button>
           </div>
-        ) : tenants && tenants.length > 0 ? (
+        ) : effectiveTenants && effectiveTenants.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tenants.map((t) => (
+            {effectiveTenants.map((t) => (
               <TenantQuotaProgress
                 key={t.id}
                 tenantId={t.id}
@@ -451,8 +457,8 @@ export const FairSharePage: React.FC = () => {
                     Loading tenants...
                   </td>
                 </tr>
-              ) : tenants && tenants.length > 0 ? (
-                tenants.map((t) => (
+              ) : effectiveTenants && effectiveTenants.length > 0 ? (
+                effectiveTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-[var(--color-bg-interactive)] transition">
                     <td className="px-5 py-3 font-semibold text-[var(--color-text-primary)]">
                       <CopyableId id={t.id} prefixLen={14} />
@@ -465,7 +471,7 @@ export const FairSharePage: React.FC = () => {
                         {t.weight}x
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-[var(--color-cyan)] font-bold">
+                    <td className="px-5 py-3 text-[var(--color-text-primary)] font-semibold">
                       {t.maxConcurrency} slots
                     </td>
                     <td className="px-5 py-3 text-[var(--color-text-secondary)] font-mono">
@@ -491,7 +497,7 @@ export const FairSharePage: React.FC = () => {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           to={`/jobs?tenantId=${encodeURIComponent(t.id)}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--color-cyan)] hover:bg-[var(--color-cyan-bg)] rounded transition"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-bg-interactive)] rounded transition"
                           title="View jobs for this tenant in Job Explorer"
                         >
                           Jobs <ExternalLink className="w-3 h-3" />
@@ -512,7 +518,7 @@ export const FairSharePage: React.FC = () => {
               ) : (
                 <tr>
                   <td colSpan={8} className="px-6 py-8 text-center text-[var(--color-text-muted)] font-sans">
-                    {isAuthenticated
+                    {isAuthOrScenario
                       ? 'No tenants currently registered.'
                       : 'Please unlock Admin Mode to view registered tenants.'}
                   </td>
@@ -543,14 +549,14 @@ export const FairSharePage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleSimStep}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--color-cyan)] text-black rounded-lg hover:brightness-110 transition shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] shadow-sm transition active:scale-95 cursor-pointer"
             >
-              <Play className="w-3.5 h-3.5" />
+              <Play className="w-3.5 h-3.5 fill-current" />
               Simulate Sweep (Round {simRound + 1})
             </button>
             <button
               onClick={handleSimReset}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] rounded-lg transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Reset
@@ -576,7 +582,7 @@ export const FairSharePage: React.FC = () => {
                   <span className="text-xs font-bold text-[var(--color-text-primary)]">
                     {t.name}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-amethyst-bg)] text-[var(--color-amethyst)]">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-accent-bg)] text-[var(--color-accent)]">
                     Weight {t.weight}x
                   </span>
                 </div>
@@ -584,7 +590,7 @@ export const FairSharePage: React.FC = () => {
                 <div className="space-y-1 text-xs font-mono">
                   <div className="flex justify-between text-[var(--color-text-secondary)]">
                     <span>Deficit Credit:</span>
-                    <span className="text-[var(--color-cyan)] font-bold">{t.deficit}</span>
+                    <span className="text-[var(--color-text-primary)] font-bold">{t.deficit}</span>
                   </div>
                   <div className="flex justify-between text-[var(--color-text-secondary)]">
                     <span>Remaining Queue:</span>
@@ -600,7 +606,7 @@ export const FairSharePage: React.FC = () => {
                 <div className="space-y-1">
                   <div className="w-full h-1.5 rounded-full bg-[var(--color-bg-elevated)] overflow-hidden">
                     <div
-                      className="h-full bg-[var(--color-cyan)] transition-all duration-300"
+                      className="h-full bg-[var(--color-accent)] transition-all duration-300"
                       style={{ width: `${pctCompleted}%` }}
                     />
                   </div>
@@ -623,7 +629,7 @@ export const FairSharePage: React.FC = () => {
               {simLogs.map((log, i) => (
                 <div key={i} className="text-[11px] flex items-center gap-2 py-0.5 border-b border-[var(--color-border-subtle)] last:border-0">
                   <span className="text-[var(--color-text-muted)] font-bold">R{log.round}</span>
-                  <span className="text-[var(--color-cyan)] font-semibold">{log.tenantId}:</span>
+                  <span className="text-[var(--color-text-primary)] font-semibold">{log.tenantId}:</span>
                   <span className="text-[var(--color-text-secondary)]">{log.reason}</span>
                 </div>
               ))}
@@ -633,14 +639,14 @@ export const FairSharePage: React.FC = () => {
       </div>
 
       {/* Section 4: Empirical Benchmark Evidence Panel */}
-      <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-6 shadow-lg">
+      <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
                 Empirical Benchmark Evidence: Contention & Starvation Prevention
               </h3>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)] font-medium">
                 VERIFIED LOCAL RUN
               </span>
             </div>

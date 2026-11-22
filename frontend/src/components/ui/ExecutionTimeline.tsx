@@ -52,8 +52,8 @@ export const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({ job }) => 
         {job.scheduledAt &&
           new Date(job.scheduledAt).getTime() > new Date(job.createdAt).getTime() + 1000 && (
             <div className="relative">
-              <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[var(--color-bg-deep)] border-2 border-[var(--color-cyan)] flex items-center justify-center">
-                <Clock className="w-3 h-3 text-[var(--color-cyan)]" />
+              <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[var(--color-bg-deep)] border-2 border-[var(--color-accent)] flex items-center justify-center">
+                <Clock className="w-3 h-3 text-[var(--color-accent)]" />
               </div>
               <div className="p-3.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
                 <div className="flex items-center justify-between">
@@ -83,7 +83,7 @@ export const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({ job }) => 
             ? 'border-[var(--color-warning)]'
             : isDeadLetter
             ? 'border-[var(--color-danger)]'
-            : 'border-[var(--color-cyan)]';
+            : 'border-[var(--color-accent)]';
 
           const iconColor = isSuccess
             ? 'text-[var(--color-success)]'
@@ -91,7 +91,7 @@ export const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({ job }) => 
             ? 'text-[var(--color-warning)]'
             : isDeadLetter
             ? 'text-[var(--color-danger)]'
-            : 'text-[var(--color-cyan)]';
+            : 'text-[var(--color-accent)]';
 
           return (
             <div key={log.id} className="relative">
@@ -153,16 +153,16 @@ export const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({ job }) => 
         {/* Event 4: Currently Running / Claimed Active Lease */}
         {(job.status === 'RUNNING' || job.status === 'CLAIMED') && (
           <div className="relative">
-            <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[var(--color-bg-deep)] border-2 border-[var(--color-cyan)] flex items-center justify-center">
-              <span className="w-2 h-2 rounded-full bg-[var(--color-cyan)] animate-ping" />
+            <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[var(--color-bg-deep)] border-2 border-[var(--color-accent)] flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-ping" />
             </div>
-            <div className="p-3.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-cyan-border)] shadow-sm shadow-[var(--color-cyan)]/10">
+            <div className="p-3.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-accent-border)] shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-[var(--color-cyan)] flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-[var(--color-accent)] flex items-center gap-1.5">
                   <PlayCircle className="w-3.5 h-3.5" />
                   Currently Executing on Worker
                 </span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)]">
                   ACTIVE LEASE
                 </span>
               </div>

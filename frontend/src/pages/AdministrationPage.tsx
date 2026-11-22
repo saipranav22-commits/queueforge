@@ -59,7 +59,7 @@ export const AdministrationPage: React.FC = () => {
           ) : (
             <button
               onClick={() => openUnlockModal()}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-black bg-[var(--color-cyan)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-cyan)]/20"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)]"
             >
               <Unlock className="w-4 h-4" />
               Unlock Admin Mode
@@ -72,7 +72,7 @@ export const AdministrationPage: React.FC = () => {
             className="p-2 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition"
             title="Refresh System Health"
           >
-            <RefreshCw className={`w-4 h-4 ${isHealthFetching ? 'animate-spin text-[var(--color-cyan)]' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isHealthFetching ? 'animate-spin text-[var(--color-accent)]' : ''}`} />
           </button>
         </div>
       </div>
@@ -98,7 +98,7 @@ export const AdministrationPage: React.FC = () => {
           value="DISTRIBUTED V2"
           subtitle={`${onlineWorkers} active worker nodes heartbeating`}
           icon={Server}
-          variant="cyan"
+          variant="default"
         />
         <MetricCard
           title="Managed Tenants"
@@ -171,7 +171,7 @@ export const AdministrationPage: React.FC = () => {
               ) : (
                 <button
                   onClick={() => openUnlockModal()}
-                  className="w-full py-1.5 text-xs font-bold text-black bg-[var(--color-cyan)] rounded hover:brightness-110 transition flex items-center justify-center gap-1.5"
+                  className="w-full py-1.5 text-xs font-semibold text-[var(--color-action-text)] bg-[var(--color-action-bg)] hover:bg-[var(--color-action-hover)] rounded transition flex items-center justify-center gap-1.5"
                 >
                   <Unlock className="w-3.5 h-3.5" /> Unlock Administration
                 </button>
@@ -194,7 +194,7 @@ export const AdministrationPage: React.FC = () => {
           </div>
           <Link
             to="/fairshare"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-cyan)] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-accent)] hover:underline"
           >
             Manage FairShare Weights & Quotas <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -253,14 +253,14 @@ export const AdministrationPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* HikariCP Pool */}
           <div className="p-4 rounded-xl bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] space-y-3 font-mono text-xs">
-            <div className="flex items-center gap-2 text-[var(--color-cyan)] font-bold">
-              <Database className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-[var(--color-text-primary)] font-bold">
+              <Database className="w-4 h-4 text-[var(--color-accent)]" />
               <span>HikariCP Connection Pool</span>
             </div>
             <div className="space-y-2 text-[11px]">
               <div className="flex justify-between py-1 border-b border-[var(--color-border-subtle)]">
                 <span className="text-[var(--color-text-muted)]">Active Connections:</span>
-                <span className="text-[var(--color-cyan)] font-bold">{health?.databasePoolActive ?? 0}</span>
+                <span className="text-[var(--color-accent)] font-bold">{health?.databasePoolActive ?? 0}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--color-border-subtle)]">
                 <span className="text-[var(--color-text-muted)]">Idle Connections:</span>
@@ -333,7 +333,7 @@ export const AdministrationPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
           <div className="p-3.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] space-y-1.5">
             <div className="font-bold text-[var(--color-text-primary)] flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[var(--color-cyan)]" /> Tenant Isolation
+              <ShieldCheck className="w-4 h-4 text-[var(--color-accent)]" /> Tenant Isolation
             </div>
             <p className="text-[11px] text-[var(--color-text-secondary)] font-sans leading-relaxed">
               Requests authenticated via X-Tenant-Key are strictly bounded to their own tenant records in qf_jobs and outbox_events. Cross-tenant leakage yields 403 Forbidden.

@@ -149,7 +149,7 @@ export const JobExplorerPage: React.FC = () => {
             <h2 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
               Job Explorer
             </h2>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border border-[var(--color-cyan-border)]">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
               SERVER PAGINATED
             </span>
           </div>
@@ -174,7 +174,7 @@ export const JobExplorerPage: React.FC = () => {
             disabled={isFetching}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] rounded-lg transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[var(--color-cyan)]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[var(--color-accent)]' : ''}`} />
             Refresh
           </button>
         </div>
@@ -284,7 +284,7 @@ export const JobExplorerPage: React.FC = () => {
                 onClick={() => handlePriorityPreset(p.key as 'all' | 'high' | 'med' | 'low')}
                 className={`px-2 py-0.5 rounded text-[11px] border transition ${
                   p.active
-                    ? 'bg-[var(--color-cyan-bg)] text-[var(--color-cyan)] border-[var(--color-cyan-border)] font-semibold'
+                    ? 'bg-[var(--color-bg-interactive)] text-[var(--color-text-primary)] border-[var(--color-accent)] font-semibold'
                     : 'bg-[var(--color-bg-deep)] text-[var(--color-text-muted)] border-[var(--color-border-subtle)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
@@ -391,7 +391,7 @@ export const JobExplorerPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)]">
                         {job.tenantId ? (
-                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[10px] text-[var(--color-cyan)]">
+                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-[10px] text-[var(--color-accent)] font-mono">
                             {job.tenantId}
                           </span>
                         ) : (
@@ -422,8 +422,8 @@ export const JobExplorerPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)] text-[11px]">
                         {job.lockedBy ? (
-                          <span className="flex items-center gap-1 text-[var(--color-cyan)]">
-                            <Cpu className="w-3 h-3 text-[var(--color-cyan)]" />
+                          <span className="flex items-center gap-1 text-[var(--color-accent)] font-mono">
+                            <Cpu className="w-3 h-3 text-[var(--color-accent)]" />
                             {job.lockedBy.split(':')[0]}
                           </span>
                         ) : (
@@ -553,7 +553,7 @@ export const JobExplorerPage: React.FC = () => {
 
                   <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
                     <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Tenant Partition</span>
-                    <span className="text-[var(--color-cyan)] font-semibold">{drawerJob.tenantId || 'global'}</span>
+                    <span className="text-[var(--color-accent)] font-semibold">{drawerJob.tenantId || 'global'}</span>
                   </div>
 
                   <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
@@ -570,7 +570,7 @@ export const JobExplorerPage: React.FC = () => {
 
                   <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
                     <span className="text-[10px] uppercase text-[var(--color-text-muted)] block">Assigned Worker</span>
-                    <span className="text-[var(--color-cyan)]">{drawerJob.lockedBy || 'None (Idle/Completed)'}</span>
+                    <span className="text-[var(--color-text-primary)]">{drawerJob.lockedBy || 'None (Idle/Completed)'}</span>
                   </div>
 
                   <div className="p-3 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)]">
