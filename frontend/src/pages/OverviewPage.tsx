@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   PlusCircle,
@@ -24,6 +24,8 @@ import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { SystemTopology } from '../components/topology/SystemTopology';
 import { CompactTelemetryRail } from '../components/telemetry/CompactTelemetryRail';
 import { OperatorIntelligence } from '../components/ui/OperatorIntelligence';
+import { PrecisionCommandPrototype } from '../components/prototypes/PrecisionCommandPrototype';
+import { IndustrialCockpitPrototype } from '../components/prototypes/IndustrialCockpitPrototype';
 import { formatDate } from '../lib/formatters';
 import type { JobStatus } from '../types/job';
 
@@ -120,6 +122,45 @@ export const OverviewPage: React.FC = () => {
   const workerCapacity = stats?.workerCapacity ?? (workers ? workers.length : 2);
   const isBackendOnline = provenance === 'LIVE_CONNECTED';
 
+  const [searchParams] = useSearchParams();
+  const proto = searchParams.get('proto');
+
+  if (proto === 'a') {
+    return (
+      <PrecisionCommandPrototype
+        stats={stats}
+        health={health}
+        workers={workers}
+        outboxStats={outboxStats}
+        provenance={provenance}
+        isScenarioMode={isScenarioMode}
+        activeScenario={activeScenario}
+        observations={observations}
+        onCreateTestJob={handleCreateTestJob}
+        createJobPending={createJobMutation.isPending}
+        submitSuccess={submitSuccess}
+      />
+    );
+  }
+
+  if (proto === 'b') {
+    return (
+      <IndustrialCockpitPrototype
+        stats={stats}
+        health={health}
+        workers={workers}
+        outboxStats={outboxStats}
+        provenance={provenance}
+        isScenarioMode={isScenarioMode}
+        activeScenario={activeScenario}
+        observations={observations}
+        onCreateTestJob={handleCreateTestJob}
+        createJobPending={createJobMutation.isPending}
+        submitSuccess={submitSuccess}
+      />
+    );
+  }
+
   // Filter jobs by status
   const displayedJobs = jobs?.content
     ? jobs.content.filter((j: any) => (statusFilter ? j.status === statusFilter : true))
@@ -127,18 +168,21 @@ export const OverviewPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* SECTION 1: QUEUEFORGE COMMAND UNIFIED HEADER */}
-      <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* SECTION 1: QUEUEFORGE COMMAND UNIFIED HEADER — TITANIUM × EMBER */}
+      <div className="rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] p-6 shadow-sm relative overflow-hidden">
+        {/* Subtle Brass Corner Tick */}
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-[var(--qf-accent-brass)] opacity-40 pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-5 border-b border-[var(--color-border-subtle)]">
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
-                QUEUEFORGE COMMAND
-              </h1>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)] font-semibold">
+              <span className="text-[11px] font-mono font-semibold tracking-widest uppercase text-[var(--qf-accent-brass)]">
+                TITANIUM × EMBER :: PRECISION CONTROL
+              </span>
+              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-bg-base)] text-[var(--color-text-secondary)] border border-[var(--color-border-standard)] font-semibold">
                 V2 DISTRIBUTED INTELLIGENCE
               </span>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)] font-medium">
+              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--color-bg-base)] text-[var(--color-text-muted)] border border-[var(--color-border-standard)] font-medium">
                 ACID FENCED
               </span>
               {isSimulated && (
@@ -148,21 +192,24 @@ export const OverviewPage: React.FC = () => {
                 </span>
               )}
             </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[var(--color-text-primary)] mt-2 font-mono">
+              QUEUEFORGE COMMAND
+            </h1>
             <p className="text-xs text-[var(--color-text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
-              Real-time multi-tenant execution cockpit, Deficit Round Robin scheduling, and transactional outbox verification.
+              Precision distributed job-processing control plane. Deficit Round Robin multi-tenant scheduling, 30-second advisory lease fencing, and transactional outbox atomic commits.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="px-3.5 py-1.5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-subtle)] text-xs font-mono">
-              <span className="text-[10px] text-[var(--color-text-muted)] uppercase block">Execution Mode</span>
+            <div className="px-3.5 py-2 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-standard)] text-xs font-mono">
+              <span className="text-[9.5px] text-[var(--color-text-muted)] uppercase block tracking-wider">Execution Mode</span>
               <span
                 className={`font-semibold flex items-center gap-1.5 ${
                   isSimulated
                     ? 'text-[var(--color-warning)]'
                     : isBackendOnline
                     ? 'text-[var(--color-success)]'
-                    : 'text-[var(--color-text-secondary)]'
+                    : 'text-[var(--color-text-dim)]'
                 }`}
               >
                 <Radio
@@ -181,16 +228,16 @@ export const OverviewPage: React.FC = () => {
             <button
               onClick={handleCreateTestJob}
               disabled={!isSimulated && createJobMutation.isPending}
-              className="inline-flex items-center gap-2 h-10 px-4 text-xs font-semibold rounded-lg bg-[var(--color-action-bg)] text-[var(--color-action-text)] hover:bg-[var(--color-action-hover)] transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 h-11 px-5 text-xs font-semibold rounded bg-[var(--qf-action-primary)] text-[var(--qf-action-primary-text)] hover:bg-[var(--qf-action-primary-hover)] transition-all shadow-[0_2px_12px_rgba(230,107,53,0.35)] active:scale-95 disabled:opacity-50 cursor-pointer select-none"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>{createJobMutation.isPending ? 'Ingesting...' : 'Submit Job'}</span>
+              <span>{createJobMutation.isPending ? 'Ingesting...' : 'Ingest Workload'}</span>
             </button>
           </div>
         </div>
 
         {submitSuccess && (
-          <div className="mt-4 p-3 rounded-lg bg-[var(--color-success-bg)] border border-[var(--color-success-border)] text-xs text-[var(--color-success)] flex items-center gap-2 font-mono">
+          <div className="mt-4 p-3 rounded bg-[var(--color-success-bg)] border border-[var(--color-success-border)] text-xs text-[var(--color-success)] flex items-center gap-2 font-mono">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span>{submitSuccess}</span>
           </div>
@@ -217,26 +264,29 @@ export const OverviewPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Core Subsystem Deep Links (7 cols) */}
         <div className="lg:col-span-7 space-y-3">
-          <h2 className="text-xs font-semibold uppercase font-mono tracking-wider text-[var(--color-text-muted)]">
-            Core Distributed Subsystems
-          </h2>
+          <div className="flex items-center justify-between pb-1 border-b border-[var(--color-border-subtle)]">
+            <h2 className="text-[10px] font-semibold uppercase font-mono tracking-widest text-[var(--color-text-muted)]">
+              Core Distributed Subsystems
+            </h2>
+            <span className="text-[9.5px] font-mono text-[var(--qf-accent-brass)]">4 Active Protocols</span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Worker Fleet Card */}
             <Link
               to="/workers"
-              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+              className="p-4 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] flex items-center justify-center text-[var(--color-text-secondary)]">
-                    <Cpu className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-standard)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                    <Cpu className="w-4 h-4 text-[var(--qf-accent-ember)]" />
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-base)] text-[var(--color-text-secondary)] border border-[var(--color-border-standard)]">
                     {activeWorkerCount}/{workerCapacity} Active
                   </span>
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-accent)] transition">
+                <h3 className="text-sm font-semibold font-mono text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-accent)] transition">
                   Distributed Worker Fleet
                 </h3>
                 <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
@@ -252,25 +302,25 @@ export const OverviewPage: React.FC = () => {
             {/* FairShare Card */}
             <Link
               to="/fairshare"
-              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+              className="p-4 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--color-accent-bg)] border border-[var(--color-accent-border)] flex items-center justify-center text-[var(--color-accent)]">
+                  <div className="w-8 h-8 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-standard)] flex items-center justify-center text-[var(--qf-accent-brass)]">
                     <Scale className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-accent-bg)] text-[var(--color-accent)] border border-[var(--color-accent-border)]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--qf-accent-brass-subtle)] text-[var(--qf-accent-brass)] border border-[var(--qf-accent-brass-border)] font-semibold">
                     DRR Engine
                   </span>
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-accent)] transition">
+                <h3 className="text-sm font-semibold font-mono text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--qf-accent-brass)] transition">
                   FairShare Scheduler
                 </h3>
                 <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
                   Deficit Round Robin eliminates quiet-tenant head-of-line blocking under noisy-neighbor contention.
                 </p>
               </div>
-              <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-xs font-medium text-[var(--color-accent)]">
+              <div className="pt-3 mt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-xs font-medium text-[var(--qf-accent-brass)]">
                 <span>Scheduler Studio</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -279,18 +329,18 @@ export const OverviewPage: React.FC = () => {
             {/* Event Pipeline Card */}
             <Link
               to="/pipeline"
-              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+              className="p-4 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-interactive)] border border-[var(--color-border-subtle)] flex items-center justify-center text-[var(--color-text-secondary)]">
-                    <GitBranch className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-standard)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                    <GitBranch className="w-4 h-4 text-[var(--qf-accent-ember)]" />
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-base)] text-[var(--color-text-secondary)] border border-[var(--color-border-standard)]">
                     At-Least-Once
                   </span>
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-accent)] transition">
+                <h3 className="text-sm font-semibold font-mono text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-accent)] transition">
                   Transactional Outbox
                 </h3>
                 <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
@@ -306,18 +356,18 @@ export const OverviewPage: React.FC = () => {
             {/* Reliability & DLQ Card */}
             <Link
               to="/dlq"
-              className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
+              className="p-4 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] hover:border-[var(--color-border-interactive)] transition group flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] flex items-center justify-center text-[var(--color-danger)]">
+                  <div className="w-8 h-8 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-standard)] flex items-center justify-center text-[var(--color-danger)]">
                     <ShieldAlert className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-interactive)] text-[var(--color-text-secondary)] border border-[var(--color-border-subtle)]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-bg-base)] text-[var(--color-text-secondary)] border border-[var(--color-border-standard)]">
                     {stats?.deadLetterJobs ?? 0} Isolated
                   </span>
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-danger)] transition">
+                <h3 className="text-sm font-semibold font-mono text-[var(--color-text-primary)] mt-3 group-hover:text-[var(--color-danger)] transition">
                   Reliability & DLQ
                 </h3>
                 <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
@@ -333,11 +383,11 @@ export const OverviewPage: React.FC = () => {
         </div>
 
         {/* Real Session Trend Observations (5 cols) */}
-        <div className="lg:col-span-5 p-5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] flex flex-col justify-between">
+        <div className="lg:col-span-5 p-5 rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-2 border-b border-[var(--color-border-subtle)]">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[var(--color-text-muted)]" />
+                <Activity className="w-4 h-4 text-[var(--qf-accent-brass)]" />
                 <h3 className="text-xs font-semibold uppercase font-mono tracking-wider text-[var(--color-text-muted)]">
                   Session Observation Buffer
                 </h3>
@@ -360,7 +410,7 @@ export const OverviewPage: React.FC = () => {
                 {observations.slice(-5).map((obs, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2 rounded bg-[var(--color-bg-deep)]/70 border border-[var(--color-border-subtle)]"
+                    className="flex items-center justify-between p-2 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]"
                   >
                     <span className="text-[10px] text-[var(--color-text-dim)]">{obs.time}</span>
                     <div className="flex items-center gap-3">
@@ -368,10 +418,10 @@ export const OverviewPage: React.FC = () => {
                         P: <strong className="text-[var(--color-text-primary)]">{obs.pending}</strong>
                       </span>
                       <span className="text-[var(--color-text-muted)]">
-                        R: <strong className="text-[var(--color-amethyst)]">{obs.running}</strong>
+                        R: <strong className="text-[var(--qf-accent-ember)]">{obs.running}</strong>
                       </span>
                       <span className="text-[var(--color-text-muted)]">
-                        C: <strong className="text-[var(--color-emerald)]">{obs.completed}</strong>
+                        C: <strong className="text-[var(--color-success)]">{obs.completed}</strong>
                       </span>
                     </div>
                   </div>

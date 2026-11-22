@@ -230,9 +230,9 @@ export const SystemTopology: React.FC = () => {
   };
 
   return (
-    <div className="rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] shadow-sm overflow-hidden transition-all">
+    <div className="rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] shadow-sm overflow-hidden transition-all">
       {/* Topology Header Bar */}
-      <div className="px-5 py-3.5 border-b border-[var(--color-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--color-bg-deep)]/60">
+      <div className="px-5 py-3.5 border-b border-[var(--color-border-standard)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--color-bg-deep)]">
         <div>
           <div className="flex items-center gap-2.5">
             <h3 className="text-sm font-semibold tracking-tight text-[var(--color-text-primary)]">

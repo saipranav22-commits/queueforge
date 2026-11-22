@@ -65,7 +65,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] p-5 shadow-sm transition-all duration-200 ${
+      className={`relative overflow-hidden rounded-lg bg-[var(--color-bg-deep)] border border-[var(--color-border-standard)] p-5 shadow-sm transition-all duration-200 ${
         styles.topAccent
       } ${onClick ? 'cursor-pointer hover:border-[var(--color-border-interactive)] hover:bg-[var(--color-bg-interactive)]/40' : ''}`}
     >
@@ -73,12 +73,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] font-mono">
           {title}
         </span>
-        <div className={`p-2 rounded-lg border ${styles.icon} transition-colors`}>
+        <div className={`p-2 rounded-md border ${styles.icon} transition-colors`}>
           <Icon className="w-4 h-4" />
         </div>
       </div>
       <div className="mt-3 flex items-baseline justify-between gap-2">
-        <div className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] font-mono tabular-nums">
+        <div className="text-3xl font-extrabold tracking-tight text-[var(--color-text-primary)] font-mono tabular-nums">
           {value}
         </div>
         {trend && (

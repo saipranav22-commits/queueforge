@@ -312,7 +312,7 @@ export const FairSharePage: React.FC = () => {
                 setCreateModalOpen(true);
               }
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-amethyst)] hover:brightness-110 rounded-lg transition shadow-md shadow-[var(--color-amethyst)]/20"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[var(--qf-action-primary)] hover:bg-[var(--qf-action-primary-hover)] rounded-md transition shadow-md shadow-[rgba(230,107,53,0.3)] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Provision Tenant
