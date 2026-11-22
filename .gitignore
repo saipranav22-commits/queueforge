@@ -57,3 +57,10 @@ chaoslab/reports/
 # Video outputs
 video-output/
 *.mp4
+docs/screenshots/cinematic-demo*/
+
+# Test reports
+playwright-report/
+test-results/
+frontend/playwright-report/
+frontend/test-results/

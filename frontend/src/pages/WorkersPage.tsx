@@ -27,6 +27,8 @@ export const WorkersPage: React.FC = () => {
 
   const effectiveFleet = isScenarioMode ? scenarioWorkers : fleet;
   const effectiveHealth = isScenarioMode ? scenarioHealth : health;
+  const effectiveFleetLoading = isScenarioMode ? false : fleetLoading;
+  const effectiveHealthLoading = isScenarioMode ? false : healthLoading;
 
   const handleRefresh = () => {
     refetchHealth();
@@ -34,6 +36,7 @@ export const WorkersPage: React.FC = () => {
   };
 
   const isFleetArray = Array.isArray(effectiveFleet);
+  const totalWorkers = isFleetArray ? effectiveFleet.length : 0;
   const onlineWorkers = isFleetArray ? effectiveFleet.filter((w) => w.status === 'ONLINE').length : 0;
   const staleWorkers = isFleetArray ? effectiveFleet.filter((w) => w.status === 'STALE').length : 0;
   const offlineWorkers = isFleetArray ? effectiveFleet.filter((w) => w.status === 'OFFLINE').length : 0;
@@ -74,28 +77,28 @@ export const WorkersPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Online Nodes"
-          value={fleetLoading ? '...' : `${onlineWorkers} of ${fleet?.length ?? 0}`}
+          value={effectiveFleetLoading ? '...' : `${onlineWorkers} of ${totalWorkers}`}
           subtitle={`${staleWorkers} stale • ${offlineWorkers} offline`}
           icon={Radio}
           variant="emerald"
         />
         <MetricCard
           title="Cluster Concurrency"
-          value={fleetLoading ? '...' : `${totalHeldLeases} / ${totalConcurrency}`}
+          value={effectiveFleetLoading ? '...' : `${totalHeldLeases} / ${totalConcurrency}`}
           subtitle="Held leases / Capacity slots"
           icon={Layers}
           variant="default"
         />
         <MetricCard
           title="PostgreSQL Lease Store"
-          value={healthLoading ? '...' : (health?.dbStatus === 'UP' ? 'CONNECTED' : 'DISCONNECTED')}
-          subtitle={`HikariCP ${health?.databasePoolActive ?? 0}/${health?.databasePoolTotal ?? 10} active connections`}
+          value={effectiveHealthLoading ? '...' : (effectiveHealth?.dbStatus === 'UP' ? 'CONNECTED' : 'DISCONNECTED')}
+          subtitle={`HikariCP ${effectiveHealth?.databasePoolActive ?? 0}/${effectiveHealth?.databasePoolTotal ?? 10} active connections`}
           icon={Database}
-          variant={health?.dbStatus === 'UP' ? 'emerald' : 'rose'}
+          variant={effectiveHealth?.dbStatus === 'UP' ? 'emerald' : 'rose'}
         />
         <MetricCard
           title="Coordinator Uptime"
-          value={healthLoading ? '...' : formatUptime(health?.uptimeSeconds)}
+          value={effectiveHealthLoading ? '...' : formatUptime(effectiveHealth?.uptimeSeconds)}
           subtitle="Continuous backend service"
           icon={Activity}
           variant="amethyst"
@@ -118,7 +121,7 @@ export const WorkersPage: React.FC = () => {
           </div>
         </div>
 
-        {fleetLoading ? (
+        {effectiveFleetLoading ? (
           <div className="p-12 text-center text-xs font-mono text-[var(--color-text-muted)] space-y-2">
             <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[var(--color-amethyst)]" />
             <div>Querying worker instance heartbeats...</div>
@@ -258,13 +261,13 @@ export const WorkersPage: React.FC = () => {
             <div className="flex justify-between items-center py-1 border-b border-[var(--color-border-subtle)]">
               <span className="text-[var(--color-text-secondary)]">Lease Duration</span>
               <span className="text-[var(--color-text-primary)]">
-                {health?.leaseDurationSeconds ?? 10} Seconds
+                {effectiveHealth?.leaseDurationSeconds ?? 10} Seconds
               </span>
             </div>
             <div className="flex justify-between items-center py-1 border-b border-[var(--color-border-subtle)]">
               <span className="text-[var(--color-text-secondary)]">Poll Interval</span>
               <span className="text-[var(--color-text-primary)]">
-                {health?.pollIntervalMs ?? 200} ms
+                {effectiveHealth?.pollIntervalMs ?? 200} ms
               </span>
             </div>
             <div className="flex justify-between items-center py-1">

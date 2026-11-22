@@ -4,15 +4,20 @@
 
 **ACID-Compliant Distributed Task Queue • Multi-Tenant Deficit Round Robin (DRR) Fair Scheduling • Transactional Outbox**
 
-[![CI Pipeline](https://github.com/saipranav22-commits/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474)
-[![Automated Tests](https://img.shields.io/badge/Automated%20Tests-302%20Passing-10b981?logo=checkmarx&logoColor=white)](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474)
+[![CI Pipeline](https://github.com/saipranav22-commits/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/saipranav22-commits/queueforge/actions/runs/45047672809)
+[![Automated Tests](https://img.shields.io/badge/Automated%20Tests-306%20Passing-10b981?logo=checkmarx&logoColor=white)](https://github.com/saipranav22-commits/queueforge/actions/runs/45047672809)
 [![Interactive Demo](https://img.shields.io/badge/Cloudflare%20Pages-Live%20Demo-f97316?logo=cloudflare&logoColor=white)](https://queueforge.pages.dev)
+[![Technical Video](https://img.shields.io/badge/YouTube-Video%20Demo-red?logo=youtube&logoColor=white)](https://youtu.be/KDlS1YI4NR4)
 [![Java 21](https://img.shields.io/badge/Java-21%20LTS-007396?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.8-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![React 19](https://img.shields.io/badge/React-19.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Docker-7%20Services-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+<br/>
+
+**[🌐 Live Interactive Demo](https://queueforge.pages.dev)** &nbsp;•&nbsp; **[🎬 Technical Walkthrough Video (1080p)](https://youtu.be/KDlS1YI4NR4)** &nbsp;•&nbsp; **[📁 Source Code Repository](https://github.com/saipranav22-commits/queueforge)**
 
 </div>
 
@@ -22,8 +27,22 @@
 
 > **QueueForge V2** is an ACID-compliant distributed task queue and outbox processor engineered in **Java 21**, **Spring Boot 3**, **PostgreSQL 16**, and **React 19**. It eliminates external message broker complexity (Kafka/RabbitMQ) and the dual-write hazard by leveraging PostgreSQL `SELECT FOR UPDATE SKIP LOCKED` inside atomic CTEs for contention-free worker claiming, Deficit Round Robin (DRR) multi-tenant scheduling (cutting quiet-tenant latency by **89.8%**), and time-bounded lease fencing to prevent split-brain writes.
 
-👉 **[INTERACTIVE FRONTEND DEMO — https://queueforge.pages.dev](https://queueforge.pages.dev)**  
-*Note: The Cloudflare-hosted frontend uses clearly labeled deterministic demonstration scenarios. The full Java/PostgreSQL processing cluster is verified through automated CI and local container testing, but is not publicly hosted as a live backend.*
+---
+
+## 🎬 Project Demo & Interactive Showcase
+
+<div align="center">
+
+[![QueueForge V2 Technical Walkthrough](https://img.youtube.com/vi/KDlS1YI4NR4/maxresdefault.jpg)](https://youtu.be/KDlS1YI4NR4)
+
+*Click the thumbnail above to watch the full technical walkthrough on YouTube (1080p HD with narration and architecture deep-dive).*
+
+</div>
+
+- **🌐 Public Frontend:** **[https://queueforge.pages.dev](https://queueforge.pages.dev)** — Publicly accessible interactive portfolio demo deployed on Cloudflare Pages.
+- **🎬 Technical Video Walkthrough:** **[https://youtu.be/KDlS1YI4NR4](https://youtu.be/KDlS1YI4NR4)** — Comprehensive 1080p video demonstration walking through cluster architecture, failure modes, and benchmarks.
+- **⚡ Interactive Scenario Explorer:** The Cloudflare-hosted frontend includes an interactive Scenario Explorer executing deterministic, labeled cluster simulations (e.g., worker crash failovers, FairShare DRR queueing under noisy-neighbor contention, and dead-letter queue replays).
+- **🛡️ Distributed Backend:** The Java 21 / Spring Boot 3 / PostgreSQL 16 cluster is verified through 306 automated tests (including JUnit 5 Testcontainers) and 8 Docker smoke verification stages in GitHub Actions CI; it is not publicly deployed to external cloud hosting.
 
 ---
 
@@ -86,7 +105,7 @@ QueueForge features **QueueForge Command**, a high-density operations console en
 5. **Transactional Outbox & Idempotent Consumer:** Guarantees atomic dual-write order persistence and outbox event logging in a single PostgreSQL transaction, dispatched via HTTP to an independent payment receiver microservice with primary-key deduplication and SHA-256 payload fingerprinting.
 6. **Hardened Multi-Tenant & Demo Security:** Dual-mode authentication (constant-time `X-Admin-Key` verification via `MessageDigest.isEqual` and `HttpOnly` session cookies with CSRF defense), SHA-256 tenant key verifiers (Flyway V7), and an allowlisted Public Demo mode.
 7. **Production Micro-Cluster Topology:** Containerized into a decoupled 7-service Docker Compose topology (`sender-db`, `receiver-db`, `api-server`, `worker-1`, `worker-2`, `payment-receiver`, `frontend`) bounded to ~2.4 GB aggregate memory with non-root security.
-8. **100% Green CI Baseline:** Backed by **302 automated tests** (187 backend, 13 receiver, 82 Vitest, 20 Playwright browser tests) and 8 Docker smoke stages passing in GitHub Actions.
+8. **100% Green CI Baseline:** Backed by **306 automated tests** (187 backend, 13 receiver, 86 Vitest, 20 Playwright browser tests) and 8 Docker smoke stages passing in GitHub Actions.
 
 ---
 
@@ -263,18 +282,18 @@ sequenceDiagram
 
 ## 9. Comprehensive Testing & CI Verification
 
-QueueForge V2 is verified by **302 automated tests** and **8 Docker smoke stages**, executed across 7 parallel jobs in GitHub Actions:
+QueueForge V2 is verified by **306 automated tests** and **8 Docker smoke stages**, executed across 7 parallel jobs in GitHub Actions:
 
 | Test Suite | Framework / Tool | Test Count | Key Scenarios Verified |
 | :--- | :--- | :---: | :--- |
 | **Backend Integration** | JUnit 5, SpringBootTest, Testcontainers | **187 tests** | `SKIP LOCKED` claim races, lease expiry fencing, DRR starvation resistance, Flyway V8 heartbeats, multi-tenant quotas, 23 security tests. |
 | **Payment Receiver** | JUnit 5, SpringBootTest, Real PostgreSQL | **13 tests** | Service auth (`X-Service-Key`), durable idempotency replay, payload conflict detection (409), concurrent insert race recovery. |
-| **Frontend Unit/Component** | Vitest, React Testing Library, jsdom | **82 tests** | Admin unlock modal, CSRF token handling, DLQ tables, tenant quota meters, status badges, formatters, array defensive guards. |
+| **Frontend Unit/Component** | Vitest, React Testing Library, jsdom | **86 tests** | Admin unlock modal, CSRF token handling, DLQ tables, tenant quota meters, status badges, formatters, array defensive guards, worker fleet counter ratios. |
 | **Browser End-to-End** | Playwright (Desktop Chrome + Mobile Viewport) | **20 tests** | Mission Control rendering, status filters, execution timeline inspection, mobile navigation, Public Demo protections. |
-| **Automated Test Total** | | **302 Tests** | **100% Pass Rate in Hosted CI** |
+| **Automated Test Total** | | **306 Tests** | **100% Pass Rate in Hosted CI** |
 | **Docker Cluster Smoke** | PowerShell / Bash Smoke Engine | **8 stages** | End-to-end 7-container startup, Nginx reverse proxy ingress, multi-worker discovery, order creation, outbox dispatch. |
 
-**Authoritative CI Reference:** [GitHub Actions Run 45041622474](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474) (7/7 Jobs Green on commit `ab0572a`).
+**Authoritative CI Reference:** [GitHub Actions Run 45047672809](https://github.com/saipranav22-commits/queueforge/actions/runs/45047672809) (7/7 Jobs Green on commit `a352ff0`).
 
 ---
 
@@ -334,8 +353,9 @@ The repository maintains source-verified documentation across architecture, dist
 
 ## 13. Project Status & Portfolio Notice
 
-**Public Showcase:** [https://queueforge.pages.dev](https://queueforge.pages.dev) (Hosted on Cloudflare Pages).  
-**Full-Stack Engine:** Verified in GitHub Actions CI with 302 automated tests and 8 Docker smoke stages. Pre-provisioned for containerized deployment.
+- **Public Interactive Demo:** [https://queueforge.pages.dev](https://queueforge.pages.dev) (Hosted on Cloudflare Pages).
+- **Technical Video Walkthrough:** [https://youtu.be/KDlS1YI4NR4](https://youtu.be/KDlS1YI4NR4) (1080p HD).
+- **Full-Stack Engine:** Verified in GitHub Actions CI with 306 automated tests and 8 Docker smoke stages. Pre-provisioned for containerized deployment.
 
 *QueueForge is an open-source distributed systems and portfolio project created to demonstrate advanced backend engineering, concurrent relational queuing, and multi-tenant scheduling. All payment processing is simulated with synthetic data.*
 
