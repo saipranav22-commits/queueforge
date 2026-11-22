@@ -1,58 +1,59 @@
-# QueueForge V2 — High-Impact Resume Bullets & Experience Statements
+# QueueForge V2 — Recruiter-Ready Resume Bullets & Experience Statements
 
-**Document Identifier:** `QF-PORTFOLIO-RESUME-BULLETS`  
-**Classification:** Career & Interview Portfolio Collateral  
-**Target Roles:** Staff/Senior Backend Engineer, Distributed Systems Engineer, Full-Stack Systems Architect  
-
----
-
-## 1. Top 3 Flagship Resume Bullets (General Backend / Distributed Systems)
-
-```markdown
-• Architected QueueForge V2, an ACID-compliant distributed task queue in Java 21, Spring Boot 3, and PostgreSQL 16; eliminated external message broker operational overhead and dual-write hazards using `SELECT FOR UPDATE SKIP LOCKED` inside atomic CTEs for contention-free worker claiming.
-
-• Designed a multi-tenant Deficit Round Robin (DRR) fair scheduler with cluster-wide concurrency quotas enforced via PostgreSQL row-level locks; benchmarked to reduce quiet-tenant median wait latency by 89.8% (from 11.8s to 1.2s) under asymmetric noisy-neighbor burst workloads.
-
-• Implemented the Transactional Outbox pattern and an independent payment receiver microservice; enforced cross-service at-least-once delivery with durable primary-key deduplication and SHA-256 payload fingerprinting to guarantee idempotent financial processing.
-```
+**Document Identifier:** `QF-PORTFOLIO-RESUME-BULLETS-V2`  
+**Classification:** Career & Technical Recruitment Collateral  
+**Repository:** [github.com/saipranav22-commits/queueforge](https://github.com/saipranav22-commits/queueforge)  
+**Public Demo:** [queueforge.pages.dev](https://queueforge.pages.dev) (Cloudflare Pages Interactive Showcase)  
+**Target Roles:** Java Backend Developer, Full-Stack Software Engineer, Systems Engineer  
+**Verified CI Baseline:** 302 automated tests (187 backend, 13 receiver, 82 Vitest, 20 Playwright) + 8 Docker smoke stages across 7 green GitHub Actions jobs (Run `#45041622474`)
 
 ---
 
-## 2. Role-Tailored Bullet Variations
+## 1. Role-Specific ATS-Optimized Resume Bullets
 
-### A. Senior / Staff Backend Engineer (Distributed Systems Focus)
+### A. Java Backend Developer (Spring Boot 3 / Distributed Systems)
 ```markdown
-• Engineered a multi-instance distributed worker topology in Java 21/Spring Boot 3 using time-bounded PostgreSQL leases and dual fencing tokens (UUID and monotonic version counter), preventing split-brain zombie writes during worker failover.
+• Architected QueueForge V2, an ACID-compliant distributed task queue in Java 21, Spring Boot 3, and PostgreSQL 16; eliminated external message broker infrastructure (Kafka/RabbitMQ) and dual-write hazards using PostgreSQL CTEs and SELECT FOR UPDATE SKIP LOCKED for contention-free concurrent worker claims.
 
-• Implemented an enterprise-grade retry engine featuring exponential backoff with full jitter and an authenticated Dead-Letter Queue (DLQ) operations console with atomic state replay capabilities.
+• Designed a multi-tenant Deficit Round Robin (DRR) fair scheduler with database-enforced concurrency quotas; measured an 89.8% reduction in quiet-tenant median wait latency (11,868 ms to 1,210 ms) under synthetic 1,000-job noisy-neighbor contention with perfect Jain's fairness (1.000) at an observed 21% throughput trade-off (89.65 to 70.62 jobs/s).
 
-• Hardened credential security by migrating tenant API keys to SHA-256 cryptographic verifiers (Flyway V7) and constant-time token comparisons (`MessageDigest.isEqual`), eliminating plaintext secrets from database storage.
+• Implemented the Transactional Outbox pattern with an asynchronous HTTP dispatcher and an independent payment receiver microservice; guaranteed exactly-once processing across network retries using database primary keys and SHA-256 payload deduplication.
+
+• Engineered a fault-tolerant multi-instance worker topology using time-bounded 30-second leases and monotonic fencing tokens (UUID + version counter), preventing split-brain database writes and state corruption from zombie workers.
 ```
 
-### B. Senior Full-Stack Engineer (Java 21 + React 19)
+### B. Full-Stack Software Engineer (Java 21 + Spring Boot + React 19 + TypeScript)
 ```markdown
-• Built Obsidian Pulse, a responsive dark-mode operational control plane using React 19, TypeScript, TanStack Query, and Tailwind CSS; integrated 3-second periodic polling for real-time queue depth, worker heartbeats, and DLQ inspection.
+• Engineered QueueForge Command, a high-density operations control plane with React 19, TypeScript, Vite 6, and Tailwind CSS; built periodic 3-second REST polling with TanStack Query to observe distributed queue depth, active worker heartbeats, and cluster throughput.
 
-• Designed an allowlisted Public Demo security architecture enforcing dual-mode admin authentication (constant-time API key and HttpOnly session cookies with CSRF defense) while masking sensitive payloads and tenant credentials.
+• Deployed an interactive portfolio showcase on Cloudflare Pages featuring deterministic Scenario Explorer simulations (worker crash/recovery, noisy-neighbor contention, outbox retries) with zero backend runtime cost and strict truthful offline indicators.
 
-• Automated end-to-end verification across the entire stack, authoring 187 backend Spring Boot tests, 13 receiver tests, 44 Vitest component tests, and 20 Playwright browser scenarios (100% pass rate in CI).
+• Implemented constant-time administrative authentication using MessageDigest.isEqual to eliminate timing side-channel attacks, paired with response-level payload field masking for unauthorized and public viewers.
+
+• Built an end-to-end multi-service test pipeline containing 187 backend Spring Boot tests, 13 receiver tests, 82 Vitest component tests, and 20 Playwright browser scenarios, achieving 100% pass rates across 302 automated tests in GitHub Actions CI.
 ```
 
-### C. DevOps / SRE / Release Engineer
+### C. Software Development Engineer (SDE / Core Systems & Platform Infrastructure)
 ```markdown
-• Orchestrated a 7-service production Docker Compose topology (two PostgreSQL databases, API gateway, two decoupled workers, receiver microservice, and Nginx reverse proxy) capped at ~2.4 GB aggregate memory.
+• Designed a resilient task retry engine featuring exponential backoff with full jitter to eliminate thundering herd problems, backed by an authenticated Dead-Letter Queue (DLQ) operations console with atomic state replay capabilities.
 
-• Built a multi-stage GitHub Actions CI/CD pipeline executing 264 automated tests, 8 multi-container smoke stages, and automated OCI container image packaging and publishing to GitHub Container Registry (GHCR).
+• Containerized a decoupled 7-service micro-cluster (two PostgreSQL 16 databases, Spring Boot API server, two independent worker nodes, simulated payment receiver, and Nginx reverse proxy) capped at 2.4 GB aggregate RAM across two isolated Docker bridge networks.
+
+• Automated zero-warning multi-stage CI/CD workflows using GitHub Actions, validating pipeline integrity, Docker container packaging, live database migrations (Flyway V1–V8), and headless browser end-to-end flows on every pull request.
 ```
 
 ---
 
-## 3. Metric & Source Mapping Reference Table
+## 2. Technical Evidence & Interview Defensibility Mapping
 
-| Resume Claim | Source Code Reference | Test / Benchmark Evidence | Quantifiable Impact |
+Every resume bullet is directly verifiable in source code, automated test suites, or benchmark artifacts:
+
+| Resume Claim | Source Code Anchor | Verification Artifact / Suite | Interview Defense & Scope Caveats |
 | :--- | :--- | :--- | :--- |
-| **PostgreSQL SKIP LOCKED Queue** | [JobClaimService.java#L85-L107](..\..\backend\src\main\java\com\queueforge\service\JobClaimService.java#L85-L107) | `JobClaimServiceIntegrationTest.java` (11 tests) | Eliminates row lock waiting across concurrent worker JVMs. |
-| **89.8% Quiet-Tenant Latency Cut** | [JobClaimService.java#L130-L277](..\..\backend\src\main\java\com\queueforge\service\JobClaimService.java#L130-L277) | [benchmark-results-fairshare.json](..\benchmark\benchmark-results-fairshare.json) | Quiet tenant p50 wait dropped from 11,868ms to 1,210ms under 1,000-job flood. |
-| **Transactional Outbox & Idempotency** | [OrderService.java](..\..\backend\src\main\java\com\queueforge\outbox\service\OrderService.java) & [PaymentReceiverService.java](..\..\simulated-payment-receiver\src\main\java\com\queueforge\receiver\service\PaymentReceiverService.java) | `TransactionalOutboxIntegrationTest.java` & `PaymentReceiverApplicationTests.java` | Zero dual-write loss; exact duplicate suppression on receiver. |
-| **Lease Fencing & Zombie Defense** | [JobClaimService.java#L358-L386](..\..\backend\src\main\java\com\queueforge\service\JobClaimService.java#L358-L386) | `ChaosLabFaultIntegrationTest.java` | 0 split-brain corruptions when expired worker resumes. |
-| **Automated Test Quality** | CI Pipeline `.github/workflows/ci.yml` | [GitHub Actions Run 44918650943](https://github.com/saipranav22-commits/queueforge/actions/runs/44918650943) | 264 automated tests + 8 smoke stages (100% green). |
+| **`SELECT FOR UPDATE SKIP LOCKED`** | [`JobClaimService.java`](../../backend/src/main/java/com/queueforge/service/JobClaimService.java) | `JobClaimServiceIntegrationTest.java` (11 tests) | Uses PostgreSQL 16 row-level locks that skip locked rows without waiting; supported by composite indexes on `(status, scheduled_at)`. |
+| **89.8% Latency Reduction** | [`JobClaimService.java`](../../backend/src/main/java/com/queueforge/service/JobClaimService.java) | [`benchmark-results-fairshare.json`](../benchmark/benchmark-results-fairshare.json) | **Synthetic benchmark scope:** Measured under 1,080-job flood test (1 noisy tenant flood vs 4 quiet tenants); involves planned 21% throughput trade-off (89.65 -> 70.62 jobs/s) for inter-tenant isolation. |
+| **Transactional Outbox & Idempotency** | [`OrderService.java`](../../backend/src/main/java/com/queueforge/outbox/service/OrderService.java) & [`PaymentReceiverService.java`](../../simulated-payment-receiver/src/main/java/com/queueforge/receiver/service/PaymentReceiverService.java) | `TransactionalOutboxIntegrationTest.java` & `PaymentReceiverApplicationTests.java` | Order and outbox event commit atomically in primary DB; independent receiver enforces DB primary key deduplication; receiver is simulated for hermetic evaluation. |
+| **Lease Fencing & Zombie Defense** | [`JobClaimService.java`](../../backend/src/main/java/com/queueforge/service/JobClaimService.java) | `ChaosLabFaultIntegrationTest.java` | Monotonic `claim_version` incremented on claim/reclaim; expired worker update fails with zero affected rows if lease was stolen. |
+| **Dual-Mode Admin Security & Field Redaction** | [`AdminAuthInterceptor.java`](../../backend/src/main/java/com/queueforge/api/security/AdminAuthInterceptor.java) & [`JobDetailResponse.java`](../../backend/src/main/java/com/queueforge/api/dto/JobDetailResponse.java) | `AdminDemoModeSecurityTest.java` (18 tests) | Constant-time string matching (`MessageDigest.isEqual`) eliminates timing side-channel attacks; sensitive fields redacted in DTOs for unauthorized callers. |
+| **Automated Test Quality** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | [GitHub Actions Run 45041622474](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474) | Exactly 302 automated tests (187 backend, 13 receiver, 82 frontend, 20 Playwright) + 8 Docker smoke stages across 7 CI jobs. |
+| **Low-Memory 7-Service Topology** | [`docker-compose.prod.v2.yml`](../../docker-compose.prod.v2.yml) | `Full-Stack Docker Smoke Test` | Resource limits bounded to ~2.4 GB total memory; published to GHCR; deployable locally or on low-cost VPS instances. |

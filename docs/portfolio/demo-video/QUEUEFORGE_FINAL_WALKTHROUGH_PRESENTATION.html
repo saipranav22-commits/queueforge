@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueueForge V2 — Recruiter-Ready Final Technical Walkthrough Presentation</title>
+  <style>
+    /* Reset & Base System Typography (100% Offline, Zero External CDNs) */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    :root {
+      --bg-dark: #080a0f;
+      --panel-bg: #0f131c;
+      --card-bg: rgba(20, 26, 38, 0.75);
+      --border-color: #21293a;
+      --border-accent: #344158;
+      --ember: #f97316;
+      --ember-glow: rgba(249, 115, 22, 0.28);
+      --brass: #d97706;
+      --brass-glow: rgba(217, 119, 6, 0.25);
+      --titanium: #94a3b8;
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 16:9 Presentation Stage Wrapper */
+    #presentation-stage {
+      width: 100vw;
+      height: 100vh;
+      max-width: 177.78vh; /* 16:9 aspect lock */
+      max-height: 56.25vw;
+      aspect-ratio: 16 / 9;
+      position: relative;
+      background: radial-gradient(circle at 50% 15%, #151a26 0%, #080a0f 80%);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Stage Bar */
+    header.stage-header {
+      height: 60px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(15, 19, 28, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--ember), var(--brass));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 16px;
+      color: #080a0f;
+      box-shadow: 0 0 14px var(--ember-glow);
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .brand-tag {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(249, 115, 22, 0.12);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      color: var(--ember);
+      font-weight: 600;
+    }
+    .demo-tag {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: var(--emerald);
+      font-weight: 600;
+    }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .dots {
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #262f40;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .dot.active {
+      background: var(--ember);
+      box-shadow: 0 0 8px var(--ember-glow);
+      transform: scale(1.2);
+    }
+    .scene-timer {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(20, 26, 38, 0.8);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Main Slide Canvas */
+    main.slide-canvas {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    section.slide {
+      position: absolute;
+      inset: 0;
+      padding: 28px 40px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    section.slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Slide Header */
+    .slide-heading-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .slide-title-group h2 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slide-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    .slide-scene-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      color: var(--ember);
+      font-weight: 600;
+    }
+
+    /* Slide Body Layout */
+    .slide-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.18fr 0.82fr;
+      gap: 24px;
+      min-height: 0;
+    }
+    .visual-pane {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+    .visual-pane img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .info-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    /* Info Cards */
+    .info-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 18px;
+      backdrop-filter: blur(4px);
+    }
+    .info-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .info-card-text {
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .info-card-text strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    .info-card-text code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--ember);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Metric Boxes */
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .metric-box {
+      background: rgba(10, 14, 22, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .metric-box-val {
+      font-size: 20px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      letter-spacing: -0.03em;
+    }
+    .metric-box-lbl {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .highlight-ember { color: var(--ember); }
+    .highlight-brass { color: var(--brass); }
+    .highlight-green { color: var(--emerald); }
+    .highlight-titanium { color: var(--titanium); }
+
+    /* SVG Architecture Visuals */
+    .arch-svg-text {
+      font-family: var(--font-mono);
+      fill: var(--text-main);
+    }
+    .arch-box {
+      fill: rgba(20, 26, 38, 0.85);
+      stroke: var(--border-accent);
+      stroke-width: 1.5px;
+      rx: 8;
+    }
+    .arch-box-core {
+      fill: rgba(30, 20, 10, 0.85);
+      stroke: var(--ember);
+      stroke-width: 1.5px;
+      rx: 8;
+    }
+    .arch-box-db {
+      fill: rgba(10, 30, 20, 0.85);
+      stroke: var(--emerald);
+      stroke-width: 1.5px;
+      rx: 8;
+    }
+
+    /* Bottom Control Bar */
+    footer.stage-footer {
+      height: 52px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-color);
+      background: rgba(15, 19, 28, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .footer-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-accent);
+      background: rgba(30, 41, 59, 0.5);
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: rgba(249, 115, 22, 0.15);
+      border-color: var(--ember);
+      color: #fff;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--ember), var(--brass));
+      border: none;
+      color: #080a0f;
+      font-weight: 700;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 12px var(--ember-glow);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="presentation-stage">
+    <!-- Top Bar -->
+    <header class="stage-header">
+      <div class="brand-group">
+        <div class="logo-badge">QF</div>
+        <div class="brand-title">QueueForge Command</div>
+        <div class="brand-tag">TITANIUM × EMBER</div>
+        <div class="demo-tag">CLOUDFLARE PUBLIC DEMO</div>
+      </div>
+      <div class="header-nav">
+        <div class="dots" id="dots-container"></div>
+        <div class="scene-timer" id="scene-time-label">0:00 – 0:32</div>
+      </div>
+    </header>
+
+    <!-- Slide Canvas -->
+    <main class="slide-canvas">
+
+      <!-- SCENE 1: Product Intro -->
+      <section class="slide active" id="slide-1" data-time="0:00 – 0:32 (32s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>QueueForge Command: ACID-Durable Distributed Task Engine</h2>
+            <div class="slide-subtitle">PostgreSQL 16 Relational Queuing, Worker Fencing & Multi-Tenant Scheduling without External Brokers</div>
+          </div>
+          <div class="slide-scene-tag">Scene 1 • Product Introduction</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <img src="../../screenshots/portfolio/01_mission_control_desktop.png" alt="QueueForge Command Titanium x Ember Interface">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">⚡ Dual-Write Hazard Solved</div>
+              <div class="info-card-text">
+                Traditional message brokers (Kafka/RabbitMQ) introduce operational overhead and the <strong>dual-write hazard</strong>: if database commits succeed but broker publishing fails, tasks are lost. QueueForge turns PostgreSQL 16 into a resilient ACID task engine with zero message broker dependencies.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🖥️ Titanium × Ember Control Plane</div>
+              <div class="info-card-text">
+                • <strong>Public Showcase:</strong> Deployed live on Cloudflare Pages at <code>https://queueforge.pages.dev</code>.<br/>
+                • <strong>Frontend Stack:</strong> React 19, TypeScript, Vite 6, Tailwind CSS, TanStack Query.<br/>
+                • <strong>Truthful Status:</strong> Clearly indicates <code>Live Cluster (Offline)</code> without backend simulation deception.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-ember">Zero Broker</div>
+                <div class="metric-box-lbl">Infrastructure Simplicity</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">100% ACID</div>
+                <div class="metric-box-lbl">Relational Durability</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 2: System Architecture -->
+      <section class="slide" id="slide-2" data-time="0:32 – 1:04 (32s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Decoupled 7-Service Topology & Network Isolation</h2>
+            <div class="slide-subtitle">Two Private Docker Bridge Networks, Zero Host Port Exposure & Sub-2.4 GB Memory Ceiling</div>
+          </div>
+          <div class="slide-scene-tag">Scene 2 • System Architecture</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <img src="../../screenshots/portfolio/02_architecture_topology.png" alt="Signature System Topology Workspace">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">🏗️ Decoupled 7-Container Topology</div>
+              <div class="info-card-text">
+                • <strong>Ingress & API:</strong> Nginx 1.27 Alpine edge reverse proxy and Spring Boot <code>api-server</code> (Java 21).<br/>
+                • <strong>Worker Tier:</strong> Independent <code>worker-1</code> and <code>worker-2</code> running in <code>WORKER_ONLY</code> mode.<br/>
+                • <strong>Persistence:</strong> Primary <code>sender-db</code> and isolated <code>receiver-db</code> (PostgreSQL 16.8) with zero host port exposure.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🔒 Strict Network Boundary Security</div>
+              <div class="info-card-text">
+                Partitioned across two isolated Docker bridge networks (<code>qf-prod-backend-net</code> and <code>qf-prod-receiver-net</code>). Workers interact with the payment receiver over HTTP with service-key headers, strictly bounding memory under <strong>2.4 GB aggregate</strong>.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-brass">7 Services</div>
+                <div class="metric-box-lbl">Decoupled Micro-Cluster</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">Zero Port</div>
+                <div class="metric-box-lbl">PostgreSQL Host Isolation</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 3: Job Processing & Claiming -->
+      <section class="slide" id="slide-3" data-time="1:04 – 1:37 (33s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Distributed Workers & Contention-Free Claiming</h2>
+            <div class="slide-subtitle">PostgreSQL SKIP LOCKED, Cryptographic Monotonic Lease Fencing & Zombie Crash Recovery</div>
+          </div>
+          <div class="slide-scene-tag">Scene 3 • Job Processing</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="flex-direction: column; gap: 8px; padding: 8px;">
+            <img src="../../screenshots/portfolio/03_worker_fleet.png" style="height: 58%; width: 100%; object-fit: contain;" alt="Worker Fleet Telemetry">
+            <img src="../../screenshots/portfolio/06_job_explorer.png" style="height: 40%; width: 100%; object-fit: contain;" alt="Job Explorer Telemetry">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">⚙️ Contention-Free Row Claiming</div>
+              <div class="info-card-text">
+                Concurrent Spring Boot workers query pending jobs using <code>SELECT FOR UPDATE SKIP LOCKED</code> inside atomic Common Table Expressions (CTEs), eliminating row-lock contention and serialization bottlenecks completely.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🛡️ Monotonic Split-Brain Fencing</div>
+              <div class="info-card-text">
+                Every claim establishes a <strong>30-second time-bounded lease</strong> and a monotonic <code>claim_version</code> token. If a worker stalls, the recovery reaper re-queues the expired lease. A returning zombie worker is fenced out, preventing split-brain writes.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-ember">30s Lease</div>
+                <div class="metric-box-lbl">Auto Reaper Sweeper</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">Fenced</div>
+                <div class="metric-box-lbl">Split-Brain Protected</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 4: FairShare DRR Scheduling -->
+      <section class="slide" id="slide-4" data-time="1:37 – 2:09 (32s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>FairShare Multi-Tenant DRR Scheduling Benchmark</h2>
+            <div class="slide-subtitle">Deficit Round Robin Prevents Noisy-Neighbor Starvation Under High Contention</div>
+          </div>
+          <div class="slide-scene-tag">Scene 4 • FairShare Scheduling</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="flex-direction: column; gap: 8px; padding: 8px;">
+            <img src="../../screenshots/portfolio/04_fairshare_drr_scheduler.png" style="height: 52%; width: 100%; object-fit: contain;" alt="FairShare DRR Scheduler Studio">
+            <img src="../../benchmark/fairshare_benchmark_chart.svg" style="height: 46%; width: 100%; object-fit: contain;" alt="Benchmark Latency Reduction Chart">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">📊 Verified Noisy-Neighbor Benchmark</div>
+              <div class="info-card-text">
+                Under a 1,080-job flood test (1 flood tenant @ 1,000 jobs, 4 quiet tenants @ 20 jobs each), FairShare reduced quiet-tenant median queue wait from <strong>11,868 ms down to 1,210 ms</strong>—an <strong>89.8% latency reduction</strong>.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">⚖️ Controlled Fairness Tradeoff</div>
+              <div class="info-card-text">
+                Jain's Fairness Index reached a perfect <strong>1.000</strong>. This fairness carries an observed aggregate throughput tradeoff (89.65 jobs/s FIFO vs 70.62 jobs/s DRR) under heavy contention.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">89.8%</div>
+                <div class="metric-box-lbl">Wait Time Reduction</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-brass">1.000</div>
+                <div class="metric-box-lbl">Jain's Fairness Index</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 5: Transactional Outbox -->
+      <section class="slide" id="slide-5" data-time="2:09 – 2:37 (28s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Atomic Transactional Outbox & Idempotent Delivery</h2>
+            <div class="slide-subtitle">ACID Dual-Write Order Persistence, HTTP Dispatching & SHA-256 Receiver Deduplication</div>
+          </div>
+          <div class="slide-scene-tag">Scene 5 • Transactional Outbox</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <img src="../../screenshots/portfolio/05_transactional_outbox_pipeline.png" alt="Transactional Outbox Event Pipeline">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">📦 Guaranteed Single-Transaction Commit</div>
+              <div class="info-card-text">
+                Domain entities and outbox events commit together in a single PostgreSQL ACID transaction. If database operations fail, no event is published. If network calls fail, the outbox record persists safely for background retry.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🛡️ Exactly-Once Receiver Deduplication</div>
+              <div class="info-card-text">
+                An asynchronous dispatcher polls <code>qf_outbox_events</code> and executes HTTP POSTs with exponential backoff. The downstream receiver enforces inbox deduplication using <strong>SHA-256 payload fingerprints</strong> and primary-key constraints.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-ember">Zero Loss</div>
+                <div class="metric-box-lbl">Outbox Delivery Guarantee</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">SHA-256</div>
+                <div class="metric-box-lbl">Inbox Deduplication Key</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 6: Reliability & DLQ -->
+      <section class="slide" id="slide-6" data-time="2:37 – 3:05 (28s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Dead-Letter Queue, Fault Recovery & Cryptographic Security</h2>
+            <div class="slide-subtitle">Transient Backoff, Permanent Quarantine, Authenticated Replay & Constant-Time Security</div>
+          </div>
+          <div class="slide-scene-tag">Scene 6 • Reliability & Security</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="flex-direction: column; gap: 8px; padding: 8px;">
+            <img src="../../screenshots/portfolio/07_dead_letter_queue.png" style="height: 55%; width: 100%; object-fit: contain;" alt="Dead-Letter Queue Operations">
+            <img src="../../screenshots/portfolio/08_reliability_lab.png" style="height: 43%; width: 100%; object-fit: contain;" alt="Reliability & Chaos Lab">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">⚠️ Intelligent Error Classification</div>
+              <div class="info-card-text">
+                • <strong>Transient Failures:</strong> Socket timeouts and HTTP 503s trigger exponential backoff with full jitter across 3 attempts.<br/>
+                • <strong>Permanent Failures:</strong> 400 Bad Request or malformed payloads bypass retries and route directly to the DLQ.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🔐 Constant-Time Security & Replay</div>
+              <div class="info-card-text">
+                Operators inspect failure stack traces and replay jobs securely. Administrative operations require constant-time key validation (<code>MessageDigest.isEqual</code>) to prevent timing attacks.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-ember">3 Retries</div>
+                <div class="metric-box-lbl">Jittered Backoff</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">Constant-Time</div>
+                <div class="metric-box-lbl">Admin Key Verification</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 7: Public Demo & Verification -->
+      <section class="slide" id="slide-7" data-time="3:05 – 3:45 (40s)">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Public Interactive Demo & 302-Test Automated CI Baseline</h2>
+            <div class="slide-subtitle">Cloudflare Pages Public Showcase, 302 Automated Tests & 8 Docker Smoke Stages</div>
+          </div>
+          <div class="slide-scene-tag">Scene 7 • Public Demo & CI</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="flex-direction: column; gap: 8px; padding: 8px;">
+            <img src="../../screenshots/portfolio/09_monitoring_telemetry.png" style="height: 60%; width: 100%; object-fit: contain;" alt="Monitoring Telemetry">
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 10px 16px; width: 100%; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 12px; font-weight: 700; color: #fff;">✅ GitHub Actions Post-Merge CI: 7 / 7 Jobs Green</span>
+              <span style="font-size: 11px; font-family: var(--font-mono); color: var(--emerald);">Run #45041622474 • 302 Automated Tests</span>
+            </div>
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">🌐 Live Cloudflare Interactive Showcase</div>
+              <div class="info-card-text">
+                Accessible worldwide at <code>https://queueforge.pages.dev</code>. Visitors interact with deterministic architectural simulations (Healthy, Worker Failure, DRR Contention, Outbox Retries) with zero backend overhead.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🧪 302 Verified Automated Tests</div>
+              <div class="info-card-text">
+                • <strong>Backend Integration:</strong> 187 JUnit 5 & Testcontainers tests.<br/>
+                • <strong>Payment Receiver:</strong> 13 Auth & Deduplication tests.<br/>
+                • <strong>Frontend Quality:</strong> 82 Vitest & React Testing Library tests.<br/>
+                • <strong>Browser E2E:</strong> 20 Playwright browser tests + 8 Docker smoke stages.
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-green">302 Tests</div>
+                <div class="metric-box-lbl">100% Passing Suite</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-ember">8 Smoke</div>
+                <div class="metric-box-lbl">Docker Verification Stages</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Stage Bar -->
+    <footer class="stage-footer">
+      <div class="footer-left">
+        <span>Portfolio Technical Walkthrough</span>
+        <span>•</span>
+        <span>Repository: github.com/saipranav22-commits/queueforge</span>
+      </div>
+      <div class="footer-controls">
+        <button class="btn" id="prev-btn">◀ Previous</button>
+        <button class="btn btn-primary" id="next-btn">Next Slide ▶</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const dotsContainer = document.getElementById('dots-container');
+    const sceneTimeLabel = document.getElementById('scene-time-label');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+      dot.title = `Slide ${idx + 1}`;
+      dot.addEventListener('click', () => goToSlide(idx));
+      dotsContainer.appendChild(dot);
+    });
+
+    function updateSlide() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      document.querySelectorAll('.dot').forEach((d, idx) => {
+        d.classList.toggle('active', idx === currentSlide);
+      });
+      sceneTimeLabel.textContent = slides[currentSlide].getAttribute('data-time') || '';
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.textContent = currentSlide === totalSlides - 1 ? 'Finish 🏁' : 'Next Slide ▶';
+    }
+
+    function goToSlide(idx) {
+      if (idx >= 0 && idx < totalSlides) {
+        currentSlide = idx;
+        updateSlide();
+      }
+    }
+
+    prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
+    nextBtn.addEventListener('click', () => goToSlide(currentSlide + 1));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        goToSlide(currentSlide + 1);
+      } else if (e.key === 'ArrowLeft') {
+        goToSlide(currentSlide - 1);
+      }
+    });
+
+    updateSlide();
+  </script>
+</body>
+</html>
