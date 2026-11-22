@@ -38,8 +38,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isMobile = false }) =
   const { data: stats } = useDashboardStats();
   const { data: workers } = useWorkerFleet();
 
-  const activeWorkerCount = workers ? workers.filter(w => w.status === 'ONLINE').length : (stats?.activeWorkers ? Math.round(stats.activeWorkers) : 0);
-  const totalWorkerCapacity = stats?.workerCapacity ?? (workers ? workers.length : 2);
+  const activeWorkerCount = Array.isArray(workers)
+    ? workers.filter(w => w.status === 'ONLINE').length
+    : (stats?.activeWorkers ? Math.round(stats.activeWorkers) : 0);
+  const totalWorkerCapacity = stats?.workerCapacity ?? (Array.isArray(workers) ? workers.length : 2);
 
   const sections: NavSection[] = [
     {

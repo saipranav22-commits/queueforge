@@ -33,11 +33,12 @@ export const WorkersPage: React.FC = () => {
     refetchFleet();
   };
 
-  const onlineWorkers = effectiveFleet?.filter((w) => w.status === 'ONLINE').length ?? 0;
-  const staleWorkers = effectiveFleet?.filter((w) => w.status === 'STALE').length ?? 0;
-  const offlineWorkers = effectiveFleet?.filter((w) => w.status === 'OFFLINE').length ?? 0;
-  const totalConcurrency = effectiveFleet?.reduce((acc, w) => acc + w.concurrency, 0) ?? (effectiveHealth?.workerCapacity ?? 4);
-  const totalHeldLeases = effectiveFleet?.reduce((acc, w) => acc + w.heldLeasesCount, 0) ?? 0;
+  const isFleetArray = Array.isArray(effectiveFleet);
+  const onlineWorkers = isFleetArray ? effectiveFleet.filter((w) => w.status === 'ONLINE').length : 0;
+  const staleWorkers = isFleetArray ? effectiveFleet.filter((w) => w.status === 'STALE').length : 0;
+  const offlineWorkers = isFleetArray ? effectiveFleet.filter((w) => w.status === 'OFFLINE').length : 0;
+  const totalConcurrency = isFleetArray ? effectiveFleet.reduce((acc, w) => acc + w.concurrency, 0) : (effectiveHealth?.workerCapacity ?? 4);
+  const totalHeldLeases = isFleetArray ? effectiveFleet.reduce((acc, w) => acc + w.heldLeasesCount, 0) : 0;
 
   return (
     <div className="space-y-6">

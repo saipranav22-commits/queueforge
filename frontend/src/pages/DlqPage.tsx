@@ -124,7 +124,7 @@ export const DlqPage: React.FC = () => {
 
   // Client-side category filtering fallback if backend query returns unfiltered page
   const filteredJobs = useMemo(() => {
-    if (!dlqContent) return [];
+    if (!Array.isArray(dlqContent)) return [];
     if (!selectedCategory) return dlqContent;
     return dlqContent.filter((j) => j.failureCategory === selectedCategory);
   }, [dlqContent, selectedCategory]);
