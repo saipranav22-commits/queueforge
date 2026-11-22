@@ -4,25 +4,34 @@
 
 **ACID-Compliant Distributed Task Queue • Multi-Tenant Deficit Round Robin (DRR) Fair Scheduling • Transactional Outbox**
 
-[![CI Pipeline](https://github.com/saipranav22-commits/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/saipranav22-commits/queueforge/actions/runs/44918650943)
-[![Automated Tests](https://img.shields.io/badge/Automated%20Tests-264%20Passing-10b981?logo=checkmarx&logoColor=white)](https://github.com/saipranav22-commits/queueforge/actions/runs/44918650943)
+[![CI Pipeline](https://github.com/saipranav22-commits/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474)
+[![Automated Tests](https://img.shields.io/badge/Automated%20Tests-302%20Passing-10b981?logo=checkmarx&logoColor=white)](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474)
+[![Interactive Demo](https://img.shields.io/badge/Cloudflare%20Pages-Live%20Demo-f97316?logo=cloudflare&logoColor=white)](https://queueforge.pages.dev)
 [![Java 21](https://img.shields.io/badge/Java-21%20LTS-007396?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.8-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![React 19](https://img.shields.io/badge/React-19.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Docker-7%20Services-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![GHCR Packages](https://img.shields.io/badge/GHCR-Images%20Published-8b5cf6?logo=github&logoColor=white)](https://github.com/saipranav22-commits/queueforge/actions/runs/44922246314)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 ---
 
+### ⚡ 15-Second Executive Overview
+
+> **QueueForge V2** is an ACID-compliant distributed task queue and outbox processor engineered in **Java 21**, **Spring Boot 3**, **PostgreSQL 16**, and **React 19**. It eliminates external message broker complexity (Kafka/RabbitMQ) and the dual-write hazard by leveraging PostgreSQL `SELECT FOR UPDATE SKIP LOCKED` inside atomic CTEs for contention-free worker claiming, Deficit Round Robin (DRR) multi-tenant scheduling (cutting quiet-tenant latency by **89.8%**), and time-bounded lease fencing to prevent split-brain writes.
+
+👉 **[INTERACTIVE FRONTEND DEMO — https://queueforge.pages.dev](https://queueforge.pages.dev)**  
+*Note: The Cloudflare-hosted frontend uses clearly labeled deterministic demonstration scenarios. The full Java/PostgreSQL processing cluster is verified through automated CI and local container testing, but is not publicly hosted as a live backend.*
+
+---
+
 ## 1. Project Overview & The Engineering Problem
 
-Modern software platforms frequently require reliable asynchronous background processing (such as payment fulfillment, invoice compilation, webhook fan-out, and search index rebuilding).
+Modern software platforms frequently require reliable asynchronous background processing (payment fulfillment, invoice generation, webhook dispatch, and indexing).
 
-Engineers commonly default to external message brokers (such as RabbitMQ, Apache Kafka, or Celery). While effective at massive scale, external brokers introduce significant operational complexity and the notorious **Dual-Write Hazard**:
+Engineers commonly default to external message brokers (such as RabbitMQ, Apache Kafka, or Celery). While effective at massive scale, external brokers introduce significant operational complexity and the **Dual-Write Hazard**:
 - When a business transaction commits in the relational database, a subsequent network write to the message broker can fail.
 - If the broker publish fails or the process crashes mid-flight, the background event is permanently lost, leaving the system in an inconsistent state.
 - Conversely, naive relational queues (`SELECT ... FOR UPDATE`) suffer from catastrophic row-level lock contention, serialization bottlenecks, and deadlocks when concurrent worker threads query the head of the table.
@@ -34,14 +43,14 @@ QueueForge pairs this with an advanced **Deficit Round Robin (DRR)** scheduler t
 
 ---
 
-## 2. Operational Control Plane: Obsidian Pulse
+## 2. Operational Control Plane: Titanium × Ember
 
-QueueForge features **Obsidian Pulse**, a custom operational dashboard engineered with **React 19**, **TypeScript**, **TanStack Query**, and **Tailwind CSS**. It synchronizes with the backend via periodic REST polling (every 3 seconds), visualizing real-time queue depth, active worker heartbeats, tenant concurrency quotas, and dead-lettered tasks.
+QueueForge features **QueueForge Command**, a high-density operations console engineered with **React 19**, **TypeScript**, **Vite 6**, and **Tailwind CSS**. It provides real-time cluster telemetry, active worker heartbeats, tenant concurrency quotas, outbox event streams, and an interactive **Scenario Explorer** for simulating distributed failure modes.
 
 <div align="center">
 
-![QueueForge Obsidian Pulse Mission Control](docs/screenshots/01_overview_dashboard.png)
-*Figure 1: Obsidian Pulse Mission Control Overview — Real-time throughput, active worker fleet, queue depth, and health telemetry.*
+![QueueForge Command Mission Control](docs/screenshots/portfolio/01_mission_control_desktop.png)
+*Figure 1: Mission Control Desktop Overview — Live Cluster (Offline) status, throughput telemetry, and distributed subsystems.*
 
 </div>
 
@@ -49,15 +58,20 @@ QueueForge features **Obsidian Pulse**, a custom operational dashboard engineere
 
 <div align="center">
 
-| Job Explorer & Tenant Attributes | Dead-Letter Queue (DLQ) & Manual Replay |
+| Signature Architecture Topology | Worker Fleet & Fenced Leases |
 | :---: | :---: |
-| ![Job Explorer](docs/screenshots/02_job_explorer.png) | ![Dead-Letter Queue](docs/screenshots/06_dead_letter_queue.png) |
-| *Figure 2: Search, status filtering, and execution metadata.* | *Figure 3: Failure classification and single-click administrative replay.* |
+| ![Architecture Topology](docs/screenshots/portfolio/02_architecture_topology.png) | ![Worker Fleet](docs/screenshots/portfolio/03_worker_fleet.png) |
+| *Figure 2: Interactive 7-service system topology inspector.* | *Figure 3: Multi-worker node heartbeats & lease tracking.* |
 
-| Worker Fleet Heartbeats & Health | Mobile Viewport (Responsive Layout) |
+| FairShare DRR Scheduler Studio | Transactional Outbox Pipeline |
 | :---: | :---: |
-| ![Worker Fleet](docs/screenshots/07_workers_health.png) | ![Mobile Responsive View](docs/screenshots/09_mobile_responsive_view.png) |
-| *Figure 4: Real-time heartbeat tracking across decoupled worker JVMs.* | *Figure 5: Fully responsive dark-mode mobile operations console.* |
+| ![FairShare DRR Scheduler](docs/screenshots/portfolio/04_fairshare_drr_scheduler.png) | ![Transactional Outbox Pipeline](docs/screenshots/portfolio/05_transactional_outbox_pipeline.png) |
+| *Figure 4: Deficit Round-Robin multi-tenant scheduling & quotas.* | *Figure 5: Atomic outbox events, HTTP dispatch & retry streams.* |
+
+| Dead-Letter Queue & Authenticated Replay | Mobile Viewport (Responsive Command) |
+| :---: | :---: |
+| ![Dead-Letter Queue](docs/screenshots/portfolio/07_dead_letter_queue.png) | ![Mobile Viewport](docs/screenshots/portfolio/10_mobile_dashboard.png) |
+| *Figure 6: Failure classification, error stack traces & replay.* | *Figure 7: Responsive smartphone viewport (390×844).* |
 
 </div>
 
@@ -67,12 +81,12 @@ QueueForge features **Obsidian Pulse**, a custom operational dashboard engineere
 
 1. **Contention-Free Relational Queuing:** Eliminates message broker infrastructure and dual-write hazards using PostgreSQL 16's `SELECT FOR UPDATE SKIP LOCKED` inside atomic CTEs for non-blocking concurrent worker claims.
 2. **Deficit Round Robin (DRR) FairShare Scheduler:** Prevents noisy-neighbor batch monopolization by enforcing cluster-wide tenant concurrency quotas (`max_concurrency`) and weighted round-robin quantum allocations.
-3. **Verified 89.8% Latency Reduction:** Measured under a synthetic 1,000-job flood contention benchmark; cut quiet-tenant median wait times from **11.8 seconds down to 1.2 seconds**, raising Jain's Fairness Index to a perfect 1.000.
-4. **Dual-Fenced Lease Ownership:** Protects worker leases using a two-variable fencing token (`claim_token` UUID and monotonic `claim_version`). If a worker hangs past its lease, a background sweeper reclaims the job, and the zombie worker is fenced out upon attempted completion.
+3. **Verified 89.8% Latency Reduction:** Measured under a synthetic 1,080-job flood contention benchmark; cut quiet-tenant median wait times from **11,868 ms down to 1,210 ms**, raising Jain's Fairness Index to **1.000**.
+4. **Dual-Fenced Lease Ownership:** Protects worker leases using a two-variable fencing token (`claim_token` UUID and monotonic `claim_version`). If a worker hangs past its 30s lease, a background sweeper reclaims the job, and the zombie worker is fenced out upon attempted completion.
 5. **Transactional Outbox & Idempotent Consumer:** Guarantees atomic dual-write order persistence and outbox event logging in a single PostgreSQL transaction, dispatched via HTTP to an independent payment receiver microservice with primary-key deduplication and SHA-256 payload fingerprinting.
 6. **Hardened Multi-Tenant & Demo Security:** Dual-mode authentication (constant-time `X-Admin-Key` verification via `MessageDigest.isEqual` and `HttpOnly` session cookies with CSRF defense), SHA-256 tenant key verifiers (Flyway V7), and an allowlisted Public Demo mode.
 7. **Production Micro-Cluster Topology:** Containerized into a decoupled 7-service Docker Compose topology (`sender-db`, `receiver-db`, `api-server`, `worker-1`, `worker-2`, `payment-receiver`, `frontend`) bounded to ~2.4 GB aggregate memory with non-root security.
-8. **100% Green CI Baseline:** Backed by **264 automated tests** (187 backend, 13 receiver, 44 Vitest, 20 Playwright browser tests) and 8 Docker smoke stages passing in GitHub Actions.
+8. **100% Green CI Baseline:** Backed by **302 automated tests** (187 backend, 13 receiver, 82 Vitest, 20 Playwright browser tests) and 8 Docker smoke stages passing in GitHub Actions.
 
 ---
 
@@ -112,10 +126,10 @@ flowchart TD
     Worker2 -.->|HTTP POST /charges<br/>X-Service-Key| PaymentReceiver
     PaymentReceiver -->|JDBC / Isolated Transactions| ReceiverDB
 
-    classDef edge fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
-    classDef service fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
-    classDef storage fill:#1e1e38,stroke:#8b5cf6,stroke-width:2px,color:#f8fafc;
-    classDef receiver fill:#1a202c,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
+    classDef edge fill:#151a26,stroke:#f97316,stroke-width:2px,color:#f8fafc;
+    classDef service fill:#0f131c,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+    classDef storage fill:#181e2b,stroke:#d97706,stroke-width:2px,color:#f8fafc;
+    classDef receiver fill:#1a1c24,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
 
     class NginxProxy edge;
     class ApiServer,Worker1,Worker2 service;
@@ -133,10 +147,10 @@ flowchart TD
 | :--- | :--- | :---: |
 | **Backend Application** | Java 21 LTS, Spring Boot 3, Spring Data JPA, Hibernate 6, HikariCP, Jackson | `3.3.5` / `21.0` |
 | **Relational Storage** | PostgreSQL 16 Alpine, Flyway Database Migrations (V1–V8), Composite Indexes | `16.8` / `10.10` |
-| **Frontend Control Plane**| React 19, TypeScript, Vite 6, Tailwind CSS 4, TanStack Query 5, Lucide Icons, Recharts | `19.3.1` / `5.7` |
+| **Frontend Control Plane**| React 19, TypeScript, Vite 6, Tailwind CSS 4, TanStack Query 5, Lucide Icons, Recharts | `19.3.1` / `6.0` |
 | **Container & Proxy** | Docker Engine, Docker Compose, Nginx Alpine (Reverse Proxy & Security Headers) | `1.27-alpine` |
 | **Test Automation** | JUnit 5, Testcontainers PostgreSQL, MockMvc, Vitest, React Testing Library, Playwright E2E | `1.65.1` (PW) |
-| **CI/CD & Registries** | GitHub Actions (7 verification jobs), GitHub Container Registry (GHCR OCI Images) | `v4` Actions |
+| **CI/CD & Deployment** | GitHub Actions (7 verification jobs), Cloudflare Pages (Public Demo Hosting) | `v4` Actions |
 
 ---
 
@@ -175,7 +189,7 @@ In multi-tenant SaaS environments, a single batch tenant submitting 1,000 reques
 QueueForge implements **Deficit Round Robin (DRR)** fair queueing. During claim sweeps, candidate tenants are locked via `FOR UPDATE OF t` on `qf_tenants` to serialize multi-worker quota evaluations without oversubscribing tenant concurrency limits (`max_concurrency`). Each tenant receives quantum credits proportional to its weight, with anti-hoarding resets preventing idle tenants from hoarding historical credits.
 
 ### The Noisy-Neighbor Benchmark (Profile 3)
-A controlled benchmark was executed comparing FairShare DRR against standard FIFO/static-priority scheduling under an asymmetric synthetic workload:
+A controlled synthetic benchmark was executed comparing FairShare DRR against standard FIFO scheduling under an asymmetric synthetic workload:
 - **Flood Tenant A:** Submitted 1,000 jobs simultaneously ($W=1$).
 - **Quiet Tenants B, C, D, E:** Submitted 20 jobs each ($W=1$).
 - **Total Workload:** 1,080 jobs under contention.
@@ -189,9 +203,9 @@ A controlled benchmark was executed comparing FairShare DRR against standard FIF
 ### Key Measured Results:
 - **Quiet-Tenant Median Wait Time (p50):** Dropped from **11,868 ms down to 1,210 ms** — an **89.8% reduction in latency** ($1 - 1210/11868 = 89.804\%$).
 - **Jain's Fairness Index Under Contention:** Surged from **0.2329** (severe starvation) to **1.0000** (perfect proportional sharing).
-- **The Engineering Tradeoff:** FairShare introduces an aggregate throughput overhead of approximately **21%** (89.65 jobs/sec in FIFO vs 70.62 jobs/sec in FairShare DRR) due to row locking (`FOR UPDATE OF t`) and per-tenant round-robin evaluations. For low-latency interactive systems, trading 21% throughput for an 89.8% latency reduction is a deliberate and advantageous engineering tradeoff.
+- **The Throughput Tradeoff:** FairShare introduces an observed aggregate throughput overhead of approximately **21%** (**89.65 jobs/sec in FIFO vs 70.62 jobs/sec in FairShare DRR**) due to row locking (`FOR UPDATE OF t`) and per-tenant round-robin evaluations. For low-latency interactive systems, trading 21% throughput for an 89.8% latency reduction is a deliberate and advantageous engineering tradeoff.
 
-*For full benchmark JSON datasets, measurement methodology, and all 4 profiles, see the [Benchmark Presentation Report](docs/benchmark/FAIRSHARE_BENCHMARK_PRESENTATION.md).*
+*Note: This benchmark result is specific to the documented synthetic 1,080-job flood contention workload. For full JSON datasets and measurement methodology, see the [Benchmark Presentation Report](docs/benchmark/FAIRSHARE_BENCHMARK_PRESENTATION.md).*
 
 ---
 
@@ -209,7 +223,7 @@ sequenceDiagram
     participant Receiver as PaymentReceiverService
     participant RecDB as Receiver PostgreSQL (inbox_deduplication)
 
-    rect rgb(20, 30, 45)
+    rect rgb(20, 26, 38)
         Note over OrderSvc,DB: Step 1: Atomic Dual-Write in Single ACID Transaction
         Client->>OrderSvc: POST /api/v1/orders (orderNumber, amount, currency)
         OrderSvc->>DB: INSERT INTO qf_orders (status='CREATED')
@@ -218,7 +232,7 @@ sequenceDiagram
         OrderSvc-->>Client: 201 Created (Order Response)
     end
 
-    rect rgb(30, 25, 45)
+    rect rgb(30, 22, 16)
         Note over Dispatcher,RecDB: Step 2: At-Least-Once Dispatch & Durable Deduplication
         Dispatcher->>DB: SELECT * FROM qf_outbox_events WHERE status='PENDING' FOR UPDATE SKIP LOCKED
         DB-->>Dispatcher: OutboxEvent (idempotency_key, payload)
@@ -249,66 +263,45 @@ sequenceDiagram
 
 ## 9. Comprehensive Testing & CI Verification
 
-QueueForge V2 is verified by **264 automated tests** and **8 Docker smoke stages**, executed across 7 parallel jobs in GitHub Actions:
+QueueForge V2 is verified by **302 automated tests** and **8 Docker smoke stages**, executed across 7 parallel jobs in GitHub Actions:
 
 | Test Suite | Framework / Tool | Test Count | Key Scenarios Verified |
 | :--- | :--- | :---: | :--- |
 | **Backend Integration** | JUnit 5, SpringBootTest, Testcontainers | **187 tests** | `SKIP LOCKED` claim races, lease expiry fencing, DRR starvation resistance, Flyway V8 heartbeats, multi-tenant quotas, 23 security tests. |
 | **Payment Receiver** | JUnit 5, SpringBootTest, Real PostgreSQL | **13 tests** | Service auth (`X-Service-Key`), durable idempotency replay, payload conflict detection (409), concurrent insert race recovery. |
-| **Frontend Unit/Component** | Vitest, React Testing Library, jsdom | **44 tests** | Admin unlock modal, CSRF token handling, DLQ tables, tenant quota meters, status badges, formatters. |
-| **Browser End-to-End** | Playwright (Desktop Chrome + Pixel 5 Mobile) | **20 tests** | Mission Control rendering, status filters, execution timeline inspection, mobile navigation, Public Demo protections. |
-| **Automated Test Total** | | **264 Tests** | **100% Pass Rate in Hosted CI** |
+| **Frontend Unit/Component** | Vitest, React Testing Library, jsdom | **82 tests** | Admin unlock modal, CSRF token handling, DLQ tables, tenant quota meters, status badges, formatters, array defensive guards. |
+| **Browser End-to-End** | Playwright (Desktop Chrome + Mobile Viewport) | **20 tests** | Mission Control rendering, status filters, execution timeline inspection, mobile navigation, Public Demo protections. |
+| **Automated Test Total** | | **302 Tests** | **100% Pass Rate in Hosted CI** |
 | **Docker Cluster Smoke** | PowerShell / Bash Smoke Engine | **8 stages** | End-to-end 7-container startup, Nginx reverse proxy ingress, multi-worker discovery, order creation, outbox dispatch. |
 
-**Authoritative CI Reference:** [GitHub Actions Run 44918650943](https://github.com/saipranav22-commits/queueforge/actions/runs/44918650943) (7/7 Jobs Green on commit `9588406`).
+**Authoritative CI Reference:** [GitHub Actions Run 45041622474](https://github.com/saipranav22-commits/queueforge/actions/runs/45041622474) (7/7 Jobs Green on commit `ab0572a`).
 
 ---
 
-## 10. Local Docker Quickstart
+## 10. Local Development & Quickstart
 
-Developers can launch the complete seven-service cluster locally using pre-configured Docker Compose files:
+### Option A: Local Frontend Only (Low-Resource / Fast Preview)
+To run the React 19 frontend locally (safe for machines with 8 GB RAM):
+```bash
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1
+```
+Open **`http://127.0.0.1:5173`** to access the control plane. Use the **Scenario Explorer** dropdown to demonstrate cluster behaviors with zero local backend processes.
 
-### Prerequisites
-- Docker Engine 24.0+ and Docker Compose v2.20+
-- 4 GB of available system RAM
-- Git
-
-### 1. Clone & Configure Environment
+### Option B: Full-Stack Docker Micro-Cluster
+To launch the complete seven-service cluster locally using pre-configured Docker Compose:
 ```bash
 git clone https://github.com/saipranav22-commits/queueforge.git
 cd queueforge
-
-# Copy template configuration (uses safe development defaults)
 cp .env.production.example .env.production
-```
 
-### 2. Start the Cluster (GHCR Pre-Built Images)
-To run the cluster immediately without local Maven or Node compilation:
-```bash
+# Start the cluster with published GHCR images
 docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml up -d
 ```
-
-*(Alternatively, to build all images locally from source: `docker compose -f docker-compose.v2.yml up -d --build`)*
-
-### 3. Verify Health & Access the Dashboard
-Wait approximately 20 seconds for database migrations and container health probes to complete:
-```bash
-# Check container status
-docker compose -f docker-compose.prod.v2.yml ps
-```
-
-Open your browser to:
-👉 **`http://127.0.0.1:8088`**
-
-- **Console:** Obsidian Pulse dark-mode operational dashboard.
-- **Admin Unlock Key (Dev Default):** `dev_admin_secret_key_change_in_production`
-- **Backend API Health Probe:** `http://127.0.0.1:8088/api/v1/system/health`
-
-### 4. Non-Destructive Teardown
-```bash
-# Stop containers while preserving database volumes
-docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml down
-```
+Open **`http://127.0.0.1:8088`** to access the control plane through Nginx.  
+- **Admin Unlock Key (Dev Default):** `dev_admin_secret_key_change_in_production`  
+- **Backend API Health Probe:** `http://127.0.0.1:8088/api/v1/system/health`  
 
 ---
 
@@ -320,36 +313,31 @@ docker compose -f docker-compose.prod.v2.yml -f docker-compose.prod.ghcr.yml dow
 - **Hermetic Public Demo Mode:** Strict path allowlisting (`DEMO_ALLOWED_EXACT_PATHS`) allows anonymous monitoring while mathematically blocking access to raw payloads, stack traces, and state mutation.
 - **Container Network Isolation:** Neither PostgreSQL instance (`sender-db`, `receiver-db`) binds port 5432 to the host network; the reverse proxy binds strictly to `127.0.0.1:8088` on the loopback interface.
 
-*For complete threat models and vulnerability analysis, see the [Security Audit Report](docs/audit/PHASE_12B_SECURITY_FINDINGS.md).*
-
 ---
 
-## 12. Documentation Index
+## 12. Recruiter & Technical Portfolio Index
 
-The repository maintains exhaustive, source-verified documentation across architecture, distributed systems correctness, and portfolio preparation:
+The repository maintains source-verified documentation across architecture, distributed systems correctness, and portfolio preparation:
 
 | Topic / Focus | Document Link | Description |
 | :--- | :--- | :--- |
+| **Resume Bullets** | [QUEUEFORGE_RESUME_BULLETS.md](docs/portfolio/QUEUEFORGE_RESUME_BULLETS.md) | ATS-friendly, quantifiable experience bullets mapped to source code lines. |
+| **Interview Deep Dive** | [QUEUEFORGE_INTERVIEW_EXPLANATION.md](docs/portfolio/QUEUEFORGE_INTERVIEW_EXPLANATION.md) | 2-minute pitch, 5 deep-dive technical questions, tradeoffs, and 100x scale roadmap. |
+| **LinkedIn Project Copy** | [QUEUEFORGE_LINKEDIN_PROJECT_DESCRIPTION.md](docs/portfolio/QUEUEFORGE_LINKEDIN_PROJECT_DESCRIPTION.md) | Technical project summary for LinkedIn and developer portfolio pages. |
 | **Cluster Architecture** | [QUEUEFORGE_V2_ARCHITECTURE.md](docs/architecture/QUEUEFORGE_V2_ARCHITECTURE.md) | Detailed 7-service topology, container boundaries, and networking. |
-| **State Machine & Leases** | [QUEUEFORGE_JOB_LIFECYCLE.md](docs/architecture/QUEUEFORGE_JOB_LIFECYCLE.md) | Invariants, `SKIP LOCKED` queries, lease fencing, and backoff math. |
+| **Job Lifecycle & Leases** | [QUEUEFORGE_JOB_LIFECYCLE.md](docs/architecture/QUEUEFORGE_JOB_LIFECYCLE.md) | Invariants, `SKIP LOCKED` queries, lease fencing, and backoff math. |
 | **Transactional Outbox** | [TRANSACTIONAL_OUTBOX_FLOW.md](docs/architecture/TRANSACTIONAL_OUTBOX_FLOW.md) | Dual-write atomicity, receiver deduplication, and lost-ack recovery. |
 | **Performance Benchmark** | [FAIRSHARE_BENCHMARK_PRESENTATION.md](docs/benchmark/FAIRSHARE_BENCHMARK_PRESENTATION.md) | 4-profile benchmark dataset, 89.8% latency proof, and tradeoffs. |
-| **Staff Technical Brief** | [PHASE_12B_INTERVIEW_TECHNICAL_BRIEF.md](docs/portfolio/PHASE_12B_INTERVIEW_TECHNICAL_BRIEF.md) | 5 flagship technical highlights, tradeoffs, and 15 staff-level Q&As. |
-| **Project Summaries** | [QUEUEFORGE_PROJECT_SUMMARIES.md](docs/portfolio/QUEUEFORGE_PROJECT_SUMMARIES.md) | 1-line, 50-word, 100-word summaries, LinkedIn copy, and GitHub topics. |
-| **Resume Bullets** | [QUEUEFORGE_RESUME_BULLETS.md](docs/portfolio/QUEUEFORGE_RESUME_BULLETS.md) | Battle-tested, quantifiable experience bullets mapped to source lines. |
-| **Demo Video Walkthrough**| [QUEUEFORGE_DEMO_VIDEO_SCRIPT.md](docs/portfolio/QUEUEFORGE_DEMO_VIDEO_SCRIPT.md) | Exact 3-minute screen-recording walkthrough script with UI cues. |
-| **Visual Asset Inventory**| [QUEUEFORGE_SCREENSHOT_CAPTURE_CHECKLIST.md](docs/portfolio/QUEUEFORGE_SCREENSHOT_CAPTURE_CHECKLIST.md) | Metadata on all 9 authentic screenshots and capture guidelines. |
-| **Security Findings** | [PHASE_12B_SECURITY_FINDINGS.md](docs/audit/PHASE_12B_SECURITY_FINDINGS.md) | Forensic security review, Flyway V7 hashing, and demo allowlists. |
-| **Master Audit Gate** | [PHASE_12B_AUDIT_GATE_REPORT.md](docs/release/PHASE_12B_AUDIT_GATE_REPORT.md) | Official release gate certification (Scorecard: 94.5 / 100). |
+| **Video Walkthrough Script**| [QUEUEFORGE_FINAL_VIDEO_SCRIPT.md](docs/portfolio/QUEUEFORGE_FINAL_VIDEO_SCRIPT.md) | Exact 7-scene technical walkthrough narration script and visual cues. |
 
 ---
 
 ## 13. Project Status & Portfolio Notice
 
-**Current Deployment Status:** Pre-provisioned Local / Containerized (VPS Cloud Hosting Postponed).  
-**Live Public Demo:** None currently active. The application runs locally or in private staging via Docker Compose.
+**Public Showcase:** [https://queueforge.pages.dev](https://queueforge.pages.dev) (Hosted on Cloudflare Pages).  
+**Full-Stack Engine:** Verified in GitHub Actions CI with 302 automated tests and 8 Docker smoke stages. Pre-provisioned for containerized deployment.
 
-*QueueForge is a non-commercial, educational distributed systems and portfolio project created to demonstrate advanced backend engineering, concurrent relational queuing, and multi-tenant scheduling. All payment processing is simulated with synthetic data.*
+*QueueForge is an open-source distributed systems and portfolio project created to demonstrate advanced backend engineering, concurrent relational queuing, and multi-tenant scheduling. All payment processing is simulated with synthetic data.*
 
 ---
 

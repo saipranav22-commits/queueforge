@@ -53,3 +53,7 @@ $RECYCLE.BIN/
 
 # ChaosLab runtime generated reports
 chaoslab/reports/
+
+# Video outputs
+video-output/
+*.mp4

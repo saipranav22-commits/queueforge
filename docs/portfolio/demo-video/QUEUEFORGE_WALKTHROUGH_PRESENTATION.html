@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueueForge V2 — Recruiter-Ready Technical Walkthrough Presentation</title>
+  <style>
+    /* Reset & Base System Typography (100% Offline, Zero External CDNs) */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    :root {
+      --bg-dark: #080c14;
+      --panel-bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --border-color: #1e293b;
+      --border-accent: #334155;
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.25);
+      --blue: #3b82f6;
+      --blue-glow: rgba(59, 130, 246, 0.25);
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 16:9 Presentation Stage Wrapper */
+    #presentation-stage {
+      width: 100vw;
+      height: 100vh;
+      max-width: 177.78vh; /* 16:9 aspect lock */
+      max-height: 56.25vw;
+      aspect-ratio: 16 / 9;
+      position: relative;
+      background: radial-gradient(circle at 50% 20%, #131c31 0%, #080c14 75%);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Stage Bar */
+    header.stage-header {
+      height: 60px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 16px;
+      color: #030712;
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .brand-tag {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .scene-meta-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .scene-time-pill {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(51, 65, 85, 0.5);
+      border: 1px solid var(--border-accent);
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .time-indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    .timer-control {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--emerald);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    /* Main Slide Canvas Container */
+    main.slide-canvas {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      padding: 24px 36px;
+    }
+    .slide {
+      position: absolute;
+      inset: 24px 36px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s ease;
+      transform: scale(0.985);
+    }
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* Slide Typography & Layout */
+    .slide-heading-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      padding-bottom: 10px;
+    }
+    .slide-title-group h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slide-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .slide-scene-tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--cyan);
+      background: rgba(6, 182, 212, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+    }
+
+    /* Slide Content Views */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      gap: 24px;
+      min-height: 0; /* flex container overflow fix */
+    }
+    .visual-pane {
+      flex: 2.2;
+      background: #090e18;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.7);
+    }
+    .visual-pane img, .visual-pane svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .info-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 320px;
+    }
+    .info-card {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .info-card-title {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .info-card-text {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+    .metric-badge-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .metric-box {
+      background: rgba(2, 6, 23, 0.6);
+      border: 1px solid var(--border-accent);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .metric-box-val {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .metric-box-lbl {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .highlight-cyan { color: var(--cyan); }
+    .highlight-emerald { color: var(--emerald); }
+    .highlight-amber { color: var(--amber); }
+
+    /* Bottom Control & Stage Bar */
+    footer.stage-footer {
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      background: #1e293b;
+      border: 1px solid var(--border-accent);
+      color: #e2e8f0;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #334155;
+      color: #fff;
+      border-color: #475569;
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: none;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.3);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #1d4ed8);
+    }
+    .dots-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #334155;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .dot.active {
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      transform: scale(1.25);
+    }
+    .helper-shortcuts {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .kbd {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #cbd5e1;
+      font-size: 11px;
+    }
+
+    /* Presenter Teleprompter Drawer */
+    #notes-drawer {
+      position: absolute;
+      bottom: 64px;
+      left: 0;
+      right: 0;
+      background: rgba(11, 17, 33, 0.96);
+      border-top: 1px solid var(--border-accent);
+      padding: 18px 36px;
+      backdrop-filter: blur(12px);
+      z-index: 30;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.7);
+    }
+    #notes-drawer.open {
+      transform: translateY(0);
+    }
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .drawer-title {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .drawer-script {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #f1f5f9;
+      font-weight: 400;
+    }
+    .drawer-script strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    /* Architecture Inline SVG styling */
+    .arch-svg-text {
+      font-family: var(--font-mono);
+      fill: #e2e8f0;
+      font-size: 12px;
+    }
+    .arch-box {
+      fill: #0f172a;
+      stroke: #334155;
+      stroke-width: 1.5;
+      rx: 6;
+    }
+    .arch-box-core {
+      fill: #132238;
+      stroke: #0284c7;
+      stroke-width: 1.5;
+      rx: 6;
+    }
+    .arch-box-db {
+      fill: #112620;
+      stroke: #059669;
+      stroke-width: 1.5;
+      rx: 6;
+    }
+    .arch-arrow {
+      stroke: #64748b;
+      stroke-width: 1.5;
+      stroke-dasharray: 4, 3;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="presentation-stage">
+    
+    <!-- Top Bar -->
+    <header class="stage-header">
+      <div class="brand-group">
+        <div class="logo-badge">QF</div>
+        <div class="brand-title">QueueForge V2</div>
+        <div class="brand-tag">Evidence-Based Technical Walkthrough</div>
+      </div>
+      <div class="scene-meta-group">
+        <div class="scene-time-pill">
+          <div class="time-indicator-dot"></div>
+          <span id="scene-time-label">0:00 – 0:25 (25s)</span>
+        </div>
+        <div class="timer-control" id="stopwatch-btn" title="Click to start/pause rehearsal timer">
+          ⏱️ <span id="stopwatch-display">00:00 / 03:00</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Slide Content Canvas -->
+    <main class="slide-canvas">
+
+      <!-- SCENE 1: Problem & 7-Service Architecture (0:00 - 0:25) -->
+      <section class="slide active" id="slide-1" data-time="0:00 – 0:25 (25s)" data-scene="Scene 1 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>QueueForge V2: PostgreSQL Distributed Task Platform</h2>
+            <div class="slide-subtitle">ACID-Durable Background Jobs, Worker Fencing & Multi-Tenant Scheduling without External Brokers</div>
+          </div>
+          <div class="slide-scene-tag">Scene 1 • 0:00 – 0:25</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <!-- Inline Vector Architecture Topology -->
+            <svg viewBox="0 0 920 480" width="100%" height="100%">
+              <defs>
+                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#38bdf8"/>
+                </marker>
+                <marker id="arrowhead-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+                </marker>
+              </defs>
+
+              <!-- Ingress Group -->
+              <rect x="30" y="40" width="220" height="110" class="arch-box"/>
+              <text x="45" y="68" class="arch-svg-text" font-weight="700" fill="#38bdf8">Edge Ingress Proxy</text>
+              <text x="45" y="92" class="arch-svg-text" font-size="11">frontend (Nginx 1.27 Alpine)</text>
+              <text x="45" y="112" class="arch-svg-text" font-size="11" fill="#94a3b8">• React 19 UI Static Assets</text>
+              <text x="45" y="130" class="arch-svg-text" font-size="11" fill="#94a3b8">• Reverse Proxy /api/ (:8088)</text>
+
+              <!-- API Gateway -->
+              <rect x="320" y="40" width="240" height="110" class="arch-box-core"/>
+              <text x="335" y="68" class="arch-svg-text" font-weight="700" fill="#38bdf8">Ingestion API Gateway</text>
+              <text x="335" y="92" class="arch-svg-text" font-size="11">api-server (Spring Boot Java 21)</text>
+              <text x="335" y="112" class="arch-svg-text" font-size="11" fill="#94a3b8">• APP_MODE=API_ONLY</text>
+              <text x="335" y="130" class="arch-svg-text" font-size="11" fill="#94a3b8">• Job Ingestion & Admin Redaction</text>
+
+              <!-- Connecting Line: Ingress to API -->
+              <path d="M 250 95 L 312 95" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowhead)"/>
+              <text x="260" y="86" class="arch-svg-text" font-size="9" fill="#94a3b8">HTTP</text>
+
+              <!-- Workers Group -->
+              <rect x="320" y="190" width="240" height="180" class="arch-box" stroke-dasharray="4,4"/>
+              <text x="335" y="215" class="arch-svg-text" font-weight="700" fill="#f59e0b">Concurrent Workers (JVM)</text>
+
+              <!-- Worker 1 -->
+              <rect x="335" y="230" width="210" height="55" class="arch-box-core"/>
+              <text x="350" y="252" class="arch-svg-text" font-size="11" font-weight="700" fill="#e2e8f0">worker-1 (APP_MODE=WORKER)</text>
+              <text x="350" y="270" class="arch-svg-text" font-size="10" fill="#94a3b8">DRR Claiming • Lease Fencing</text>
+
+              <!-- Worker 2 -->
+              <rect x="335" y="300" width="210" height="55" class="arch-box-core"/>
+              <text x="350" y="322" class="arch-svg-text" font-size="11" font-weight="700" fill="#e2e8f0">worker-2 (APP_MODE=WORKER)</text>
+              <text x="350" y="340" class="arch-svg-text" font-size="10" fill="#94a3b8">DRR Claiming • Lease Fencing</text>
+
+              <!-- Sender DB (PostgreSQL 16) -->
+              <rect x="630" y="80" width="260" height="200" class="arch-box-db"/>
+              <text x="645" y="110" class="arch-svg-text" font-weight="700" fill="#10b981">sender-db (PostgreSQL 16.8)</text>
+              <text x="645" y="132" class="arch-svg-text" font-size="11" fill="#e2e8f0">• qf_jobs (SKIP LOCKED index)</text>
+              <text x="645" y="152" class="arch-svg-text" font-size="11" fill="#e2e8f0">• qf_tenants (DRR Quotas & Deficits)</text>
+              <text x="645" y="172" class="arch-svg-text" font-size="11" fill="#e2e8f0">• qf_outbox_events (Atomic Log)</text>
+              <text x="645" y="192" class="arch-svg-text" font-size="11" fill="#e2e8f0">• qf_worker_heartbeats</text>
+              <text x="645" y="215" class="arch-svg-text" font-size="11" fill="#f59e0b" font-weight="700">ZERO External Broker Dependency</text>
+              <text x="645" y="235" class="arch-svg-text" font-size="10" fill="#94a3b8">NO Kafka • NO RabbitMQ Required</text>
+
+              <!-- Connecting Line: API to DB -->
+              <path d="M 560 95 L 622 95" stroke="#10b981" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+              <text x="568" y="86" class="arch-svg-text" font-size="9" fill="#10b981">Atomic Insert</text>
+
+              <!-- Connecting Line: Workers to DB -->
+              <path d="M 545 258 L 622 210" stroke="#10b981" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+              <text x="548" y="225" class="arch-svg-text" font-size="9" fill="#10b981">SKIP LOCKED</text>
+
+              <!-- Simulated Payment Receiver Subsystem -->
+              <rect x="320" y="390" width="240" height="75" class="arch-box"/>
+              <text x="335" y="415" class="arch-svg-text" font-weight="700" fill="#a855f7">payment-receiver (Spring Boot)</text>
+              <text x="335" y="435" class="arch-svg-text" font-size="10" fill="#94a3b8">Simulated Gateway • SHA-256 Deduplication</text>
+
+              <rect x="630" y="390" width="260" height="75" class="arch-box-db"/>
+              <text x="645" y="415" class="arch-svg-text" font-weight="700" fill="#10b981">receiver-db (PostgreSQL 16.8)</text>
+              <text x="645" y="435" class="arch-svg-text" font-size="10" fill="#94a3b8">inbox_deduplication • Durable Idempotency</text>
+
+              <path d="M 560 425 L 622 425" stroke="#10b981" stroke-width="1.5" marker-end="url(#arrowhead-green)"/>
+            </svg>
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">💡 The Dual-Write Hazard</div>
+              <div class="info-card-text">
+                Traditional queues rely on Kafka or RabbitMQ. If your database commits but message broker dispatch fails, background tasks are lost. QueueForge turns PostgreSQL 16 into an ACID-durable queuing engine.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">⚡ Distributed Architectural Pillars</div>
+              <div class="info-card-text">
+                • <strong>SKIP LOCKED Claiming:</strong> Contention-free concurrent row locking.<br/>
+                • <strong>FairShare DRR:</strong> Multi-tenant starvation resistance.<br/>
+                • <strong>Lease Fencing:</strong> Prevents zombie worker split-brain.<br/>
+                • <strong>Transactional Outbox:</strong> Atomic business + event writes.
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-cyan">7</div>
+                <div class="metric-box-lbl">Decoupled Services</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-emerald">0</div>
+                <div class="metric-box-lbl">External Brokers Needed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 2: Obsidian Pulse Dashboard (0:25 - 0:50) -->
+      <section class="slide" id="slide-2" data-time="0:25 – 0:50 (25s)" data-scene="Scene 2 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Obsidian Pulse Operational Dashboard</h2>
+            <div class="slide-subtitle">React 19 / TypeScript Real-Time Telemetry & Public Demo Response Sanitization</div>
+          </div>
+          <div class="slide-scene-tag">Scene 2 • 0:25 – 0:50</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <!-- Authentic Screenshot 01 -->
+            <img src="../../screenshots/01_overview_dashboard.png" alt="Obsidian Pulse Overview Dashboard (1440x900 authentic capture)">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">🖥️ Technology Stack</div>
+              <div class="info-card-text">
+                • <strong>Frontend:</strong> React 19, TypeScript, Tailwind CSS, Lucide Icons.<br/>
+                • <strong>Data Sync:</strong> TanStack Query <strong>3-second periodic REST polling</strong> (not SSE).<br/>
+                • <strong>Build:</strong> Vite 6, production minification, 0 console warnings.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🛡️ Public Demo Redaction</div>
+              <div class="info-card-text">
+                Operators can publicly inspect active throughput, queue depth, and worker heartbeats while tenant payload secrets remain masked at the Spring Boot response layer.
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-cyan">3s</div>
+                <div class="metric-box-lbl">REST Polling Cadence</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-emerald">1440×900</div>
+                <div class="metric-box-lbl">Native UI Resolution</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 3: Distributed Workers & Job Processing (0:50 - 1:20) -->
+      <section class="slide" id="slide-3" data-time="0:50 – 1:20 (30s)" data-scene="Scene 3 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Distributed Workers & Contention-Free Claiming</h2>
+            <div class="slide-subtitle">PostgreSQL SKIP LOCKED, Cryptographic Lease Fencing & Zombie Crash Recovery</div>
+          </div>
+          <div class="slide-scene-tag">Scene 3 • 0:50 – 1:20</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="flex-direction: column; gap: 8px; padding: 8px;">
+            <!-- Authentic Screenshot 07 (Workers Health) & Inset 02 (Job Explorer) -->
+            <img src="../../screenshots/07_workers_health.png" style="height: 60%; width: 100%; object-fit: contain;" alt="Workers Health Telemetry (1440x900 authentic capture)">
+            <img src="../../screenshots/02_job_explorer.png" style="height: 38%; width: 100%; object-fit: contain;" alt="Job Explorer Telemetry (1440x900 authentic capture)">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">⚙️ Concurrency Coordination</div>
+              <div class="info-card-text">
+                • <strong>Row-Lock Claiming:</strong> <code>SELECT FOR UPDATE SKIP LOCKED</code> allows <code>worker-1</code> and <code>worker-2</code> to claim batches simultaneously without head-of-line lock contention.<br/>
+                • <strong>Heartbeats:</strong> 5-second interval heartbeat updates to <code>qf_worker_heartbeats</code>.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🛡️ Split-Brain Fencing</div>
+              <div class="info-card-text">
+                Claims carry an ephemeral <strong>30-second lease</strong> and a monotonic <code>claim_check_token</code>. If a worker hangs, the lease reaper re-queues the job. The zombie worker is fenced out upon return, guaranteeing execution safety.
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-amber">30s</div>
+                <div class="metric-box-lbl">Lease Expiration Time</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-cyan">2</div>
+                <div class="metric-box-lbl">Independent Worker JVMs</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 4: FairShare Multi-Tenant DRR Scheduling (1:20 - 1:50) -->
+      <section class="slide" id="slide-4" data-time="1:20 – 1:50 (30s)" data-scene="Scene 4 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>FairShare Multi-Tenant DRR Scheduling Benchmark</h2>
+            <div class="slide-subtitle">Deficit Round Robin Mitigates Noisy-Neighbor Starvation Under High Contention</div>
+          </div>
+          <div class="slide-scene-tag">Scene 4 • 1:20 – 1:50</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="background: #090e17; padding: 12px;">
+            <!-- Authentic Vector Benchmark Chart -->
+            <img src="../../benchmark/fairshare_benchmark_chart.svg" alt="FairShare DRR Benchmark Chart (docs/benchmark/fairshare_benchmark_chart.svg)">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">📊 1,080-Job Noisy Neighbor Benchmark</div>
+              <div class="info-card-text">
+                • <strong>Workload Profile:</strong> 1 flood tenant submitting 1,000 jobs alongside 4 quiet tenants submitting 20 jobs each.<br/>
+                • <strong>FIFO Baseline:</strong> Quiet tenants suffered severe head-of-line blocking (11.8s median wait).
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-emerald">-89.8%</div>
+                <div class="metric-box-lbl">Quiet Tenant Median Wait (11.8s → 1.2s)</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-cyan">1.0000</div>
+                <div class="metric-box-lbl">Jain's Fairness (from 0.2329)</div>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">⚖️ Engineering Tradeoff Disclosed</div>
+              <div class="info-card-text">
+                Aggregate throughput dropped from <strong>89.65</strong> to <strong>70.62 jobs/s</strong> (a planned <strong>21.2% throughput tradeoff</strong>) to enforce strict proportional fairness and prevent tail starvation.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 5: Transactional Outbox & Idempotency (1:50 - 2:15) -->
+      <section class="slide" id="slide-5" data-time="1:50 – 2:15 (25s)" data-scene="Scene 5 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Transactional Outbox Pattern & Durable Idempotency</h2>
+            <div class="slide-subtitle">Atomic Domain State + Outbox Writes Paired with SHA-256 Inbox Deduplication</div>
+          </div>
+          <div class="slide-scene-tag">Scene 5 • 1:50 – 2:15</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <!-- Inline Vector Outbox Flow Diagram -->
+            <svg viewBox="0 0 920 480" width="100%" height="100%">
+              <!-- Transaction Box -->
+              <rect x="40" y="50" width="360" height="200" rx="10" fill="rgba(30, 41, 59, 0.4)" stroke="#0284c7" stroke-width="2" stroke-dasharray="6,4"/>
+              <text x="55" y="80" class="arch-svg-text" font-weight="700" fill="#38bdf8">Single ACID Transaction Boundary</text>
+              <text x="55" y="100" class="arch-svg-text" font-size="11" fill="#94a3b8">@Transactional OrderService.createOrder()</text>
+
+              <!-- Orders Table -->
+              <rect x="60" y="120" width="150" height="100" class="arch-box"/>
+              <text x="75" y="150" class="arch-svg-text" font-weight="700">qf_orders</text>
+              <text x="75" y="175" class="arch-svg-text" font-size="11" fill="#94a3b8">Order Created</text>
+              <text x="75" y="195" class="arch-svg-text" font-size="10" fill="#10b981">Status: PENDING</text>
+
+              <!-- Outbox Events Table -->
+              <rect x="230" y="120" width="150" height="100" class="arch-box-core"/>
+              <text x="245" y="150" class="arch-svg-text" font-weight="700" fill="#38bdf8">qf_outbox_events</text>
+              <text x="245" y="175" class="arch-svg-text" font-size="11" fill="#94a3b8">Event Staged</text>
+              <text x="245" y="195" class="arch-svg-text" font-size="10" fill="#f59e0b">Dedupe SHA-256</text>
+
+              <!-- Outbox Dispatcher -->
+              <rect x="180" y="320" width="220" height="110" class="arch-box"/>
+              <text x="195" y="350" class="arch-svg-text" font-weight="700" fill="#f59e0b">Outbox Dispatcher</text>
+              <text x="195" y="375" class="arch-svg-text" font-size="11" fill="#e2e8f0">Async Polling & Exponential Retry</text>
+              <text x="195" y="395" class="arch-svg-text" font-size="10" fill="#94a3b8">SKIP LOCKED Event Sweeper</text>
+
+              <!-- Arrow: DB to Dispatcher -->
+              <path d="M 305 220 L 305 310" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowhead)"/>
+              <text x="315" y="270" class="arch-svg-text" font-size="10" fill="#38bdf8">Polls Staged</text>
+
+              <!-- Arrow: Dispatcher to Payment Receiver -->
+              <path d="M 400 375 L 540 375" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowhead)"/>
+              <text x="415" y="365" class="arch-svg-text" font-size="10" fill="#f59e0b">POST /payments/charge</text>
+              <text x="415" y="395" class="arch-svg-text" font-size="9" fill="#94a3b8">Header: Idempotency-Key</text>
+
+              <!-- Payment Receiver Box -->
+              <rect x="550" y="300" width="330" height="150" rx="10" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="2"/>
+              <text x="570" y="330" class="arch-svg-text" font-weight="700" fill="#c084fc">Simulated Payment Receiver Gateway</text>
+              <text x="570" y="355" class="arch-svg-text" font-size="11" fill="#e2e8f0">• Checks <code>inbox_deduplication</code> table</text>
+              <text x="570" y="380" class="arch-svg-text" font-size="11" fill="#e2e8f0">• First attempt: executes & returns 201 Created</text>
+              <text x="570" y="405" class="arch-svg-text" font-size="11" fill="#e2e8f0">• Retried attempts: returns 200 OK (Cached Result)</text>
+              <text x="570" y="430" class="arch-svg-text" font-size="10" fill="#10b981">ZERO Ghost Transactions • ZERO Double Charges</text>
+            </svg>
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">🔒 Atomic ACID Guarantees</div>
+              <div class="info-card-text">
+                Orders and outbox events commit together in a single PostgreSQL transaction. Even if the network crashes immediately, the event is securely staged for delivery.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🛡️ Durable Inbox Deduplication</div>
+              <div class="info-card-text">
+                The simulated receiver computes a SHA-256 payload digest. Duplicate deliveries return cached 200 OK responses, guaranteeing exactly-once semantics across network retries.
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-emerald">100%</div>
+                <div class="metric-box-lbl">ACID Dual-Write Safety</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-cyan">SHA-256</div>
+                <div class="metric-box-lbl">Inbox Idempotency Key</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 6: Dead-Letter Queue & Recovery (2:15 - 2:40) -->
+      <section class="slide" id="slide-6" data-time="2:15 – 2:40 (25s)" data-scene="Scene 6 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Dead-Letter Queue & Fault Recovery Operations</h2>
+            <div class="slide-subtitle">Transient vs Permanent Error Classification, Exponential Backoff & Authenticated Replay</div>
+          </div>
+          <div class="slide-scene-tag">Scene 6 • 2:15 – 2:40</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane">
+            <!-- Authentic Screenshot 06 -->
+            <img src="../../screenshots/06_dead_letter_queue.png" alt="Dead-Letter Queue Telemetry (1440x900 authentic capture)">
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">⚠️ Error Classification</div>
+              <div class="info-card-text">
+                • <strong>Transient Failures:</strong> Network socket timeouts and 503s trigger exponential backoff with jitter (up to 3 retries).<br/>
+                • <strong>Permanent Failures:</strong> 400 Bad Request or malformed payloads bypass retries and route directly to DLQ.
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">🔄 Authenticated Manual Replay</div>
+              <div class="info-card-text">
+                Operators inspect captured stack traces, unlock redacted payloads using an administrative API key, and trigger controlled job re-queuing directly from Obsidian Pulse.
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-rose">3</div>
+                <div class="metric-box-lbl">Max Retry Attempts</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-emerald">Admin Key</div>
+                <div class="metric-box-lbl">Replay Authorization</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 7: Automated Verification & Closing (2:40 - 3:00) -->
+      <section class="slide" id="slide-7" data-time="2:40 – 3:00 (20s)" data-scene="Scene 7 of 7">
+        <div class="slide-heading-row">
+          <div class="slide-title-group">
+            <h2>Automated Verification & Open-Source Artifacts</h2>
+            <div class="slide-subtitle">264 Automated Tests, 8 Docker Smoke Verification Stages & Complete Reproducibility</div>
+          </div>
+          <div class="slide-scene-tag">Scene 7 • 2:40 – 3:00</div>
+        </div>
+        <div class="slide-body">
+          <div class="visual-pane" style="flex-direction: column; justify-content: center; gap: 24px; padding: 32px;">
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 20px 24px; width: 100%; max-width: 600px; display: flex; align-items: center; gap: 16px;">
+              <div style="font-size: 32px;">✅</div>
+              <div>
+                <div style="font-size: 16px; font-weight: 700; color: #fff;">GitHub Actions CI Workflow: 7 / 7 Jobs Passing</div>
+                <div style="font-size: 12px; font-family: var(--font-mono); color: var(--emerald); margin-top: 4px;">Verified Run: #44935616424 • Commit 6f9d971 (main)</div>
+              </div>
+            </div>
+
+            <!-- Test Breakdown Grid -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 100%; max-width: 600px;">
+              <div class="metric-box" style="text-align: center;">
+                <div class="metric-box-val highlight-cyan">187</div>
+                <div class="metric-box-lbl">Backend Tests</div>
+              </div>
+              <div class="metric-box" style="text-align: center;">
+                <div class="metric-box-val highlight-cyan">13</div>
+                <div class="metric-box-lbl">Receiver Tests</div>
+              </div>
+              <div class="metric-box" style="text-align: center;">
+                <div class="metric-box-val highlight-cyan">44</div>
+                <div class="metric-box-lbl">Frontend Tests</div>
+              </div>
+              <div class="metric-box" style="text-align: center;">
+                <div class="metric-box-val highlight-cyan">20</div>
+                <div class="metric-box-lbl">Playwright E2E</div>
+              </div>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-accent); border-radius: 10px; padding: 14px 24px; width: 100%; max-width: 600px; text-align: center;">
+              <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; font-family: var(--font-mono);">GitHub Repository & Architecture Documentation</div>
+              <div style="font-size: 16px; font-weight: 700; color: #38bdf8; margin-top: 4px; font-family: var(--font-mono);">github.com/saipranav22-commits/queueforge</div>
+            </div>
+          </div>
+          <div class="info-pane">
+            <div class="info-card">
+              <div class="info-card-title">🏆 Verification Rigor</div>
+              <div class="info-card-text">
+                QueueForge V2 is independently tested across unit, integration, database transactional isolation, and full browser UI workflows.
+              </div>
+            </div>
+            <div class="metric-badge-grid">
+              <div class="metric-box">
+                <div class="metric-box-val highlight-emerald">264</div>
+                <div class="metric-box-lbl">Automated Tests</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-val highlight-amber">8</div>
+                <div class="metric-box-lbl">Docker Smoke Stages</div>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-title">📖 Open-Source Collateral</div>
+              <div class="info-card-text">
+                Full source code, detailed distributed systems design documents, and reproducible FairShare benchmarks are available in the repository.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Presenter Notes / Teleprompter Drawer -->
+    <div id="notes-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title">🎙️ Presenter Teleprompter Script (Press 'N' to toggle)</div>
+        <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);" id="drawer-word-count">56 words • ~25 seconds</div>
+      </div>
+      <div class="drawer-script" id="teleprompter-text">
+        "When engineering asynchronous job processing, teams frequently introduce external brokers like Kafka or RabbitMQ. But brokers create the dual-write hazard: if your database commits and broker publishing fails, tasks are lost. QueueForge solves this by turning PostgreSQL 16 into an ACID-durable task platform with contention-free worker claiming, fair multi-tenant scheduling, and guaranteed transactional dispatch."
+      </div>
+    </div>
+
+    <!-- Bottom Stage Bar -->
+    <footer class="stage-footer">
+      <div class="nav-controls">
+        <button class="btn" id="prev-btn" title="Previous Slide (Left Arrow)">◀ Previous</button>
+        <button class="btn btn-primary" id="next-btn" title="Next Slide (Right Arrow or Space)">Next Slide ▶</button>
+        <button class="btn" id="notes-btn" title="Toggle Presenter Teleprompter (N key)">🎙️ Script (N)</button>
+        <button class="btn" id="fullscreen-btn" title="Toggle Fullscreen (F key)">⛶ Fullscreen</button>
+      </div>
+
+      <div class="dots-indicator" id="dots-container">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div class="helper-shortcuts">
+        <span><span class="kbd">◀</span> <span class="kbd">▶</span> Navigate</span>
+        <span><span class="kbd">Space</span> Next</span>
+        <span><span class="kbd">N</span> Script</span>
+        <span><span class="kbd">F</span> Fullscreen</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Pure Vanilla Offline Presentation Script
+    const slides = document.querySelectorAll('.slide');
+    const dotsContainer = document.getElementById('dots-container');
+    const sceneTimeLabel = document.getElementById('scene-time-label');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const notesBtn = document.getElementById('notes-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const notesDrawer = document.getElementById('notes-drawer');
+    const teleprompterText = document.getElementById('teleprompter-text');
+    const drawerWordCount = document.getElementById('drawer-word-count');
+    const stopwatchBtn = document.getElementById('stopwatch-btn');
+    const stopwatchDisplay = document.getElementById('stopwatch-display');
+
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+
+    // Word-for-Word Spoken Narration Script Data
+    const narrationScripts = [
+      {
+        words: 56,
+        time: "0:00 – 0:25 (25s)",
+        script: "When engineering asynchronous job processing, teams frequently introduce external brokers like Kafka or RabbitMQ. But brokers create the dual-write hazard: if your database commits and broker publishing fails, tasks are lost. QueueForge solves this by turning PostgreSQL 16 into an ACID-durable task platform with contention-free worker claiming, fair multi-tenant scheduling, and guaranteed transactional dispatch."
+      },
+      {
+        words: 54,
+        time: "0:25 – 0:50 (25s)",
+        script: "This is Obsidian Pulse, our operational control plane built with React 19, TypeScript, and Tailwind CSS. The console synchronizes with our Spring Boot API gateway using TanStack Query three-second REST polling. In public demo mode, visitors inspect cluster throughput, queue depth, and worker health, while sensitive job payloads receive response-level field redaction."
+      },
+      {
+        words: 66,
+        time: "0:50 – 1:20 (30s)",
+        script: "Under the hood, QueueForge coordinates independent Spring Boot worker JVMs. Workers claim pending batches concurrently using PostgreSQL SELECT FOR UPDATE SKIP LOCKED, eliminating row-lock contention. Every claim issues a time-bounded thirty-second lease with a monotonic fencing token. If a worker crashes or stalls, a background recovery reaper reclaims the expired lease, while the stale worker is fenced out upon return to prevent split-brain writes."
+      },
+      {
+        words: 62,
+        time: "1:20 – 1:50 (30s)",
+        script: "To prevent noisy-neighbor starvation, QueueForge implements Deficit Round Robin multi-tenant scheduling. In our controlled benchmark, one flood tenant submitted one thousand jobs alongside four quiet tenants submitting twenty jobs each. FairShare reduced quiet-tenant median queue wait by 89.8%—from 11.8 seconds down to 1.2 seconds—achieving perfect Jain's fairness under contention at a planned 21% aggregate throughput tradeoff."
+      },
+      {
+        words: 55,
+        time: "1:50 – 2:15 (25s)",
+        script: "To demonstrate cross-service reliability, QueueForge implements the Transactional Outbox pattern. When orders arrive, domain entities and outbox events commit atomically inside a single ACID database transaction. An asynchronous dispatcher polls events and dispatches HTTP requests to a simulated payment receiver. The receiver enforces durable inbox deduplication using SHA-256 keys, ensuring exactly-once processing across network retries."
+      },
+      {
+        words: 54,
+        time: "2:15 – 2:40 (25s)",
+        script: "When downstream services fail, QueueForge distinguishes between transient network hiccups and permanent business errors. Transient failures trigger exponential backoff with jitter across three attempts. Exhausted jobs route to the Dead-Letter Queue with captured error stack traces. From Obsidian Pulse, authorized operators review diagnostic failure reasons, inspect sanitized payloads, and trigger manual authenticated replays."
+      },
+      {
+        words: 49,
+        time: "2:40 – 3:00 (20s)",
+        script: "Every capability in QueueForge is backed by 264 automated tests—including 187 backend tests, 13 payment receiver tests, 44 frontend tests, and 20 Playwright browser tests—plus eight Docker smoke stages across seven green GitHub Actions jobs. The full source code, architecture specifications, and benchmark methodology are available on GitHub. Thank you!"
+      }
+    ];
+
+    // Build Dots
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+      dot.title = `Go to Slide ${idx + 1}`;
+      dot.addEventListener('click', () => goToSlide(idx));
+      dotsContainer.appendChild(dot);
+    });
+
+    function updateSlide() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      document.querySelectorAll('.dot').forEach((d, idx) => {
+        d.classList.toggle('active', idx === currentSlide);
+      });
+
+      const currentData = narrationScripts[currentSlide];
+      sceneTimeLabel.textContent = currentData.time;
+      teleprompterText.innerHTML = `"${currentData.script}"`;
+      drawerWordCount.textContent = `${currentData.words} words • ~${currentData.time.split('(')[1].replace(')', '')}`;
+
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.textContent = currentSlide === totalSlides - 1 ? 'Finish Presentation 🏁' : 'Next Slide ▶';
+    }
+
+    function goToSlide(idx) {
+      if (idx >= 0 && idx < totalSlides) {
+        currentSlide = idx;
+        updateSlide();
+      }
+    }
+
+    prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
+    nextBtn.addEventListener('click', () => goToSlide(currentSlide + 1));
+    notesBtn.addEventListener('click', () => notesDrawer.classList.toggle('open'));
+
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        goToSlide(currentSlide + 1);
+      } else if (e.key === 'ArrowLeft') {
+        goToSlide(currentSlide - 1);
+      } else if (e.key.toLowerCase() === 'n') {
+        notesDrawer.classList.toggle('open');
+      } else if (e.key.toLowerCase() === 'f') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    });
+
+    // Practice Stopwatch
+    let stopwatchTimer = null;
+    let elapsedSeconds = 0;
+    let isRunning = false;
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    stopwatchBtn.addEventListener('click', () => {
+      if (!isRunning) {
+        isRunning = true;
+        stopwatchTimer = setInterval(() => {
+          elapsedSeconds++;
+          stopwatchDisplay.textContent = `${formatTime(elapsedSeconds)} / 03:00`;
+          if (elapsedSeconds >= 180) {
+            stopwatchDisplay.style.color = '#f43f5e';
+          }
+        }, 1000);
+      } else {
+        isRunning = false;
+        clearInterval(stopwatchTimer);
+      }
+    });
+
+    // Initialize
+    updateSlide();
+  </script>
+</body>
+</html>
