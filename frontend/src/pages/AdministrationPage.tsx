@@ -25,9 +25,10 @@ export const AdministrationPage: React.FC = () => {
   const { data: tenants } = useTenants(isAuthenticated);
   const { data: workers } = useWorkerFleet();
 
-  const activeTenantsCount = tenants?.length ?? 3;
-  const totalWeight = tenants?.reduce((sum, t) => sum + (t.weight || 1), 0) ?? 8;
-  const onlineWorkers = workers?.filter((w) => w.status === 'ONLINE').length ?? 2;
+  const isTenantsArray = Array.isArray(tenants);
+  const activeTenantsCount = isTenantsArray ? tenants.length : 3;
+  const totalWeight = isTenantsArray ? tenants.reduce((sum, t) => sum + (t.weight || 1), 0) : 8;
+  const onlineWorkers = Array.isArray(workers) ? workers.filter((w) => w.status === 'ONLINE').length : 2;
 
   return (
     <div className="space-y-6">

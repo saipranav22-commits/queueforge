@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '../lib/apiClient';
+import { apiRequest, ApiError } from '../lib/apiClient';
 import type {
   JobSummary,
   JobDetail,
@@ -15,7 +15,13 @@ import type { ApiMessageResponse } from '../types/auth';
 export function useDashboardStats() {
   return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
-    queryFn: () => apiRequest<DashboardStats>('/dashboard/stats'),
+    queryFn: async () => {
+      const data = await apiRequest<DashboardStats>('/dashboard/stats');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected DashboardStats object');
+      }
+      return data;
+    },
     refetchInterval: 3000,
   });
 }
@@ -53,7 +59,13 @@ export function useJobs(filters: JobsQueryFilter) {
 
   return useQuery<PageResponse<JobSummary>>({
     queryKey: ['jobs', filters],
-    queryFn: () => apiRequest<PageResponse<JobSummary>>(endpoint),
+    queryFn: async () => {
+      const data = await apiRequest<PageResponse<JobSummary>>(endpoint);
+      if (!data || typeof data !== 'object' || !Array.isArray(data.content)) {
+        throw new ApiError(500, 'Invalid API response schema: expected PageResponse with content array');
+      }
+      return data;
+    },
     refetchInterval: 3000,
   });
 }
@@ -76,7 +88,13 @@ export function useJobDetail(jobId: string | undefined) {
 export function useJobHistory(jobId: string | undefined) {
   return useQuery<JobExecutionLog[]>({
     queryKey: ['job-history', jobId],
-    queryFn: () => apiRequest<JobExecutionLog[]>(`/jobs/${jobId}/history`),
+    queryFn: async () => {
+      const data = await apiRequest<JobExecutionLog[]>(`/jobs/${jobId}/history`);
+      if (!Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected JobExecutionLog array');
+      }
+      return data;
+    },
     enabled: !!jobId,
     refetchInterval: () => {
       // If any active attempts, poll more often
@@ -97,7 +115,13 @@ export function useDlqJobDetail(jobId: string | undefined, enabled = true) {
 export function useSystemHealth() {
   return useQuery<SystemHealth>({
     queryKey: ['system-health'],
-    queryFn: () => apiRequest<SystemHealth>('/system/health'),
+    queryFn: async () => {
+      const data = await apiRequest<SystemHealth>('/system/health');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected SystemHealth object');
+      }
+      return data;
+    },
     refetchInterval: 5000,
   });
 }
@@ -105,7 +129,13 @@ export function useSystemHealth() {
 export function useSystemMetricsSummary() {
   return useQuery<SystemMetricsSummary>({
     queryKey: ['system-metrics-summary'],
-    queryFn: () => apiRequest<SystemMetricsSummary>('/system/metrics-summary'),
+    queryFn: async () => {
+      const data = await apiRequest<SystemMetricsSummary>('/system/metrics-summary');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected SystemMetricsSummary object');
+      }
+      return data;
+    },
     refetchInterval: 5000,
   });
 }
@@ -113,7 +143,13 @@ export function useSystemMetricsSummary() {
 export function useWorkerFleet() {
   return useQuery<import('../types/worker').WorkerInstance[]>({
     queryKey: ['system-workers'],
-    queryFn: () => apiRequest<import('../types/worker').WorkerInstance[]>('/system/workers'),
+    queryFn: async () => {
+      const data = await apiRequest<import('../types/worker').WorkerInstance[]>('/system/workers');
+      if (!Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected WorkerInstance array');
+      }
+      return data;
+    },
     refetchInterval: 3000,
   });
 }
@@ -152,7 +188,13 @@ export function useDlqActions() {
 export function useTenants(enabled = true) {
   return useQuery<import('../types/tenant').TenantSummary[]>({
     queryKey: ['admin-tenants'],
-    queryFn: () => apiRequest<import('../types/tenant').TenantSummary[]>('/admin/tenants'),
+    queryFn: async () => {
+      const data = await apiRequest<import('../types/tenant').TenantSummary[]>('/admin/tenants');
+      if (!Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected TenantSummary array');
+      }
+      return data;
+    },
     enabled,
     refetchInterval: 5000,
     retry: false, // Don't spam if 401 unauthenticated
@@ -184,7 +226,13 @@ export function useManualOutboxDispatch() {
 export function useSchedulerConfig(enabled = true) {
   return useQuery<import('../types/tenant').FairShareSchedulerConfig>({
     queryKey: ['admin-scheduler-config'],
-    queryFn: () => apiRequest<import('../types/tenant').FairShareSchedulerConfig>('/admin/tenants/scheduler-config'),
+    queryFn: async () => {
+      const data = await apiRequest<import('../types/tenant').FairShareSchedulerConfig>('/admin/tenants/scheduler-config');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected FairShareSchedulerConfig object');
+      }
+      return data;
+    },
     enabled,
     refetchInterval: 10000,
     retry: false,
@@ -209,7 +257,13 @@ export function useUpdateTenant() {
 export function useOutboxStats(enabled = true) {
   return useQuery<import('../types/outbox').OutboxStats>({
     queryKey: ['admin-outbox-stats'],
-    queryFn: () => apiRequest<import('../types/outbox').OutboxStats>('/admin/outbox/stats'),
+    queryFn: async () => {
+      const data = await apiRequest<import('../types/outbox').OutboxStats>('/admin/outbox/stats');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new ApiError(500, 'Invalid API response schema: expected OutboxStats object');
+      }
+      return data;
+    },
     enabled,
     refetchInterval: 3000,
     retry: false,
@@ -231,7 +285,13 @@ export function useOutboxEvents(filters: import('../types/outbox').OutboxQueryFi
 
   return useQuery<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>({
     queryKey: ['admin-outbox-events', filters],
-    queryFn: () => apiRequest<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>(endpoint),
+    queryFn: async () => {
+      const data = await apiRequest<import('../types/job').PageResponse<import('../types/outbox').OutboxEventSummary>>(endpoint);
+      if (!data || typeof data !== 'object' || !Array.isArray(data.content)) {
+        throw new ApiError(500, 'Invalid API response schema: expected PageResponse with content array');
+      }
+      return data;
+    },
     enabled,
     refetchInterval: 3000,
     retry: false,

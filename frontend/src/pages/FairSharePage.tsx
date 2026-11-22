@@ -218,9 +218,10 @@ export const FairSharePage: React.FC = () => {
   };
 
   // Calculations
-  const totalWeight = effectiveConfig?.totalConfiguredWeight ?? (effectiveTenants?.reduce((sum, t) => sum + t.weight, 0) ?? 0);
-  const totalConcurrency = effectiveConfig?.totalMaxConcurrency ?? (effectiveTenants?.reduce((sum, t) => sum + t.maxConcurrency, 0) ?? 0);
-  const activeTenantsCount = effectiveConfig?.activeTenantsCount ?? (effectiveTenants?.filter((t) => t.status === 'ACTIVE').length ?? 0);
+  const isTenantsArray = Array.isArray(effectiveTenants);
+  const totalWeight = effectiveConfig?.totalConfiguredWeight ?? (isTenantsArray ? effectiveTenants.reduce((sum, t) => sum + t.weight, 0) : 0);
+  const totalConcurrency = effectiveConfig?.totalMaxConcurrency ?? (isTenantsArray ? effectiveTenants.reduce((sum, t) => sum + t.maxConcurrency, 0) : 0);
+  const activeTenantsCount = effectiveConfig?.activeTenantsCount ?? (isTenantsArray ? effectiveTenants.filter((t) => t.status === 'ACTIVE').length : 0);
 
   const handleCreateTenant = async (e: React.FormEvent) => {
     e.preventDefault();

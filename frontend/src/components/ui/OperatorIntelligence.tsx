@@ -66,7 +66,7 @@ export const OperatorIntelligence: React.FC = () => {
     }
 
     // Rule 3: Stale Worker Heartbeats
-    if (workers && workers.length > 0) {
+    if (Array.isArray(workers) && workers.length > 0) {
       const staleWorkers = workers.filter((w) => {
         if (!w.lastHeartbeat) return true;
         const ageSeconds = (Date.now() - new Date(w.lastHeartbeat).getTime()) / 1000;

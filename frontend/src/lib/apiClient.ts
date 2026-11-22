@@ -72,10 +72,43 @@ export async function apiRequest<T>(
   }
 
   // Check if response has content
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    return (await response.json()) as T;
+  if (response.status === 204) {
+    return undefined as unknown as T;
   }
 
-  return (await response.text()) as unknown as T;
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+
+  // Reject HTML documents (e.g., SPA routing fallbacks returning index.html with HTTP 200)
+  if (contentType.includes('text/html')) {
+    throw new ApiError(
+      response.status,
+      `Received HTML response instead of JSON from API endpoint '${url}'. The backend service may be offline or unreachable on this host.`,
+      { contentType, url }
+    );
+  }
+
+  // Parse JSON responses
+  if (contentType.includes('application/json') || contentType.includes('+json')) {
+    try {
+      return (await response.json()) as T;
+    } catch (parseErr: any) {
+      throw new ApiError(
+        response.status,
+        `Malformed JSON received from API endpoint '${url}': ${parseErr?.message}`,
+        { contentType, url, originalError: parseErr?.message }
+      );
+    }
+  }
+
+  // Reject any unexpected non-JSON content type for API requests
+  const text = await response.text();
+  if (!text || text.trim() === '') {
+    return undefined as unknown as T;
+  }
+
+  throw new ApiError(
+    response.status,
+    `Unexpected content-type '${contentType}' received from API endpoint '${url}'. Expected 'application/json'.`,
+    { contentType, url, bodyPreview: text.slice(0, 200) }
+  );
 }

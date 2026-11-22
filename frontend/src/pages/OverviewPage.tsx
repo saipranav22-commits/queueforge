@@ -114,12 +114,12 @@ export const OverviewPage: React.FC = () => {
     }
   };
 
-  const activeWorkerCount = workers
+  const activeWorkerCount = Array.isArray(workers)
     ? workers.filter((w) => w.status === 'ONLINE').length
     : stats?.activeWorkers
     ? Math.round(stats.activeWorkers)
     : 0;
-  const workerCapacity = stats?.workerCapacity ?? (workers ? workers.length : 2);
+  const workerCapacity = stats?.workerCapacity ?? (Array.isArray(workers) ? workers.length : 2);
   const isBackendOnline = provenance === 'LIVE_CONNECTED';
 
   const [searchParams] = useSearchParams();
@@ -162,7 +162,7 @@ export const OverviewPage: React.FC = () => {
   }
 
   // Filter jobs by status
-  const displayedJobs = jobs?.content
+  const displayedJobs = Array.isArray(jobs?.content)
     ? jobs.content.filter((j: any) => (statusFilter ? j.status === statusFilter : true))
     : [];
 

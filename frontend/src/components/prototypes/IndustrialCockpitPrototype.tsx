@@ -49,8 +49,8 @@ export const IndustrialCockpitPrototype: React.FC<IndustrialCockpitProps> = ({
   submitSuccess,
 }) => {
   const isLiveOffline = provenance === 'LIVE_OFFLINE';
-  const onlineWorkers = workers ? workers.filter((w) => w.status === 'ONLINE').length : 0;
-  const totalWorkers = workers ? workers.length : 2;
+  const onlineWorkers = Array.isArray(workers) ? workers.filter((w) => w.status === 'ONLINE').length : 0;
+  const totalWorkers = Array.isArray(workers) ? workers.length : 2;
   const pendingJobs = stats?.pendingJobs ?? 0;
   const runningJobs = stats?.runningJobs ?? 0;
   const dlqJobs = stats?.deadLetterJobs ?? 0;

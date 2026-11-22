@@ -306,8 +306,8 @@ export const ReliabilityLabPage: React.FC = () => {
   const [expandedChaosId, setExpandedChaosId] = useState<string>('exp-a');
   const [invariantFilter, setInvariantFilter] = useState<'ALL' | 'SAFETY' | 'LIVENESS'>('ALL');
 
-  const onlineWorkers = workers?.filter((w) => w.status === 'ONLINE').length ?? 0;
-  const totalWorkers = workers?.length ?? 0;
+  const onlineWorkers = Array.isArray(workers) ? workers.filter((w) => w.status === 'ONLINE').length : 0;
+  const totalWorkers = Array.isArray(workers) ? workers.length : 0;
 
   const currentMechanism = RESILIENCE_MECHANISMS.find((m) => m.id === activeMechanismTab) || RESILIENCE_MECHANISMS[0];
 
